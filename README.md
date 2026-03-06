@@ -1,58 +1,79 @@
 # OpenClaw Knowledge Management
 
-**OpenClaw Knowledge Management** is an additive extension layer for OpenClaw focused on **acquiring user knowledge through persistable interactive learning**—and then making that knowledge **reusable, revisable, and scalable** across sessions.
-
-Instead of treating conversations as ephemeral, this project turns interaction into a **knowledge acquisition pipeline**: the agent can learn *what matters to the user*, *how the user reasons*, *what procedures the user follows*, and *what judgments/values the user endorses*—then persist those learnings as compact, structured artifacts that can be recalled and applied later with confidence gating.
+**OpenClaw Knowledge Management** is an extension for [OpenClaw](https://github.com/openclaw/openclaw) that gives AI agents the ability to **learn from interaction, persist what they learn, and reuse it reliably** — all as **user-owned, local, portable knowledge artifacts** rather than opaque server-side state.
 
 ## Why this exists
 
-Modern LLM agents can solve tasks, but they often fail to **accumulate durable knowledge** from ongoing use. When context resets, hard-won insights disappear—or require repeated prompting. This repo explores a broader solution: **interactive learning that produces persistable knowledge**, so the system improves over time without fine-tuning the base model.
+Modern AI agents appear to learn from interaction, but the knowledge they accumulate — whether through context windows, compacted session memory, or fine-tuning — remains **server-side, opaque, and platform-locked**. The user cannot easily inspect, edit, govern, or move it. If the user switches platforms, the knowledge disappears.
 
-In other words, the goal is not just “memory,” but **knowledge management**:
-- learn from interaction,
-- compact and index what was learned,
-- retrieve it when relevant,
-- apply it safely,
-- and revise it as the user or environment changes.
+This project takes a different approach: knowledge is extracted from interaction, stored locally as human-readable text, and owned entirely by the user. The artifacts are **model-agnostic** — any sufficiently capable LLM can consume them. They can be edited with a text editor, version-controlled with git, shared with colleagues, or imported into a different AI assistant.
 
-## What counts as “user knowledge”?
+→ *[How this differs from existing agent memory](docs/design-decisions.md#how-this-differs-from-existing-agent-memory)*
 
-This project targets multiple knowledge types learned through interaction, including:
+## What the agent learns
 
-- **Generalized patterns** (reusable procedures, heuristics, checklists, workflows)
-- **Preferences and style** (communication style, formatting, level of detail, decision criteria)
-- **Domain conventions** (user’s private terminology, org-specific practices, implicit constraints)
-- **Judgments and values** (how the user weighs tradeoffs, what “good” means in their context)
-- **Task strategies** (repeatable approaches to common problems; “skills” learned from dialogue)
-- **Operational facts** (stable facts the user wants the agent to remember, with appropriate controls)
+The project is built around **four types of knowledge**, with emphasis on their generalized forms:
 
-Not all learnings are equal. Some should be ephemeral. Some should be stored only with explicit permission. Some should decay or require periodic re-validation. This repo is about building the mechanisms to handle those distinctions.
+| Memory type | What it captures | Generalized into |
+|---|---|---|
+| **Episodic** | What happened in conversation | Raw material for generalization of other types |
+| **Semantic** | Facts, preferences, conventions | General rules applicable across contexts |
+| **Procedural** | How to do things | Structured recipes, optionally executable programs |
+| **Evaluative** | What counts as "good" | Judgment heuristics and value frameworks |
+
+**Generalization is the key.** We don't just record that the user corrected a summary format five times — we distill it into a rule ("always use bullet points") that the agent applies proactively in new situations. For procedures, a structured recipe can optionally be compiled into a deterministic program for tasks that require perfect repeatability. For evaluative knowledge, patterns of preference become judgment frameworks the agent uses to make good choices in novel situations — the closest analogue to what we colloquially call "wisdom."
+
+→ *[Full memory taxonomy and evaluative knowledge](docs/memory-taxonomy.md)*
+
+## See it in action
+
+A condensed example of how the agent learns progressively over multiple sessions:
+
+> **Session 2** — Agent notices the user always names financial statements as `YYYY-MM-institution-account.pdf`. It proposes a convention. User confirms. → *Semantic artifact created.*
+>
+> **Session 3** — Agent learns the user downloads from Chase, Fidelity, and Amex monthly. It proposes a checklist procedure. → *Procedural artifact created.*
+>
+> **Session 4** — After three identical runs, the agent offers to compile the checklist into a script. → *Recipe retained; executable program linked as optional optimised form.*
+>
+> **Session 5** — User closes an account and opens a new one. Agent revises the institution list, the procedure, and the script together. → *Coherent revision across artifact types.*
+
+→ *[Full example with dialogue](docs/example-learning-in-action.md)*
 
 ## Core idea: Persistable Interactive Learning (PIL)
 
-The system treats dialogue as a learning substrate and produces durable knowledge artifacts.
+The system treats dialogue as a learning substrate and produces durable knowledge artifacts through an 8-stage pipeline:
 
-A typical lifecycle:
-
-1. **Elicit**: ask targeted questions or observe repeated behaviors to surface candidate knowledge  
-2. **Induce**: convert raw interaction into a candidate representation (pattern, rule, rubric, preference model, etc.)  
-3. **Validate**: sanity-check, ask for confirmation when needed, estimate confidence and scope of applicability  
-4. **Compact**: compress into a minimal but useful artifact (schema + summary + examples + constraints)  
-5. **Persist**: store with metadata (provenance, timestamps, confidence, versioning, privacy controls)  
-6. **Retrieve**: recall by relevance and context, not just keyword matching  
-7. **Apply**: use confidence-gated application (suggest, partially apply, or automatically apply based on risk)  
-8. **Revise**: update or retire artifacts when contradicted, outdated, or superseded
-
-This pipeline is designed to improve **scalability** (less repeated prompting, smaller required context) and **personalization** (learned behavior without model fine-tuning).
+1. **Elicit** — surface candidate knowledge from interaction
+2. **Induce** — classify into a typed artifact (semantic, procedural, evaluative, etc.)
+3. **Validate** — estimate confidence and scope
+4. **Compact** — compress into minimal form; deduplicate
+5. **Persist** — store locally with provenance and versioning
+6. **Retrieve** — recall by relevance and context
+7. **Apply** — confidence-gated: suggest, auto-apply, or hold back
+8. **Revise** — update or retire when contradicted or outdated
 
 ## Design goals
 
-- **Additive layer**: users can install/upgrade official OpenClaw normally; this layer adds capabilities without forking upstream.
-- **Confidence-gated reuse**: learned knowledge can be *suggested*, *auto-applied*, or *held back* depending on risk and certainty.
-- **Versioned knowledge artifacts**: changes are tracked; revisions are first-class.
-- **Minimal context dependency**: patterns can be applied with tiny prompts when confidence is high.
-- **Practical safety controls**: explicit user consent where appropriate; scoped applicability; easy inspection and deletion.
-- **Portable representations**: knowledge artifacts should be exportable and auditable (e.g., JSON/YAML + human-readable summaries).
+- **Extension for OpenClaw** — additive layer; users install/upgrade OpenClaw normally
+- **User-owned and local** — knowledge lives on your machine, not a vendor's server
+- **Model-agnostic portability** — artifacts are text; any capable LLM can consume them
+- **Confidence-gated reuse** — learned knowledge is *suggested*, *auto-applied*, or *held back* based on certainty
+- **Free-form artifacts** — lightweight conventions, not rigid schemas; human-readable and editable
+- **Versioned and auditable** — changes are tracked; revisions are first-class
+
+→ *[Design decisions and rationale](docs/design-decisions.md)*
+
+## Roadmap
+
+| Phase | Focus | Status |
+|---|---|---|
+| **1 — Personal Knowledge Store** | PIL pipeline, local storage, playground | ✅ Current |
+| **2 — Generalization Engine** | Episodic → semantic/evaluative generalization, feedback-calibrated confidence | Planned |
+| **3 — Procedural Memory & Code Synthesis** | Structured recipes, optional program compilation, tool library | Planned |
+| **4 — Portability** | Standard artifact format, import/export, cross-agent compatibility | Planned |
+| **5 — Governance & Ecosystem** | Sharing, publishing, org-level knowledge management | Long-term |
+
+→ *[Detailed roadmap](docs/roadmap.md)*
 
 ## Repository structure
 
@@ -60,20 +81,25 @@ This pipeline is designed to improve **scalability** (less repeated prompting, s
 openclaw-knowledge-management/
 ├── packages/
 │   ├── openclaw-plus/          # Core PIL extension (OpenClaw plugin)
-│   │   ├── index.ts            # Plugin entry point; registers tools with OpenClaw
+│   │   ├── index.ts            # Plugin entry point
 │   │   ├── openclaw.plugin.json
 │   │   └── src/
 │   │       ├── pipeline.ts     # Stages 1–4: elicit, induce, validate, compact
 │   │       ├── store.ts        # Stages 5–8: persist, retrieve, apply, revise
-│   │       └── tools.ts        # knowledge_search tool registered via plugin SDK
-│   └── skills-foo/             # Example skill demonstrating PIL-aware patterns
+│   │       └── tools.ts        # knowledge_search tool via plugin SDK
+│   └── skills-foo/             # Example PIL-aware skill
 │       └── SKILL.md
-└── apps/
-    └── playground/             # Dev harness — runs the full pipeline without OpenClaw
-        └── index.ts
+├── apps/
+│   └── playground/             # Dev harness — runs the pipeline without OpenClaw
+│       └── index.ts
+└── docs/                       # Design documents
+    ├── memory-taxonomy.md      # Four memory types and generalization
+    ├── example-learning-in-action.md
+    ├── roadmap.md              # Phased roadmap
+    └── design-decisions.md     # Rationale, differentiators, limitations
 ```
 
-## Getting started (development)
+## Getting started
 
 Requires Node.js ≥ 18 and pnpm.
 
@@ -96,46 +122,44 @@ Override with `KNOWLEDGE_STORE_PATH=/your/path pnpm start`.
 |---|---|---|
 | 1 Elicit | `pipeline.ts` | Signal-word heuristics extract candidate sentences from raw input |
 | 2 Induce | `pipeline.ts` | Regex rules classify each candidate into a `KnowledgeKind` with baseline confidence |
-| 3 Validate | `pipeline.ts` | Adjusts confidence up/down based on assertive vs. hedging language and length |
+| 3 Validate | `pipeline.ts` | Adjusts confidence based on assertive vs. hedging language |
 | 4 Compact | `pipeline.ts` | Normalises whitespace; deduplication runs in Persist |
-| 5 Persist | `store.ts` | JSONL-backed upsert; near-duplicate detection via Jaccard similarity (≥0.75 threshold) |
+| 5 Persist | `store.ts` | JSONL-backed upsert; near-duplicate detection via Jaccard similarity |
 | 6 Retrieve | `store.ts` | Keyword search scored by Jaccard + confidence; retired artifacts excluded |
-| 7 Apply | `store.ts` | confidence ≥ 0.8 → auto-apply; below → suggest; both labelled in output |
-| 8 Revise | `store.ts` | Minor edits update in place; significant content change retires old entry, preserving audit trail |
-| Plugin wiring | `index.ts` / `tools.ts` | `knowledge_search` tool registered with OpenClaw via plugin SDK |
+| 7 Apply | `store.ts` | confidence ≥ 0.8 → auto-apply; below → suggest |
+| 8 Revise | `store.ts` | Minor edits update in place; significant change retires old entry |
+| Plugin | `index.ts` / `tools.ts` | `knowledge_search` tool registered with OpenClaw |
 
 ### Planned
-- LLM-backed induction (replace regex heuristics with a structured extraction call)
+- LLM-backed induction (replace regex heuristics with structured LLM calls)
 - Confidence calibration from user feedback signals
-- Vector/semantic retrieval (replacing or augmenting keyword Jaccard)
-- Consent and privacy controls per artifact kind
-- Decay / re-validation scheduling for time-sensitive facts
-- CLI commands for inspecting, editing, and deleting stored artifacts
-- Integration tests against a live OpenClaw workspace
+- Vector/semantic retrieval (augmenting keyword Jaccard)
+- Evaluative knowledge capture and generalization
+- Procedural recipes with optional code synthesis
+- Import/export primitives
+- CLI for inspecting, editing, and deleting artifacts
 
-## Relationship to “Saving Learned Generalized Patterns”
+## Non-goals
 
-The thread “Saving Learned Generalized Patterns” motivates one key slice of this work: learning reusable patterns from dialogue and persisting them as compact artifacts that can later be recalled and applied. This repo generalizes that concept into a broader **knowledge acquisition and management** framework spanning multiple knowledge types and governance controls.
-
-## Non-goals (for clarity)
-
-- Not trying to fine-tune base LLM weights.
-- Not trying to replace OpenClaw’s core; this is an extension layer.
-- Not treating “memory” as a single bucket—knowledge types differ and require different controls.
+- Not fine-tuning base LLM weights
+- Not replacing OpenClaw's core — this is an extension
+- Not treating "memory" as a single bucket — knowledge types differ and require different controls
+- Not prescribing a rigid schema — artifacts are free-form text with conventions
 
 ## Status
 
-Early-stage / experimental. Core PIL pipeline (stages 1–8) is implemented and runnable via the playground. OpenClaw plugin wiring is in place. The current heuristic implementations are intentionally simple — designed to be replaced with LLM-backed logic incrementally. Expect schema evolution and rapid iteration.
+Early-stage / experimental. Core PIL pipeline (stages 1–8) is implemented and runnable. The current heuristic implementations are intentionally simple — designed to be replaced with LLM-backed logic incrementally.
 
 ## Contributing
 
-Contributions are welcome—especially around:
-- knowledge schemas and evaluation
-- retrieval/ranking methods for learned artifacts
-- safe application policies and conflict resolution
-- tooling for inspection, export, and deletion
+Contributions are welcome — especially around:
+- Knowledge artifact conventions and evaluation
+- Retrieval and ranking methods for learned artifacts
+- Evaluative knowledge representation
+- Procedural knowledge and code synthesis
+- Safe application policies and conflict resolution
+- Tooling for inspection, export, and deletion
 
 ---
 
-**Working thesis:** Agents become genuinely useful when they can **learn interactively**, **store what they learn**, and **reliably reuse it**—all without repeatedly re-prompting the user or retraining the model.
-
+**Working thesis:** Agents become genuinely useful when they can **learn interactively**, **persist what they learn as user-owned artifacts**, and **reliably reuse that knowledge** — all without repeatedly re-prompting the user, retraining the model, or locking knowledge into a vendor's platform.
