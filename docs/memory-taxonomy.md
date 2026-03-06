@@ -1,6 +1,6 @@
 # Memory Taxonomy and Generalization
 
-This document describes the four types of knowledge that the PIL pipeline is designed to capture, and explains why **generalization** — not just recording — is what separates knowledge management from mere memory.
+This document describes the four types of knowledge that the PIL pipeline is designed to capture, explains why **generalization** — not just recording — is what separates knowledge management from mere memory, and maps key mechanisms from human cognition onto the system's design.
 
 ## The four memory types
 
@@ -104,3 +104,61 @@ For example:
 4. "This user's communication philosophy: respect the reader's time, lead with the actionable takeaway, omit hedging" *(value framework)*
 
 The generalized form is powerful because it allows the agent to make good choices in **novel situations** — situations the user has never explicitly commented on, but where the value framework still applies. This is what makes evaluative knowledge the closest analogue to what we colloquially call "wisdom."
+
+## Lessons from human cognition
+
+The four memory types above are informed by cognitive science, but a knowledge management system should also account for the **mechanisms** by which human memory operates. Several of these mechanisms have direct design implications:
+
+### Consolidation
+
+**How humans work:** Memory consolidation doesn't happen in real-time. During sleep and rest, the brain replays episodic memories and integrates them into long-term semantic and procedural memory. Generalization happens during this reflective phase, not during the experience itself.
+
+**Design implication:** The system should support a **background consolidation process** — a periodic "reflection" step that reviews recent episodic observations across multiple sessions and looks for patterns worth generalizing. Real-time elicitation captures raw candidates; consolidation produces high-quality generalizations. This is not implemented yet, but the architecture accommodates it via the `stage` field on artifacts (`"raw"` vs. `"consolidated"`).
+
+### Decay
+
+**How humans work:** Memories that aren't retrieved or reinforced naturally fade. This is adaptive — it prevents irrelevant information from cluttering retrieval.
+
+**Design implication:** Artifacts should lose effective influence over time if they aren't retrieved, reinforced, or applied. Not deletion — gradual reduction in retrieval priority. The artifact schema includes optional `lastRetrievedAt` and `reinforcementCount` fields to support a decay function: `effectiveConfidence = confidence × decayFactor(age, lastRetrieved, reinforcements)`.
+
+### Salience
+
+**How humans work:** Emotionally significant events are remembered better and recalled more readily. The brain assigns different importance to different memories based on consequences.
+
+**Design implication:** Confidence captures how *certain* we are that an artifact is correct. But it doesn't capture how much it *matters*. A formatting preference (low-stakes) should be treated differently from a financial procedure (high-stakes). The artifact schema includes an optional `salience` field (`"low"`, `"medium"`, `"high"`) that affects the auto-apply threshold and revision conservatism. High-salience, high-confidence artifacts are applied with caution; high-salience, medium-confidence artifacts are always suggested rather than auto-applied.
+
+### Spreading activation
+
+**How humans work:** Activating one concept automatically primes related concepts. Thinking "doctor" makes "hospital" more accessible. This is automatic, parallel activation through associative links.
+
+**Design implication:** When an artifact is retrieved, its neighbors in the knowledge graph should receive a partial activation boost. If the user triggers the "monthly statement download" procedure, the "institution list" fact and the "naming convention" should also surface — not because they matched the query, but because they're connected. The `relations` field on artifacts supports graph traversal during retrieval.
+
+### Meta-cognition
+
+**How humans work:** Humans have awareness of their own knowledge — "I know that I know X" (confidence), "I know that I don't know Y" (known unknowns). This meta-awareness guides behaviour: when you know you don't know, you ask; when you know you know, you act.
+
+**Design implication:** The system should eventually support an aggregate meta-cognitive layer — the agent's awareness of its own knowledge coverage. Questions like "Do I have enough knowledge about this user's code style to act autonomously?" or "I have strong coverage of formatting preferences but nothing about deployment procedures — I should ask." This doesn't require changes to individual artifacts; it's a query layer over the store (topic coverage density, average confidence per topic, conflict detection).
+
+### Habituation
+
+**How humans work:** Repeated exposure to the same stimulus with no consequence leads to decreased response. If the same suggestion is ignored ten times, a human stops offering it.
+
+**Design implication:** When an artifact is suggested and the user repeatedly ignores or rejects it, that's a signal. The artifact schema includes optional `appliedCount`, `acceptedCount`, and `rejectedCount` fields. Effective confidence can factor in acceptance rate, and the trigger condition can be narrowed when rejection is frequent.
+
+### Context-dependent retrieval
+
+**How humans work:** The same knowledge may be accessible in one context but not another. You remember your colleague's name at work but blank on it at a party.
+
+**Design implication:** The `trigger` field on artifacts expresses context constraints in natural language (e.g., "when writing code in a professional context" vs. "when chatting casually"). OpenClaw's multi-channel architecture helps here — the `message_received` hook includes channel information, so the same artifact can apply differently on Slack vs. email vs. terminal.
+
+### Summary of cognitive mechanisms and their artifact schema implications
+
+| Mechanism | Artifact field(s) | Status |
+|---|---|---|
+| Consolidation | `stage` (`"raw"` / `"consolidated"`) | Designed, not yet implemented |
+| Decay | `lastRetrievedAt`, `reinforcementCount` | Designed, not yet implemented |
+| Salience | `salience` (`"low"` / `"medium"` / `"high"`) | Designed, not yet implemented |
+| Spreading activation | `relations` (graph edges) | Designed, not yet implemented |
+| Meta-cognition | Query layer over store (no artifact changes) | Future work |
+| Habituation | `appliedCount`, `acceptedCount`, `rejectedCount` | Designed, not yet implemented |
+| Context-dependent retrieval | `trigger` (natural language condition) | Designed, not yet implemented |

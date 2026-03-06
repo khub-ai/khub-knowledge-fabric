@@ -61,19 +61,29 @@ The system treats dialogue as a learning substrate and produces durable knowledg
 - **Free-form artifacts** — lightweight conventions, not rigid schemas; human-readable and editable
 - **Versioned and auditable** — changes are tracked; revisions are first-class
 
-→ *[Design decisions and rationale](docs/design-decisions.md)*
+→ *[Design decisions and rationale](docs/design-decisions.md)* · *[Architecture (tiered triggering, knowledge graph, artifact schema)](docs/architecture.md)*
 
 ## Roadmap
 
+### Near-term (Phase 1 milestones)
+
+| Milestone | What it delivers | Status |
+|---|---|---|
+| **1a — Scaffolding** | Pipeline architecture with placeholder heuristics, playground | ✅ Done |
+| **1b — Explicit "remember"** | User says "remember this" → LLM-backed artifact creation → retrieval in future sessions | **Next** |
+| **1c — Passive elicitation** | Agent observes conversation via hooks and proposes knowledge without explicit instruction | Planned |
+| **1d — Tier 1 triggering** | Keyword index enables zero-cost retrieval on every message | Planned |
+
+### Long-term (Phases 2–5)
+
 | Phase | Focus | Status |
 |---|---|---|
-| **1 — Personal Knowledge Store** | PIL pipeline, local storage, playground | ✅ Current |
-| **2 — Generalization Engine** | Episodic → semantic/evaluative generalization, feedback-calibrated confidence | Planned |
+| **2 — Generalization Engine** | Episodic → semantic/evaluative generalization, Tier 2 triggering, decay, feedback | Planned |
 | **3 — Procedural Memory & Code Synthesis** | Structured recipes, optional program compilation, tool library | Planned |
 | **4 — Portability** | Standard artifact format, import/export, cross-agent compatibility | Planned |
 | **5 — Governance & Ecosystem** | Sharing, publishing, org-level knowledge management | Long-term |
 
-→ *[Detailed roadmap](docs/roadmap.md)*
+→ *[Detailed roadmap with milestones](docs/roadmap.md)*
 
 ## Repository structure
 
@@ -93,10 +103,11 @@ openclaw-knowledge-management/
 │   └── playground/             # Dev harness — runs the pipeline without OpenClaw
 │       └── index.ts
 └── docs/                       # Design documents
-    ├── memory-taxonomy.md      # Four memory types and generalization
+    ├── memory-taxonomy.md      # Four memory types, generalization, cognitive mechanisms
+    ├── architecture.md         # Tiered triggering, knowledge graph, artifact schema
     ├── example-learning-in-action.md
-    ├── roadmap.md              # Phased roadmap
-    └── design-decisions.md     # Rationale, differentiators, limitations
+    ├── roadmap.md              # Phased roadmap with near-term milestones
+    └── design-decisions.md     # Rationale, differentiators, forward-compatibility
 ```
 
 ## Getting started

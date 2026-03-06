@@ -1,6 +1,6 @@
 # Design Decisions
 
-This document explains the key design choices behind the project, how it differs from existing approaches, and the known limitations of the current implementation.
+This document explains the key design choices behind the project, how it differs from existing approaches, the forward-compatibility strategy, and the known limitations of the current implementation.
 
 ## How this differs from existing agent memory
 
@@ -30,6 +30,25 @@ Knowledge artifacts are primarily **free-form text with lightweight conventions*
 
 The "schema" is a set of conventions — kind, confidence, provenance, timestamps — rather than a strict type system. This keeps artifacts open-ended enough to support diverse knowledge types while providing enough structure for the pipeline to operate on them programmatically.
 
+## Forward-compatibility principles
+
+The architecture is designed to evolve without invalidating existing artifacts. Three rules ensure this:
+
+### 1. Core + optional enrichment
+
+The core of an artifact is always `kind` + `content` + `confidence`. Everything else — tags, trigger conditions, graph relationships, lifecycle tracking — is optional enrichment metadata. An artifact without enrichments still works: it can be stored, retrieved (by content search), applied, and revised.
+
+### 2. Additive-only field evolution
+
+New fields are always optional, never required. The pipeline never refuses to process an artifact because it's missing metadata. This means:
+- Old artifacts created before new fields were introduced remain valid
+- A human can create an artifact by writing minimal JSON (kind + content + confidence) and it works
+- The system gracefully degrades: an artifact without tags gets slower retrieval (content search instead of index lookup) but still functions
+
+### 3. Text as the durable layer
+
+Even if the storage backend changes (JSONL → SQLite → graph database), even if the triggering system is redesigned (keyword index → vector search → neural retrieval), even if the graph structure is reorganized — the artifacts themselves are text. They can always be read, understood, and consumed by any system that processes text. This is the deepest form of forward-compatibility: the knowledge outlives any particular implementation.
+
 ## Model-agnostic: what it means precisely
 
 "Model-agnostic" applies to two different layers:
@@ -42,15 +61,31 @@ This distinction is important: the knowledge is portable even if the pipeline th
 
 ## Confidence gating: current approach and intended evolution
 
-The current implementation uses **word-level heuristics** (hedging words lower confidence, assertive words raise it) to set artifact confidence scores. This is a known simplification — a placeholder, not the final design.
+The current implementation uses **word-level heuristics** (hedging words lower confidence, assertive words raise it) to set artifact confidence scores. This is a placeholder, not the final design.
 
 The intended evolution:
 
-1. **Phase 1 (current):** Heuristic confidence based on linguistic signals. Functional but not calibrated against outcomes.
+1. **Milestone 1b:** LLM-backed confidence estimation during induction. The LLM assigns confidence based on how clearly and definitively the user expressed the knowledge.
 2. **Phase 2:** Confidence calibrated from user feedback. When the agent applies an artifact and the user accepts, rejects, or edits the result, the confidence score adjusts. Over time, artifacts that lead to good outcomes gain confidence; those that don't, lose it.
-3. **Longer-term:** Confidence may incorporate domain-specific signals, cross-artifact consistency checks, and temporal decay for time-sensitive knowledge.
+3. **Phase 2+:** Effective confidence incorporates temporal decay (unused artifacts fade), acceptance rate (repeatedly rejected artifacts lose influence), and salience-adjusted thresholds (high-stakes artifacts require higher confidence for auto-application).
 
 The confidence-gating mechanism itself — suggest below threshold, auto-apply above — is designed to be pluggable. The threshold, the scoring method, and the feedback loop can all evolve without changing the artifact format or storage model.
+
+## Cognitive design cross-check
+
+The architecture is informed by a systematic cross-check against human cognitive mechanisms. Key findings:
+
+| Human mechanism | System analogue | Status |
+|---|---|---|
+| Memory consolidation | Background review of raw artifacts → consolidated generalizations | Designed (via `stage` field); not yet implemented |
+| Forgetting / decay | Effective confidence decreases for unretrieved, unreinforced artifacts | Designed (via `lastRetrievedAt`, `reinforcementCount`); not yet implemented |
+| Emotional salience | `salience` field adjusts auto-apply threshold independent of confidence | Designed; not yet implemented |
+| Spreading activation | Graph traversal during retrieval surfaces connected artifacts | Designed (via `relations`); not yet implemented |
+| Meta-cognition | Query layer over store for knowledge coverage awareness | Future work; no artifact changes needed |
+| Habituation | Feedback tracking reduces influence of repeatedly rejected artifacts | Designed (via `acceptedCount`, `rejectedCount`); not yet implemented |
+| Context-dependent retrieval | `trigger` field expresses natural language conditions for when artifacts apply | Designed; not yet implemented |
+
+For full details, see [Memory Taxonomy — Lessons from human cognition](memory-taxonomy.md#lessons-from-human-cognition).
 
 ## Security and governance considerations
 
@@ -71,6 +106,7 @@ These are acknowledged as open design questions, not solved problems. The curren
 This project is built as an extension for [OpenClaw](https://github.com/openclaw/openclaw) for several reasons:
 
 - **Plugin architecture**: OpenClaw has a mature plugin SDK that allows extensions to register tools, CLI commands, and hooks without forking upstream.
+- **Hook-based integration**: OpenClaw's `message_received` and `before_prompt_build` hooks enable passive observation and knowledge injection — the two capabilities PIL needs to operate within conversation flow.
 - **Multi-channel**: OpenClaw connects to 24+ messaging platforms, which means knowledge learned in one channel is available across all channels.
 - **Local-first**: OpenClaw runs on the user's own machine, which aligns with the project's principle that knowledge should be user-owned and local.
 - **Additive**: Users can install and upgrade OpenClaw normally. This extension adds capabilities without modifying the core.
