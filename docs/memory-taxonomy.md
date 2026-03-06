@@ -19,7 +19,7 @@ This project focuses on producing **semantic, procedural, and evaluative** knowl
 
 Recording that the user corrected a summary format five times is episodic memory. Distilling those five corrections into a rule — "always use bullet points, max 5 items, no filler phrases" — is semantic generalization. The rule is more compact, more useful, and applicable to situations the user has never explicitly commented on.
 
-Generalization is what gives the agent **predictive behaviour**: the ability to act correctly in new situations based on principles learned from past ones, rather than requiring explicit instruction every time.
+Generalization is what gives the agent **predictive behavior**: the ability to act correctly in new situations based on principles learned from past ones, rather than requiring explicit instruction every time.
 
 Each memory type has its own generalization path:
 
@@ -78,7 +78,7 @@ The ARC-AGI-v2 benchmark illustrates this clearly. Each visual puzzle presents i
 
 No amount of semantic knowledge (facts about grids) or procedural knowledge (algorithms for pattern matching) is sufficient. The solver must acquire evaluative knowledge: *what do humans consider a natural, elegant transformation?* This can only be learned by exposure to human judgments, not derived from rules alone.
 
-ARC-AGI-v2, in this view, can only be fully solved by a system that learns evaluative knowledge — the general visual principles favoured by humans.
+ARC-AGI-v2, in this view, can only be fully solved by a system that learns evaluative knowledge — the general visual principles favored by humans.
 
 ### Professional domains
 
@@ -100,7 +100,7 @@ individual preference → pattern of preferences → judgment heuristic → valu
 For example:
 1. "User chose the shorter summary" *(single observation)*
 2. "User consistently chooses concise options over detailed ones" *(pattern)*
-3. "Favour brevity; include only information the reader would act on" *(heuristic)*
+3. "Favor brevity; include only information the reader would act on" *(heuristic)*
 4. "This user's communication philosophy: respect the reader's time, lead with the actionable takeaway, omit hedging" *(value framework)*
 
 The generalized form is powerful because it allows the agent to make good choices in **novel situations** — situations the user has never explicitly commented on, but where the value framework still applies. This is what makes evaluative knowledge the closest analogue to what we colloquially call "wisdom."
@@ -135,7 +135,7 @@ The four memory types above are informed by cognitive science, but a knowledge m
 
 ### Meta-cognition
 
-**How humans work:** Humans have awareness of their own knowledge — "I know that I know X" (confidence), "I know that I don't know Y" (known unknowns). This meta-awareness guides behaviour: when you know you don't know, you ask; when you know you know, you act.
+**How humans work:** Humans have awareness of their own knowledge — "I know that I know X" (confidence), "I know that I don't know Y" (known unknowns). This meta-awareness guides behavior: when you know you don't know, you ask; when you know you know, you act.
 
 **Design implication:** The system should eventually support an aggregate meta-cognitive layer — the agent's awareness of its own knowledge coverage. Questions like "Do I have enough knowledge about this user's code style to act autonomously?" or "I have strong coverage of formatting preferences but nothing about deployment procedures — I should ask." This doesn't require changes to individual artifacts; it's a query layer over the store (topic coverage density, average confidence per topic, conflict detection).
 

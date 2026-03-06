@@ -1,6 +1,6 @@
 # Enterprise Vision
 
-This document expands on the Phase 5 Governance & Ecosystem themes from the [roadmap](roadmap.md). It is written for two audiences: **enterprise adopters** evaluating whether this project addresses a real organisational need, and **investors** interested in the economic potential of portable knowledge artifacts.
+This document expands on the Phase 5 Governance & Ecosystem themes from the [roadmap](roadmap.md). It is written for two audiences: **enterprise adopters** evaluating whether this project addresses a real organizational need, and **investors** interested in the economic potential of portable knowledge artifacts.
 
 ---
 
@@ -12,7 +12,7 @@ Enterprise knowledge management has been a solved problem on paper for decades �
 
 The knowledge that actually drives expert performance is *tacit*: the judgment about which client communication style to use, the mental model of which regulatory argument tends to hold up in practice, the hard-won understanding of which vendor claims can be trusted and in what contexts. This knowledge lives in people's heads because writing it down has historically required too much effort for too little return — documents don't surface themselves at the right moment, don't update automatically when circumstances change, and don't get read when they're needed.
 
-AI agents change this equation. An agent that operates alongside a knowledge worker for months or years naturally encounters the contexts where tacit knowledge is exercised. With PIL, the agent can elicit that knowledge incrementally, structure it, and make it available — both to the same user in future sessions and, with appropriate governance, to others in the organisation.
+AI agents change this equation. An agent that operates alongside a knowledge worker for months or years naturally encounters the contexts where tacit knowledge is exercised. With PIL, the agent can elicit that knowledge incrementally, structure it, and make it available — both to the same user in future sessions and, with appropriate governance, to others in the organization.
 
 ### The continuity problem
 
@@ -22,7 +22,7 @@ Consider what happens when a senior analyst leaves a law firm, a senior engineer
 - Onboarding the successor takes months not because the successor lacks capability but because they lack accumulated context.
 - The team may not even know what was lost until it matters.
 
-With PIL, a portion of that accumulated knowledge — the portions the employee and organisation have agreed to retain — can be preserved as active artifacts. The successor's agent applies those artifacts from day one: surfacing relevant conventions, flagging known exceptions, and proposing handling patterns based on accumulated experience.
+With PIL, a portion of that accumulated knowledge — the portions the employee and organization have agreed to retain — can be preserved as active artifacts. The successor's agent applies those artifacts from day one: surfacing relevant conventions, flagging known exceptions, and proposing handling patterns based on accumulated experience.
 
 This is not a theoretical capability. It is the natural consequence of building knowledge management into the AI agent workflow itself, rather than relying on humans to document knowledge as a separate, unrewarded task.
 
@@ -43,9 +43,9 @@ Movement between tiers requires explicit human action:
 
 - **Individual → Team**: The contributor flags an artifact as a team submission. A reviewer approves, rejects, or returns with comments.
 - **Team → Org**: A publisher promotes reviewed artifacts to the org knowledge base. Policy controls can restrict which categories reach org level.
-- **Org → Public**: An optional step for organisations that want to publish knowledge packages externally (e.g., a consultancy publishing domain-specific packages, or a professional body publishing regulatory guidance).
+- **Org → Public**: An optional step for organizations that want to publish knowledge packages externally (e.g., a consultancy publishing domain-specific packages, or a professional body publishing regulatory guidance).
 
-Within each tier, every organisation's agents treat artifacts from higher tiers as authoritative context — injected alongside conversation history with appropriate confidence levels.
+Within each tier, every organization's agents treat artifacts from higher tiers as authoritative context — injected alongside conversation history with appropriate confidence levels.
 
 ### Role-based access control
 
@@ -80,11 +80,11 @@ For regulated industries, this matters concretely:
 - **Healthcare**: You can show that clinical guidance injected by an AI agent was derived from approved, reviewed knowledge, with a clear chain of human sign-off.
 - **Any regulated context**: Artifact retirement creates a clean break — there is a record of when a rule changed and what replaced it, rather than a silent overwrite.
 
-### Knowledge that survives the organisation's evolution
+### Knowledge that survives the organization's evolution
 
-Beyond employee turnover, there are structural events that routinely destroy organisational knowledge:
+Beyond employee turnover, there are structural events that routinely destroy organizational knowledge:
 
-- **Mergers and acquisitions**: Two organisations with different conventions, processes, and judgment frameworks must somehow reconcile them.
+- **Mergers and acquisitions**: Two organizations with different conventions, processes, and judgment frameworks must somehow reconcile them.
 - **System migrations**: Moving from one AI vendor or platform to another typically means losing the accumulated knowledge, since it is stored in proprietary formats.
 - **Workforce scaling**: When a team grows rapidly, new members must somehow absorb conventions that were previously informal.
 
@@ -128,13 +128,13 @@ This is analogous to selling a textbook, but the knowledge is *active* rather th
 
 For high-stakes domains, the value of a knowledge package is not just its content but its provenance. A package certified by a licensing body — reviewed by licensed practitioners, tested against case examples — commands a significant premium over an uncertified equivalent. This creates a certification business.
 
-**Organisational knowledge custody**
+**Organizational knowledge custody**
 
 Enterprises need the same things for knowledge packages that they need for software packages: private hosting, access controls, version management, audit trails. A managed private registry for org knowledge — with governance tooling layered on top — is a well-understood SaaS model (cf. Artifactory, GitHub Packages, AWS CodeArtifact) applied to a new asset class.
 
 **Knowledge migration services**
 
-Most organisations have large bodies of relevant knowledge trapped in document repositories, process manuals, email archives, and chat histories. Converting this into structured PIL artifacts is a one-time effort that pays recurring dividends as artifacts are injected into agent workflows. This is a services business initially, automatable over time.
+Most organizations have large bodies of relevant knowledge trapped in document repositories, process manuals, email archives, and chat histories. Converting this into structured PIL artifacts is a one-time effort that pays recurring dividends as artifacts are injected into agent workflows. This is a services business initially, automatable over time.
 
 **Knowledge continuity and M&A services**
 
@@ -142,7 +142,7 @@ Employee offboarding, team restructuring, and M&A create well-defined events whe
 
 ### Network effects and defensibility
 
-The format standard is the defensible asset. As more organisations accumulate knowledge in PIL artifact format:
+The format standard is the defensible asset. As more organizations accumulate knowledge in PIL artifact format:
 
 - Switching to a different format requires converting accumulated knowledge — an increasingly costly migration.
 - The ecosystem of tools, converters, certification bodies, and marketplaces built around the standard makes the standard more valuable.
@@ -167,7 +167,7 @@ The artifact design choices made in phases 1–4 are not accidental — they are
 
 ## Why now
 
-Enterprise AI adoption is accelerating faster than enterprise AI governance. Most organisations deploying AI agents have no answer to the question "what does our agent know, and who approved it?" The compliance and audit requirements will follow — as they always do — once the technology is established enough to attract regulatory attention.
+Enterprise AI adoption is accelerating faster than enterprise AI governance. Most organizations deploying AI agents have no answer to the question "what does our agent know, and who approved it?" The compliance and audit requirements will follow — as they always do — once the technology is established enough to attract regulatory attention.
 
 PIL is positioned to be the answer to that question: not a compliance bolt-on, but a knowledge management architecture where governance is a natural consequence of how knowledge is captured and stored, rather than an external constraint applied after the fact.
 

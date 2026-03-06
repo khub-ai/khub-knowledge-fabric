@@ -59,7 +59,7 @@ This is the transition from "memory" to "knowledge management." The agent stops 
 - Decay: artifacts that aren't retrieved or reinforced gradually lose effective confidence
 
 ### Deliverable
-Agent behaviour becomes noticeably more predictive — it generalizes from examples rather than requiring explicit instruction for every new situation.
+Agent behavior becomes noticeably more predictive — it generalizes from examples rather than requiring explicit instruction for every new situation.
 
 ---
 
@@ -106,13 +106,13 @@ A user can export their knowledge from OpenClaw and import it into another assis
 
 **Goal:** Knowledge as a shareable, governed, and potentially tradeable unit — beyond the individual user.
 
-This phase converts the artifact format and ownership model built in phases 1–4 into a foundation for team and organisational knowledge management. It is also where a new kind of economic value becomes possible.
+This phase converts the artifact format and ownership model built in phases 1–4 into a foundation for team and organizational knowledge management. It is also where a new kind of economic value becomes possible.
 
 → *[Enterprise vision: detailed considerations and business models](enterprise-vision.md)*
 
-### Enterprise: from personal to organisational knowledge
+### Enterprise: from personal to organizational knowledge
 
-The hardest knowledge management problem in organisations is not storage — it is capture, curation, and continuity. Subject-matter expertise is locked in individuals' heads, in email threads, and in chat histories that are impossible to search. When a key person leaves, that knowledge largely leaves with them.
+The hardest knowledge management problem in organizations is not storage — it is capture, curation, and continuity. Subject-matter expertise is locked in individuals' heads, in email threads, and in chat histories that are impossible to search. When a key person leaves, that knowledge largely leaves with them.
 
 PIL's artifact model addresses this differently.
 
@@ -127,7 +127,7 @@ Knowledge flows through a natural hierarchy:
 | **Org** | Curated, reviewed, and approved | All employees |
 | **Public** | Open registry | Anyone who imports the package |
 
-This mirrors how knowledge actually moves in organisations: individuals learn → teams develop shared conventions → organisations codify policy → industries develop standards. Each tier promotion is gated by an explicit human decision, not automatic.
+This mirrors how knowledge actually moves in organizations: individuals learn → teams develop shared conventions → organizations codify policy → industries develop standards. Each tier promotion is gated by an explicit human decision, not automatic.
 
 **Access controls and role model**
 
@@ -152,11 +152,11 @@ Each artifact's lifecycle — creation, retrieval, application, revision, retire
 
 For regulated industries — legal, financial services, healthcare — this is not a nice-to-have. It is a prerequisite for deploying AI agents in consequential workflows.
 
-**Organisational continuity**
+**Organizational continuity**
 
 The knowledge a skilled employee accumulates over years of agent use — preferred formats, client-specific conventions, learned shortcuts, evaluated quality standards — does not have to leave when they do. With an org-level knowledge tier and appropriate consent controls, curated portions of that accumulated knowledge can be retained, reviewed, and inherited by successors or shared with the team.
 
-This is qualitatively different from document retention. The knowledge is *active*: it informs the successor's agent from day one, surfaces relevant conventions at the moment they are needed, and can be revised as the organisation's practices evolve.
+This is qualitatively different from document retention. The knowledge is *active*: it informs the successor's agent from day one, surfaces relevant conventions at the moment they are needed, and can be revised as the organization's practices evolve.
 
 ---
 
