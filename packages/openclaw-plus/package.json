@@ -6,6 +6,8 @@
   "type": "module",
   "exports": {
     ".": "./index.ts",
+    "./types": "./src/types.ts",
+    "./extract": "./src/extract.ts",
     "./pipeline": "./src/pipeline.ts",
     "./store": "./src/store.ts",
     "./tools": "./src/tools.ts"

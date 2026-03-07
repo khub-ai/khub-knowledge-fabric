@@ -1,149 +1,184 @@
 /**
- * PIL (Persistable Interactive Learning) pipeline — stages 1–4.
+ * PIL pipeline — orchestration layer.
  *
- * These are pure transformation functions (no I/O).
- * Stages 5–8 (persist, retrieve, apply, revise) live in store.ts.
+ * Combines extraction (extract.ts) and storage (store.ts) to process a user
+ * message end-to-end: extract knowledge → match against store → accumulate
+ * or create → determine what is injectable.
+ *
+ * Backward-compatibility note: the old synchronous elicit / induce / validate /
+ * compact functions are retained below (marked @deprecated) so that existing
+ * code (e.g., the playground) continues to compile without changes.
  */
 
 import { randomUUID } from "node:crypto";
+import {
+  type KnowledgeArtifact,
+  type KnowledgeKind,
+  type LLMFn,
+} from "./types.js";
+import {
+  type ExtractionCandidate,
+  extractFromMessage,
+  candidateToArtifact,
+} from "./extract.js";
+import {
+  getActiveTags,
+  matchCandidate,
+  accumulateEvidence,
+  persist,
+  getInjectLabel,
+  type InjectLabel,
+} from "./store.js";
 
-export type KnowledgeKind =
-  | "procedure"   // reusable step-by-step workflows
-  | "preference"  // user communication / formatting preferences
-  | "convention"  // domain-specific terminology or org norms
-  | "judgment"    // values, tradeoffs, success criteria
-  | "strategy"    // repeatable problem-solving approaches
-  | "fact";       // stable operational facts with access controls
+// Re-export core types for backward compatibility
+export type { KnowledgeKind, KnowledgeArtifact } from "./types.js";
+export type { ExtractionCandidate } from "./extract.js";
 
-export type KnowledgeArtifact = {
-  id: string;
-  kind: KnowledgeKind;
-  content: string;
-  confidence: number;    // 0–1; gates auto-apply (≥0.8) vs. suggest
-  provenance: string;    // source session/message reference
-  createdAt: string;     // ISO 8601
-  revisedAt?: string;    // ISO 8601, set on each revision
-  retired?: boolean;     // true when superseded or invalidated
+// ---------------------------------------------------------------------------
+// processMessage result types
+// ---------------------------------------------------------------------------
+
+export type InjectableArtifact = {
+  artifact: KnowledgeArtifact;
+  label: InjectLabel;
+};
+
+export type ProcessResult = {
+  /** Candidates the LLM extracted from the message */
+  candidates: ExtractionCandidate[];
+  /** Newly created artifacts (novel knowledge not seen before) */
+  created: KnowledgeArtifact[];
+  /** Updated artifacts (evidence accumulated or newly consolidated) */
+  updated: KnowledgeArtifact[];
+  /**
+   * Artifacts from this message that are injectable into the current session.
+   *
+   * Note: for retrieving artifacts from *previous* sessions relevant to a
+   * query, use retrieve() from store.ts directly.
+   */
+  injectable: InjectableArtifact[];
 };
 
 // ---------------------------------------------------------------------------
-// Stage 1 — Elicit
+// Main pipeline entrypoint: processMessage
 // ---------------------------------------------------------------------------
 
-const SIGNAL_PATTERNS = [
-  /\balways\b/i,
-  /\bnever\b/i,
-  /\bprefer\b/i,
-  /\bi (like|want|need|hate|love)\b/i,
-  /\bmake sure\b/i,
-  /\bevery time\b/i,
-  /\bwhenever\b/i,
-  /\bimportant\b/i,
-  /\bcritical\b/i,
-  /\bmust\b/i,
-  /\bplease (don't|avoid|use|always)\b/i,
-  /\bdon't\b/i,
-  /\bdo not\b/i,
-];
+/**
+ * Process a user message through the full PIL pipeline.
+ *
+ * Stages:
+ *   1. Extract — LLM identifies persistable knowledge candidates
+ *   2. Match   — compare each candidate against existing store artifacts
+ *   3. Resolve — novel → create; accumulating → add evidence; confident → update stats
+ *   4. Decide  — determine which newly-created/updated artifacts are injectable
+ *
+ * @param message    - User's message in any language
+ * @param llm        - LLM adapter function (used for extraction + consolidation)
+ * @param provenance - Session or message reference stored with each artifact
+ */
+export async function processMessage(
+  message: string,
+  llm: LLMFn,
+  provenance = "unknown",
+): Promise<ProcessResult> {
+  // ── Stage 1: Extract ──────────────────────────────────────────────────────
+  const existingTags = await getActiveTags();
+  const candidates = await extractFromMessage(message, existingTags, llm);
+
+  const created: KnowledgeArtifact[] = [];
+  const updated: KnowledgeArtifact[] = [];
+
+  // ── Stages 2 & 3: Match → Resolve ────────────────────────────────────────
+  for (const candidate of candidates) {
+    const match = await matchCandidate(candidate);
+
+    if (match === null) {
+      // Novel: create new candidate artifact
+      const artifact = candidateToArtifact(candidate, provenance);
+      await persist(artifact);
+      created.push(artifact);
+    } else {
+      // Accumulating or confident: add evidence, trigger consolidation if ready
+      const updated_ = await accumulateEvidence(match, candidate.content, llm);
+      updated.push(updated_);
+    }
+  }
+
+  // ── Stage 4: Decide injectable ────────────────────────────────────────────
+  const injectable: InjectableArtifact[] = [];
+  for (const a of [...created, ...updated]) {
+    const label = getInjectLabel(a);
+    if (label) injectable.push({ artifact: a, label });
+  }
+
+  return { candidates, created, updated, injectable };
+}
+
+// ---------------------------------------------------------------------------
+// Format injectable artifacts for LLM prompt injection
+// ---------------------------------------------------------------------------
 
 /**
- * Stage 1 — Elicit: split input into sentences and return those that contain
- * signal words suggesting persistent, reusable knowledge.
+ * Render a list of injectable artifacts as a formatted string suitable for
+ * insertion into an LLM system prompt or context block.
+ *
+ * Labels:
+ *   [established]  — consolidated, high-confidence knowledge; treat as fact
+ *   [suggestion]   — consolidated but lower-confidence; apply with judgment
+ *   [provisional]  — single strong observation; use with caution
  */
-export function elicit(input: string): string[] {
-  // Split on sentence-ending punctuation followed by whitespace/end-of-string
-  const sentences = input
-    .split(/(?<=[.!?])\s+|(?<=[.!?])$/)
-    .map((s) => s.trim())
-    .filter(Boolean);
+export function formatForInjection(injectables: InjectableArtifact[]): string {
+  if (injectables.length === 0) return "";
 
-  return sentences.filter((sentence) =>
-    SIGNAL_PATTERNS.some((pattern) => pattern.test(sentence)),
+  const lines = injectables.map(
+    ({ artifact, label }) => `${label} [${artifact.kind}] ${artifact.content}`,
+  );
+
+  return (
+    "Remembered user knowledge (apply as appropriate):\n" + lines.join("\n")
   );
 }
 
 // ---------------------------------------------------------------------------
-// Stage 2 — Induce
+// Backward-compatible synchronous stubs (deprecated)
 // ---------------------------------------------------------------------------
 
-type KindRule = { pattern: RegExp; kind: KnowledgeKind };
+/** @deprecated Use processMessage() with an LLM adapter instead. */
+export function elicit(input: string): string[] {
+  // Naive sentence splitter — retained for backward compat only
+  return input
+    .split(/(?<=[.!?])\s+|(?<=[.!?])$/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
 
-const KIND_RULES: KindRule[] = [
-  { pattern: /\b(prefer|like|want|wish|rather|instead|hate|love)\b/i,       kind: "preference"  },
-  { pattern: /\b(step|first[,\s]then|next[,\s]|finally|process|workflow|procedure)\b/i, kind: "procedure" },
-  { pattern: /\b(term|means|defined as|called|refers to|known as)\b/i,       kind: "convention"  },
-  { pattern: /\b(because|tradeoff|trade-off|value|priority|balance|weight)\b/i, kind: "judgment" },
-  { pattern: /\b(approach|strategy|way to|method|technique|pattern|tactic)\b/i, kind: "strategy" },
-];
-
-/**
- * Stage 2 — Induce: classify a candidate sentence into a typed KnowledgeArtifact.
- * Returns null for empty input.
- */
-export function induce(candidate: string, provenance = "unknown"): KnowledgeArtifact | null {
+/** @deprecated Use processMessage() with an LLM adapter instead. */
+export function induce(
+  candidate: string,
+  provenance = "unknown",
+): KnowledgeArtifact | null {
   const trimmed = candidate.trim();
   if (!trimmed) return null;
-
-  let kind: KnowledgeKind = "fact";
-  for (const { pattern, kind: k } of KIND_RULES) {
-    if (pattern.test(trimmed)) {
-      kind = k;
-      break;
-    }
-  }
-
   return {
     id: randomUUID(),
-    kind,
+    kind: "fact" as KnowledgeKind,
     content: trimmed,
-    confidence: 0.5, // baseline; validate() adjusts this
+    confidence: 0.5,
     provenance,
     createdAt: new Date().toISOString(),
   };
 }
 
-// ---------------------------------------------------------------------------
-// Stage 3 — Validate
-// ---------------------------------------------------------------------------
-
-const HEDGES      = ["maybe", "sometimes", "might", "could", "possibly", "perhaps", "not sure", "i think", "probably"];
-const ASSERTIONS  = ["always", "never", "every", "must", "will", "definitely", "certainly", "without exception"];
-
-/**
- * Stage 3 — Validate: adjust confidence based on linguistic signals and
- * content heuristics.
- */
+/** @deprecated Use processMessage() with an LLM adapter instead. */
 export function validate(artifact: KnowledgeArtifact): KnowledgeArtifact {
-  const lower = artifact.content.toLowerCase();
-  let confidence = artifact.confidence;
-
-  for (const h of HEDGES)     { if (lower.includes(h)) confidence -= 0.1; }
-  for (const a of ASSERTIONS) { if (lower.includes(a)) confidence += 0.1; }
-
-  // Very short statements are likely too vague to be useful
-  const wordCount = artifact.content.split(/\s+/).length;
-  if (wordCount < 4)  confidence -= 0.15;
-  if (wordCount > 60) confidence -= 0.10; // overly long = noisy
-
-  // Clamp to [0, 1]
-  confidence = Math.min(1, Math.max(0, Math.round(confidence * 100) / 100));
-
-  return { ...artifact, confidence };
+  return artifact; // No-op; validation now performed by LLM at extraction
 }
 
-// ---------------------------------------------------------------------------
-// Stage 4 — Compact
-// ---------------------------------------------------------------------------
-
-/**
- * Stage 4 — Compact: normalise whitespace and punctuation.
- * Deduplication against the existing store happens inside store.persist().
- */
+/** @deprecated Use processMessage() with an LLM adapter instead. */
 export function compact(artifact: KnowledgeArtifact): KnowledgeArtifact {
   const content = artifact.content
     .trim()
-    .replace(/\s+/g, " ")             // collapse runs of whitespace
-    .replace(/\s([.,!?;:])/g, "$1");  // remove space before punctuation
-
+    .replace(/\s+/g, " ")
+    .replace(/\s([.,!?;:])/g, "$1");
   return { ...artifact, content };
 }
