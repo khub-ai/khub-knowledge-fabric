@@ -108,17 +108,18 @@ For full details, see [Memory Taxonomy — Lessons from human cognition](memory-
 
 ## Security and governance considerations
 
-This project stores knowledge as local files owned by the user. This design choice has security implications that are worth acknowledging:
+Security deserves more than a brief note. PIL adds new attack surfaces on top of OpenClaw, which itself connects to 24+ external platforms and has known security concerns. The key risks are:
 
-**Current scope (Phase 1):** Knowledge ownership is simple — whoever owns the OpenClaw instance that created the knowledge owns it. Artifacts are local files with the same access controls as any other file on the user's machine.
+- **External sender injection**: PIL's `message_received` hook fires on all inbound messages, including those from external parties on connected platforms. Without sender verification, a malicious external message could trigger extraction and persist adversarial content.
+- **Prompt injection via artifact injection**: Artifact `content` is injected directly into LLM prompts. Adversarial content in an artifact can manipulate LLM behavior for that session.
+- **Sensitive data capture**: The extraction LLM may inadvertently capture and persist PII, credentials, or confidential information from conversation.
+- **Cross-channel leakage**: Knowledge learned in a private channel may be injected in a public or professional one.
+- **Knowledge poisoning via import**: Phase 4+ imports are a high-risk surface; a malicious package can introduce many adversarial artifacts at once.
+- **Local file exposure**: The JSONL store is plaintext; anyone with filesystem access can read or modify it without going through the pipeline.
 
-**Known considerations for future phases:**
+→ *[Full security threat model with mitigations by phase](security.md)*
 
-- **PII in artifacts**: The agent may learn facts that contain personally identifiable information. The current design stores these as plain text files. Future phases should consider consent controls per artifact kind and the ability to mark artifacts as sensitive.
-- **Knowledge export**: If artifacts can be exported and shared, there must be controls to prevent accidental export of sensitive knowledge. This is a Phase 4/5 concern.
-- **Enterprise deployment**: In an org context, questions arise about who can see, edit, or delete knowledge artifacts, and whether certain knowledge should be org-owned vs. individual-owned. This is deliberately deferred to Phase 5.
-
-These are acknowledged as open design questions, not solved problems. The current foundation is designed to be extensible for governance without requiring fundamental changes to the artifact format.
+Governance considerations for enterprise deployment (access controls, audit trails, org-level knowledge tiers) are covered in [enterprise-vision.md](enterprise-vision.md).
 
 ## Why an OpenClaw extension
 
