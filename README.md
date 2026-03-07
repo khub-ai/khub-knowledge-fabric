@@ -149,9 +149,9 @@ pnpm install
 export ANTHROPIC_API_KEY=sk-ant-...        # macOS / Linux / WSL
 # $env:ANTHROPIC_API_KEY="sk-ant-..."     # Windows PowerShell
 
-cd apps/playground
 pnpm start        # runs all 8 PIL stages against sample input
-pnpm dev          # re-runs on file changes
+pnpm dev          # re-runs on file changes (watch mode)
+pnpm test         # runs the full test suite (no API key required)
 ```
 
 Artifacts are stored at `~/.openclaw/knowledge/artifacts.jsonl`.

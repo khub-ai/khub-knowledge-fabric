@@ -2,6 +2,13 @@
   "name": "openclaw-knowledge-management",
   "version": "0.0.0",
   "private": true,
+  "scripts": {
+    "start":     "pnpm --filter @khub-ai/playground start",
+    "dev":       "pnpm --filter @khub-ai/playground dev",
+    "test":      "pnpm --filter @khub-ai/computer-assistant test",
+    "test:watch":"pnpm --filter @khub-ai/computer-assistant test:watch",
+    "benchmark": "pnpm --filter @khub-ai/computer-assistant benchmark"
+  },
   "devDependencies": {
     "tsx": "^4.19.2",
     "typescript": "^5.8.2",
