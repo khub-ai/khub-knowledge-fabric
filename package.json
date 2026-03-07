@@ -1,0 +1,10 @@
+{
+  "name": "openclaw-knowledge-management",
+  "version": "0.0.0",
+  "private": true,
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.8.2",
+    "vitest": "^2.1.0"
+  }
+}
