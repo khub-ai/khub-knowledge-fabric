@@ -51,6 +51,31 @@ PIL is something qualitatively different: it is the equivalent of on-the-job lea
 
 **Fine-tuning adapts a model for a domain. PIL adapts an agent for a person.**
 
+## Language support and interoperability
+
+The current pipeline implementation is TypeScript-only. This is a known limitation and this section describes what is currently accessible to non-TypeScript callers, and the planned path to broader language support.
+
+**What non-TypeScript callers can do today:**
+
+- **Read and write the artifact store directly.** Artifacts are stored as JSONL at `~/.openclaw/knowledge/artifacts.jsonl` — one JSON object per line, with a fully documented schema. Python, Ruby, Go, or any language that handles JSON can read, filter, and write artifacts without going through the TypeScript pipeline. This enables use cases like artifact inspection tooling, migration scripts, custom reporting, and artifact injection from external systems.
+- **Invoke the pipeline via subprocess.** A Python script (or any language with subprocess support) can shell out to the Node.js CLI, pass messages as arguments or stdin, and parse the JSON output. This is functional but not ergonomic; it requires a Node.js installation on the caller's machine.
+
+**What requires TypeScript today:**
+
+Calling `processMessage`, `retrieve`, `apply`, and `revise` as library functions requires a TypeScript or JavaScript runtime. There is no Python package, no gRPC service, and no REST API.
+
+**Planned: REST API wrapper**
+
+The lowest-effort path to broad language interoperability is a thin HTTP server exposing the core pipeline functions — a single `POST /process` endpoint wrapping `processMessage`, with JSON request and response bodies. This addition to the `apps/` layer would enable any HTTP client (Python's `requests`, Go's `net/http`, etc.) to call the pipeline without a TypeScript dependency in the caller's stack.
+
+This is planned as a near-term addition once the core pipeline API stabilizes.
+
+**Longer term: Python library**
+
+A native Python reimplementation of the PIL pipeline is architecturally straightforward: the `LLMFn` adapter is a plain function signature, the store is plain JSON, and the pipeline has no framework dependencies. A faithful Python port would not require rearchitecting anything. This is a longer-term aspiration, contingent on the artifact format stabilizing through Phase 4 (Portability).
+
+→ *[FAQ: Is a Python API available?](faq.md#is-a-python-api-available-for-khub-pil)*
+
 ## Artifact format: free-form text, not rigid schemas
 
 Knowledge artifacts are primarily **free-form text with lightweight conventions** — not rigid database schemas. This is a deliberate choice with several motivations:

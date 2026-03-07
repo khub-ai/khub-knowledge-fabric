@@ -81,7 +81,7 @@ The system treats dialogue as a learning substrate and produces durable knowledg
 - **Free-form artifacts** — lightweight conventions, not rigid schemas; human-readable and editable
 - **Versioned and auditable** — changes are tracked; revisions are first-class
 
-→ *[Design decisions and rationale](docs/design-decisions.md)* · *[Architecture (tiered triggering, knowledge graph, artifact schema)](docs/architecture.md)* · *[Security threat model](docs/security.md)*
+→ *[Design decisions and rationale](docs/design-decisions.md)* · *[Architecture (tiered triggering, knowledge graph, artifact schema)](docs/architecture.md)* · *[Security threat model](docs/security.md)* · *[FAQ](docs/faq.md)*
 
 ## Roadmap
 
@@ -130,6 +130,7 @@ openclaw-knowledge-management/
     ├── design-decisions.md     # Rationale, differentiators, forward-compatibility
     ├── security.md             # Threat model, risks, and mitigations by phase
     ├── enterprise-vision.md    # Scalability, institutional knowledge, tradeable artifacts, governance, investment thesis
+    ├── faq.md                  # Frequently asked questions
     └── benchmarks/             # Annotated walkthroughs of runnable test programs
 ```
 
