@@ -2,6 +2,18 @@
 
 **OpenClaw Knowledge Management** is an extension for [OpenClaw](https://github.com/openclaw/openclaw) that gives AI agents the ability to **learn from interaction, persist what they learn, and reuse it reliably** — all as **user-owned, local, portable knowledge artifacts** rather than opaque server-side state.
 
+## Who this is for
+
+**Individual users and knowledge workers** — if you use an AI agent daily and find yourself re-explaining your preferences, correcting the same mistakes, or re-teaching your workflow every session, this is for you. PIL makes the agent accumulate what it learns about you across sessions — your communication style, your conventions, your judgment criteria — stored as files on your own machine that you can inspect, edit, and take with you if you switch platforms.
+
+**Enterprise AI adopters** — if you are evaluating AI agents for professional or organizational use, the hardest question is governance: what does the agent know, who approved it, and what happens when the expert who built up that knowledge leaves? PIL addresses this with a structured, auditable artifact model where knowledge is captured explicitly, versioned, and inheritable — not locked inside a model or a vendor's server.
+
+**AI investors and ecosystem builders** — if you are tracking where durable value accumulates in the AI stack, PIL proposes a new asset class: portable, typed, user-owned knowledge artifacts. The artifact format, if it achieves adoption, defines a coordination layer — analogous to what npm did for packages or OpenAPI did for APIs — around which expert knowledge marketplaces, org custody services, and certification businesses can form.
+
+**AI platforms and potential partners** — PIL is built as an OpenClaw extension, but the artifact format is platform-agnostic. A platform that supports PIL artifact import/export gains interoperability with an emerging knowledge ecosystem and a credible story for user data portability and governance.
+
+→ *[Detailed enterprise and investment case](docs/enterprise-vision.md)* · *[Security threat model](docs/security.md)*
+
 ## Why this exists
 
 Modern AI agents appear to learn from interaction, but the knowledge they accumulate — whether through context windows, compacted session memory, or fine-tuning — remains **server-side, opaque, and platform-locked**. The user cannot easily inspect, edit, govern, or move it. If the user switches platforms, the knowledge disappears.

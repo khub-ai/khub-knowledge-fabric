@@ -6,24 +6,24 @@ This document explains the key design choices behind the project, how it differs
 
 Most AI assistants in 2026 offer some form of persistent memory. Here is how this project differs:
 
-| Feature | Context-window memory | Platform memory (e.g., ChatGPT Memory, Claude Projects) | This project (PIL) |
-|---|---|---|---|
-| **Storage location** | Server-side | Server-side | Local, user-owned |
-| **User can inspect** | Limited | Partial (some platforms show stored memories) | Full — artifacts are text files |
-| **User can edit** | No | Limited | Yes — any text editor |
-| **User can delete** | Session reset only | Per-item deletion in some platforms | Full control (file system) |
-| **Portable** | No | No | Yes — model-agnostic text |
-| **Structured** | No (raw conversation) | Minimal (key-value or short statements) | Yes — typed, versioned, with provenance |
-| **Generalized** | No | Rarely | Yes — the pipeline explicitly generalizes observations into rules |
-| **Governable** | No | Platform-dependent | Yes — user owns the files, controls what persists |
+| Feature | Context-window memory | Platform memory (e.g., ChatGPT Memory, Claude Projects) | Agent framework memory (e.g., Letta) | This project (PIL) |
+|---|---|---|---|---|
+| **Storage location** | Server-side | Server-side | Server-side (Letta server / database) | Local, user-owned |
+| **User can inspect** | Limited | Partial (some platforms show stored memories) | Partial — via Letta API or UI | Full — artifacts are text files |
+| **User can edit** | No | Limited | Limited — via Letta API only | Yes — any text editor |
+| **User can delete** | Session reset only | Per-item deletion in some platforms | Yes — via API | Full control (file system) |
+| **Portable** | No | No | No — Letta-specific database format | Yes — model-agnostic text |
+| **Structured** | No (raw conversation) | Minimal (key-value or short statements) | Yes — typed memory blocks | Yes — typed, versioned, with provenance |
+| **Generalized** | No | Rarely | No — stores observations; no systematic distillation into rules | Yes — the pipeline explicitly generalizes observations into rules |
+| **Governable** | No | Platform-dependent | Partial — operator-controlled; no per-artifact governance | Yes — user owns the files, controls what persists |
 
-The key difference is not just *where* the knowledge is stored, but *what form* it takes. Platform memory features typically store brief statements extracted from conversation ("user prefers dark mode"). PIL produces structured, typed, confidence-scored, versioned artifacts that the user can reason about, edit, and share.
+The key difference is not just *where* the knowledge is stored, but *what form* it takes. Platform memory features typically store brief statements extracted from conversation ("user prefers dark mode"). Letta provides a richer memory architecture for developers building agents, but memory remains server-side and in a framework-specific format. PIL produces structured, typed, confidence-scored, versioned artifacts that the user can reason about, edit, and share — and that outlive any particular platform or framework.
 
 ## Artifact format: free-form text, not rigid schemas
 
 Knowledge artifacts are primarily **free-form text with lightweight conventions** — not rigid database schemas. This is a deliberate choice with several motivations:
 
-- **Human-readable**: A user can open an artifact file and understand it immediately without specialised tooling.
+- **Human-readable**: A user can open an artifact file and understand it immediately without specialized tooling.
 - **Model-agnostic**: Any sufficiently capable LLM can consume the artifacts, regardless of vendor. There are no embeddings, token IDs, or model-specific representations.
 - **Forward-compatible**: As the system evolves and new knowledge types emerge, existing artifacts don't require migration. The format accommodates what we haven't anticipated.
 - **Editable**: Users can modify artifacts with any text editor, version-control them with git, diff them, and merge them.
@@ -59,7 +59,7 @@ Even if the storage backend changes (JSONL → SQLite → graph database), even 
 
 This distinction is important: the knowledge is portable even if the pipeline that produced it is not universally deployable.
 
-## Language-agnostic extraction
+## Language-agnostic pattern extraction
 
 The pipeline contains no English-specific heuristics. This is a deliberate design constraint, not an implementation detail.
 
