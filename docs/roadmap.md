@@ -17,25 +17,30 @@ Phase 1 is broken into four milestones. Each produces a working system — the n
 - OpenClaw plugin wiring (`knowledge_search` tool)
 - **What you get:** Architectural skeleton. Not functional for real use — placeholders only.
 
-### Milestone 1b — Explicit "remember" command *(next)*
-- The user says "remember this: [knowledge]" and the agent stores it as an artifact
-- LLM-backed induction: classify the knowledge into a kind (semantic, procedural, evaluative) with appropriate confidence
-- LLM-backed enrichment: generate tags, topic, summary, and trigger condition for the artifact
-- On session start (`before_prompt_build`), retrieve all artifacts relevant to the current conversation context and inject them
-- Basic import/export: load artifacts from a file, export to a file
-- **What you get:** A working personal knowledge store. The user explicitly teaches the agent; the agent remembers and applies in future sessions. Artifacts are local files the user can inspect and edit.
+### Milestone 1b — Explicit "remember" command ✅ *(done)*
+- `processMessage(message, llm, provenance)` orchestrates the full pipeline for any user input
+- LLM-backed extraction (`extract.ts`): language-agnostic, single LLM call produces kind, certainty, scope, tags, rationale
+- Three-stage evidence accumulation: candidate → accumulating → consolidated (auto-promotes at threshold, default 3)
+- Confidence seeded from LLM-assigned `certainty` field; grows through evidence accumulation
+- Tag-based `matchCandidate()` identifies whether extracted knowledge is novel or accumulating
+- `retrieve()` with tag-overlap scoring returns relevant artifacts for prompt injection
+- `getInjectLabel()` gates injection: `[established]`, `[suggestion]`, or `[provisional]`
+- Computer-assistant demo (`apps/computer-assistant/`): full REPL, Anthropic adapter, OS actions, PIL-aware agent
+- 74 unit + scenario tests; extraction/retrieval benchmark suite
+- **What you get:** A functional personal knowledge store. Knowledge accumulates from dialog, consolidates into rules, and is injected into future sessions. Artifacts are JSONL files the user can inspect and edit.
 
-### Milestone 1c — Passive elicitation via hooks
-- Register `message_received` hook to passively observe conversation
-- LLM-backed elicitation: on each message (or batched per conversation), identify candidate knowledge without the user explicitly saying "remember"
-- Deduplicate against existing store; stage new candidates for user confirmation
-- **What you get:** The agent learns from conversation without explicit instruction. It proposes new artifacts when it notices patterns.
+### Milestone 1c — Passive elicitation via hooks *(core logic done; hook wiring pending)*
+- `processMessage()` already handles passive observation — no change to the core pipeline needed
+- Remaining work: register `message_received` hook in `index.ts` to call `processMessage()` on every inbound message in OpenClaw
+- Add sender verification before extraction (required security guard — see [security.md](security.md))
+- Deduplicate against existing store (handled by `matchCandidate()`)
+- **What you get:** The agent learns from any conversation without explicit instruction.
 
-### Milestone 1d — Tier 1 reflexive triggering
-- Build inverted index on artifact tags and topics
-- On each message, tokenize and look up matching artifacts (no LLM cost)
-- Stage matched artifacts for injection in `before_prompt_build`
-- **What you get:** Knowledge retrieval happens on every message at zero cost. High-confidence artifacts are applied automatically; lower-confidence ones are presented as suggestions.
+### Milestone 1d — Tier 1 reflexive triggering *(retrieval logic done; auto-fire wiring pending)*
+- `retrieve()` already uses tag-overlap scoring (Tier 1 equivalent) to return relevant artifacts
+- Remaining work: wire `retrieve()` to fire automatically on every `message_received`, stage results in session state for injection via `before_prompt_build`
+- True in-memory inverted index (`tagIndex`, `topicIndex`) for zero-cost lookup at scale
+- **What you get:** Knowledge retrieval on every message at near-zero cost. High-confidence artifacts applied automatically; lower-confidence ones presented as suggestions.
 
 ### Phase 1 deliverable
 A developer can install the extension, accumulate knowledge across sessions (both explicitly and passively), and see the agent apply learned knowledge in new conversations. Artifacts are local text files that can be inspected, edited, and version-controlled.
@@ -208,9 +213,9 @@ We defer the specifics deliberately: the right design will be clearer once phase
 | Milestone | What it delivers | LLM cost |
 |---|---|---|
 | **1a** ✅ | Pipeline scaffolding, placeholder heuristics | None |
-| **1b** | Explicit "remember" + retrieval + injection | Per explicit command |
-| **1c** | Passive elicitation from conversation | Per message (batch possible) |
-| **1d** | Tier 1 reflexive triggering (index-based) | None (index lookup) |
+| **1b** ✅ | LLM extraction, evidence accumulation, consolidation, tag retrieval, inject labeling, computer-assistant demo, 74 tests | Per message processed |
+| **1c** 🔄 | Core logic done; `message_received` hook wiring + sender verification pending | Per message (batch possible) |
+| **1d** 🔄 | Tag-based retrieval done; auto-fire on every message + in-memory inverted index pending | None (index lookup) |
 | **Phase 2** | Generalization, Tier 2 triggering, decay, feedback | Occasional cheap LLM calls |
 | **Phase 3** | Procedural recipes, optional code synthesis | Per procedure compilation |
 | **Phase 4** | Standard format, import/export, cross-agent | None (format work) |

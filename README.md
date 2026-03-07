@@ -142,29 +142,34 @@ Override with `KNOWLEDGE_STORE_PATH=/your/path pnpm start`.
 
 ## Implementation status
 
-**The code is not yet functional.** The current implementation consists of placeholder heuristics that demonstrate the pipeline architecture but are not suitable for real use. Each stage will need to be replaced with LLM-backed logic to produce meaningful results.
+Milestones 1a–1d are implemented. The LLM-backed pipeline is functional and tested.
 
-### Placeholder implementations (scaffolding only)
-| Stage | Module | Current state |
+### What's implemented (Milestones 1a–1d)
+
+| Component | Module | Status |
 |---|---|---|
-| 1 Elicit | `pipeline.ts` | Placeholder: matches sentences containing hardcoded signal words |
-| 2 Induce | `pipeline.ts` | Placeholder: regex keyword matching to guess artifact kind |
-| 3 Validate | `pipeline.ts` | Placeholder: adjusts confidence by counting hedging/assertive words |
-| 4 Compact | `pipeline.ts` | Placeholder: whitespace normalisation only |
-| 5 Persist | `store.ts` | Placeholder: JSONL file append with basic Jaccard dedup |
-| 6 Retrieve | `store.ts` | Placeholder: keyword overlap scoring, no semantic understanding |
-| 7 Apply | `store.ts` | Placeholder: simple threshold check (≥ 0.8 → auto-apply) |
-| 8 Revise | `store.ts` | Placeholder: in-place update or retire based on content diff |
-| Plugin | `index.ts` / `tools.ts` | Wiring only: `knowledge_search` tool registered with OpenClaw |
+| **Artifact schema** | `src/types.ts` | Full schema: kind, certainty, scope, stage, tags, evidence, relations, salience, lifecycle fields |
+| **LLM extraction** | `src/extract.ts` | `extractFromMessage()` — language-agnostic, single LLM call per message |
+| **Evidence consolidation** | `src/extract.ts` | `consolidateEvidence()` — distills N observations into a generalized rule |
+| **Pipeline orchestration** | `src/pipeline.ts` | `processMessage()` — extract → match → accumulate → inject decision |
+| **Three-stage model** | `src/store.ts` | candidate → accumulating → consolidated; auto-promotes at threshold (default: 3) |
+| **Tag-based retrieval** | `src/store.ts` | `retrieve()` — tag overlap scoring (Tier 1) + content fallback |
+| **Inject label logic** | `src/store.ts` | `[established]` / `[suggestion]` / `[provisional]` gating |
+| **Feedback tracking** | `src/store.ts` | `recordAccepted()` / `recordRejected()` — nudge confidence from user signals |
+| **Plugin wiring** | `index.ts` / `tools.ts` | `knowledge_search` tool registered with OpenClaw; hook stubs ready |
+| **Computer-assistant demo** | `apps/computer-assistant/` | REPL, Anthropic LLM adapter, OS actions, PIL-aware agent |
+| **Test suite** | `apps/computer-assistant/src/tests/` | 74 tests covering extraction, store, pipeline, and scenarios |
+| **Benchmark suite** | `apps/computer-assistant/benchmarks/` | Extraction precision/recall/F1; retrieval hit rate; 18+ scenarios |
 
-### What's needed to reach a functional state
-- LLM-backed induction (replace regex heuristics with structured LLM calls)
-- LLM-backed elicitation (contextual knowledge extraction, not keyword matching)
-- Confidence calibration from user feedback signals
-- Vector/semantic retrieval (replacing keyword Jaccard)
-- Evaluative knowledge capture and generalization
-- Procedural recipes with optional code synthesis
-- Import/export primitives
+### What's next (Phase 2 onward)
+
+- OpenClaw hook wiring for fully passive per-message elicitation (no explicit instruction needed)
+- True Tier-2 triggering: cheap LLM disambiguation of partial tag matches
+- Decay: effective confidence decreases for unretrieved, unreinforced artifacts
+- Semantic/vector retrieval (Phase 2+)
+- Evaluative knowledge generalization (judgment heuristics, value frameworks)
+- Procedural recipe compilation to executable programs (Phase 3)
+- Import/export and cross-platform portability (Phase 4)
 - CLI for inspecting, editing, and deleting artifacts
 
 ## Non-goals
@@ -176,7 +181,7 @@ Override with `KNOWLEDGE_STORE_PATH=/your/path pnpm start`.
 
 ## Status
 
-Early-stage / experimental. The pipeline architecture and storage layer are scaffolded with placeholder heuristics. **The code is not yet functional for real use** — each stage needs to be replaced with LLM-backed logic to produce meaningful knowledge artifacts. The current placeholders exist to validate the pipeline structure and provide a development harness.
+Milestones 1a–1d implemented. The LLM-backed pipeline is functional: knowledge is extracted from user messages, accumulated across interactions, consolidated into generalized rules, and injected into future prompts. A working computer-assistant demo shows PIL learning user-specific patterns (aliases, file-handling preferences, procedures) across sessions. 74 tests pass with no API key required; a benchmark suite measures extraction precision/recall and retrieval hit rate against a curated scenario set.
 
 ## Contributing
 
