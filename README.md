@@ -136,7 +136,7 @@ openclaw-knowledge-management/
 
 ## Getting started
 
-**Prerequisites:** Node.js ≥ 18, pnpm, and an Anthropic API key.
+**Prerequisites:** Node.js ≥ 22.6, pnpm, and an Anthropic API key.
 
 The reference implementation uses [Anthropic Claude](https://console.anthropic.com/) as the LLM backend. Any LLM can be substituted by providing a different `LLMFn` adapter — see [`apps/playground/index.ts`](apps/playground/index.ts) for the adapter pattern.
 
