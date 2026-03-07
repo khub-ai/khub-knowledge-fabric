@@ -6,7 +6,15 @@
 
 **Individual users and knowledge workers** — if you use an AI agent daily and find yourself re-explaining your preferences, correcting the same mistakes, or re-teaching your workflow every session, this is for you. PIL makes the agent accumulate what it learns about you across sessions — your communication style, your conventions, your judgment criteria — stored as files on your own machine that you can inspect, edit, and take with you if you switch platforms.
 
-**Enterprise AI adopters** — if you are evaluating AI agents for professional or organizational use, the hardest question is governance: what does the agent know, who approved it, and what happens when the expert who built up that knowledge leaves? PIL addresses this with a structured, auditable artifact model where knowledge is captured explicitly, versioned, and inheritable — not locked inside a model or a vendor's server.
+**Enterprise AI adopters** — deploying AI agents at organizational scale surfaces four problems that no single framing captures:
+
+- **Scalability and cost**: Naive agent memory forces a choice between losing context across sessions or injecting growing conversation histories into every context window — a cost that scales linearly with accumulated history. Structured local artifacts break this: once a preference, convention, or procedure is consolidated, it is applied through an in-memory index lookup at zero LLM cost. The more the system knows, the cheaper each interaction becomes, not the reverse.
+
+- **Knowledge continuity**: When an expert leaves, their judgment — which arguments hold up, which exceptions to flag, which edge cases to handle a particular way — leaves with them. PIL captures that judgment incrementally as active artifacts that a successor's agent inherits from day one, without requiring any explicit documentation effort from the departing employee.
+
+- **Knowledge as an organizational asset**: Structured, versioned, provenance-bearing artifacts are organizational property, not configuration. They survive platform migrations (model-agnostic text, no vendor lock-in), enable coherent M&A knowledge reconciliation at the artifact level, and — as the format matures — can be certified, licensed, or traded as expert knowledge packages.
+
+- **Governance**: Every artifact carries a structured provenance record from creation through retirement — who created it, from which conversation, who approved it for team or org use, when it was revised, and when it was superseded. For regulated industries, this answers the question auditors will eventually ask: *what did the agent know at the time of this recommendation, and who signed off on it?*
 
 **AI investors and ecosystem builders** — if you are tracking where durable value accumulates in the AI stack, PIL proposes a new asset class: portable, typed, user-owned knowledge artifacts. The artifact format, if it achieves adoption, defines a coordination layer — analogous to what npm did for packages or OpenAPI did for APIs — around which expert knowledge marketplaces, org custody services, and certification businesses can form.
 
@@ -121,7 +129,8 @@ openclaw-knowledge-management/
     ├── roadmap.md              # Phased roadmap with near-term milestones
     ├── design-decisions.md     # Rationale, differentiators, forward-compatibility
     ├── security.md             # Threat model, risks, and mitigations by phase
-    └── enterprise-vision.md    # Enterprise deployment model and investment thesis
+    ├── enterprise-vision.md    # Scalability, institutional knowledge, tradeable artifacts, governance, investment thesis
+    └── benchmarks/             # Annotated walkthroughs of runnable test programs
 ```
 
 ## Getting started
