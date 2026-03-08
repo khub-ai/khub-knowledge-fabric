@@ -264,6 +264,92 @@ export const DS_EXCHANGE_RESPONSE = JSON.stringify({
 export const ACRONYM_CONSOLIDATION_RULE =
   "User regularly defines personal shorthand acronyms for frequently-used commands (e.g., lmp = list preferences, atp = add to preferences, ds = debug session).";
 
+// ---------------------------------------------------------------------------
+// Financial statements benchmark mocks
+// ---------------------------------------------------------------------------
+//
+// These mocks simulate the LLM's behaviour for the scenario described in
+// docs/example-learning-in-action.md.
+//
+// Key design choices:
+//   - Session 1 ("January" one-off) → falls through to default empty response
+//   - Session 2 ("always use that pattern") → convention artifact
+//   - Session 3 ("Add Amex too") → BOTH a fact AND a procedure in one call
+//   - Sessions 4+ (retrieval / revision) → no extraction, no mock needed
+
+/** Extraction response for Session 2 — user confirms naming convention */
+export const FINANCE_NAMING_CONVENTION_RESPONSE = JSON.stringify({
+  candidates: [
+    {
+      content:
+        "Financial statements are named YYYY-MM-institution-account.pdf and stored in ~/Finance/Statements/",
+      kind: "convention",
+      scope: "general",
+      certainty: "definitive",
+      tags: ["file-naming", "financial-statements", "naming-convention"],
+      rationale:
+        "User confirmed a consistent naming pattern for all financial statement files",
+    },
+  ],
+});
+
+/**
+ * Extraction response for Session 3.
+ *
+ * Returns TWO candidates from a single extraction call — this exercises the
+ * pipeline's ability to create multiple artifacts from one exchange:
+ *   1. fact      — the user's institution list (Chase, Fidelity, Amex)
+ *   2. procedure — the monthly download checklist
+ *
+ * The tags are deliberately distinct so Jaccard matching between them is zero
+ * and each is stored as an independent artifact.
+ */
+export const FINANCE_SESSION3_RESPONSE = JSON.stringify({
+  candidates: [
+    {
+      content:
+        "User's financial institutions: Chase (checking), Fidelity (brokerage), Amex (credit card)",
+      kind: "fact",
+      scope: "general",
+      certainty: "definitive",
+      tags: ["financial-institutions", "accounts", "chase", "fidelity", "amex"],
+      rationale:
+        "User listed the financial institutions they track for monthly statement downloads",
+    },
+    {
+      content:
+        "Monthly statement download: for each institution [Chase, Fidelity, Amex]: log in, download PDF, rename to YYYY-MM-institution-account.pdf, save to ~/Finance/Statements/. Confirm all files are present. Frequency: once per month after the 1st.",
+      kind: "procedure",
+      scope: "general",
+      certainty: "definitive",
+      tags: ["monthly-statements", "download-procedure", "financial-statements"],
+      rationale:
+        "User requested a monthly checklist for downloading statements from all their institutions",
+    },
+  ],
+});
+
+/**
+ * Mock LLM for the financial statements benchmark.
+ *
+ * Handles, in priority order:
+ *   1. Session 2 — user confirms naming pattern ("always use that pattern")
+ *   2. Session 3 — user adds institution list and checklist ("Add Amex too")
+ *   3. Everything else → empty candidates (one-off task or execution phase)
+ */
+export function createFinanceBenchmarkLLM(): LLMFn {
+  return createMultiPatternMockLLM([
+    {
+      match: "always use that pattern",
+      response: FINANCE_NAMING_CONVENTION_RESPONSE,
+    },
+    {
+      match: "Add Amex too",
+      response: FINANCE_SESSION3_RESPONSE,
+    },
+  ]);
+}
+
 /**
  * Mock LLM for the lmp acronym benchmark.
  *
