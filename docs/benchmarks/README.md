@@ -87,6 +87,9 @@ KNOWLEDGE_STORE_PATH=/tmp/pil-bench.jsonl pnpm benchmark
 | 07 | [apply-and-revise.md](./07-apply-and-revise.md) | Stages 7–8 — Apply, Revise | ✅ Implemented | ✅ Yes (mock) |
 | 08 | [end-to-end.md](./08-end-to-end.md) | All stages (scenarios) | ✅ Core; hooks pending | Partial (mock scenarios) |
 | 09 | [openClaw-integration.md](./09-openClaw-integration.md) | Hook wiring | 🔄 Pending (1c/1d) | ❌ Not yet |
+| 10 | [lmp-acronym.md](./10-lmp-acronym.md) | Semantic matching · Consolidation | ✅ Implemented | ✅ Yes (mock) |
+| 11 | [financial-statements.md](./11-financial-statements.md) | Multi-artifact extraction · Retrieval · Revision | ✅ Implemented | ✅ Yes (mock) |
+| 12 | [compile-procedure.md](./12-compile-procedure.md) | Recipe → program escalation · EXECUTABLE hint | ✅ Implemented | ✅ Yes (mock) |
 
 ---
 
@@ -128,5 +131,8 @@ Some test cases can be verified programmatically (exact output match, type check
 | 07-apply-and-revise.md | `src/tests/store.test.ts` | — |
 | 08-end-to-end.md | `src/tests/scenarios.test.ts`, `src/tests/pipeline.test.ts` | — |
 | 09-openClaw-integration.md | — (not yet) | — (not yet) |
+| 10-lmp-acronym.md | `src/tests/bench-lmp-acronym.test.ts` | — |
+| 11-financial-statements.md | `src/tests/bench-financial-statements.test.ts` | — |
+| 12-compile-procedure.md | `src/tests/bench-compile-procedure.test.ts` | — |
 
 All test files are in `apps/computer-assistant/src/tests/`. All benchmark scenarios are in `apps/computer-assistant/benchmarks/`.
