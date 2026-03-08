@@ -34,6 +34,12 @@ This matters because:
 - The script may not run on a new machine without installing dependencies
 - The user may want to inspect or modify the steps before automating them
 - A future `revise()` of the procedure must still start from the recipe text, not code
+- The recipe serves as the **authoritative specification for post-execution verification**:
+  after the script runs, the agent (or the user) can compare actual outcomes against the
+  recipe's expected steps to confirm the procedure succeeded. This is the governance role
+  of the natural-language form — it is the source of truth that the compiled program is
+  supposed to implement, making the overall system significantly more robust against silent
+  script failures or partial execution
 
 ### Problem 2 — In-place update, not retire-and-create
 
