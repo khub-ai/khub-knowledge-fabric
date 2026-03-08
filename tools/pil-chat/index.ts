@@ -421,6 +421,36 @@ async function main(): Promise<void> {
     }
 
     console.log(`\nAssistant: ${response}\n`);
+
+    // ── Exchange-level PIL pass ──────────────────────────────────────────────
+    //
+    // Knowledge often emerges only from seeing both sides of a conversation.
+    // Example: user says "lmp" (opaque), assistant says it doesn't know, user
+    // clarifies "it means list my preferences" — the fact that 'lmp' = 'list
+    // my preferences' is only extractable when both turns are read together.
+    //
+    // Solution: after each turn, run a second PIL pass on the full exchange so
+    // the extractor can resolve pronouns and co-references.  This pass is for
+    // persistence only — it does not affect the current turn's system prompt.
+    const exchangeText = `User: ${userInput}\nAssistant: ${response}`;
+    try {
+      const exchangeResult = await processMessage(
+        exchangeText,
+        pilLlm,
+        "pil-chat:exchange",
+      );
+      if (opts.verbose) {
+        if (exchangeResult.candidates.length > 0 || exchangeResult.created.length > 0 || exchangeResult.updated.length > 0) {
+          console.log("  [PIL:exchange] — knowledge from full turn:");
+        }
+      }
+      showPilActivity(exchangeResult, opts.verbose);
+    } catch (err) {
+      // Non-fatal: log but don't abort the session
+      console.error(
+        `  [PIL error (exchange pass)] ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
   }
 
   iface.close();
