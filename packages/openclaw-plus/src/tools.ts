@@ -23,9 +23,14 @@ export function registerKnowledgeTools(api: OpenClawPluginApi): void {
         },
         required: ["query"],
       },
-      async execute({ query }: { query: string }) {
+      async execute(_id: string, params: Record<string, unknown>) {
+        const query =
+          typeof params["query"] === "string" ? params["query"] : "";
         const artifacts = await retrieve(query);
-        return JSON.stringify(artifacts, null, 2);
+        return {
+          content: [{ type: "text", text: JSON.stringify(artifacts, null, 2) }],
+          details: { artifacts },
+        };
       },
     }),
     { names: ["knowledge_search"] },

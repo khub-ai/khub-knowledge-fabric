@@ -289,7 +289,7 @@ export async function retrieve(
   const all = await loadAll();
   const active = all.filter((a) => !a.retired);
 
-  if (!query.trim()) return active.slice(0, limit);
+  if (!query || !query.trim()) return active.slice(0, limit);
 
   // Tokenize query into potential tag fragments
   const queryTokens = query
