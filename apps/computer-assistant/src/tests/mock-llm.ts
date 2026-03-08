@@ -350,6 +350,97 @@ export function createFinanceBenchmarkLLM(): LLMFn {
   ]);
 }
 
+// ---------------------------------------------------------------------------
+// Compile-procedure benchmark mocks
+// ---------------------------------------------------------------------------
+//
+// These simulate the code-generation LLM call triggered by compileToProgram().
+// The mock returns a realistic Python script so tests can verify the full
+// artifact → code → persist → retrieve lifecycle without hitting an API.
+//
+// The code-gen prompt is identified by the phrase "PROCEDURE TO AUTOMATE"
+// (from buildCodeGenPrompt in pipeline.ts).
+
+/**
+ * Realistic Python automation script returned by the mock code-gen LLM.
+ *
+ * Structured to match what a real LLM would generate from the financial
+ * statements procedure and its supporting conventions / facts.
+ */
+export const COMPILE_CODE_RESPONSE = `#!/usr/bin/env python3
+"""
+Download financial statements from all institutions, rename them to
+YYYY-MM-institution-account.pdf, and save to ~/Finance/Statements/.
+
+Credentials are read from environment variables:
+  CHASE_USER, CHASE_PASS, FIDELITY_USER, FIDELITY_PASS, AMEX_USER, AMEX_PASS
+"""
+
+import os
+import sys
+from pathlib import Path
+from datetime import datetime
+
+# -- Configuration -----------------------------------------------------------
+STATEMENTS_DIR = Path.home() / "Finance" / "Statements"
+
+INSTITUTIONS = [
+    {"name": "chase",    "account": "checking",  "user_env": "CHASE_USER",    "pass_env": "CHASE_PASS"},
+    {"name": "fidelity", "account": "brokerage", "user_env": "FIDELITY_USER", "pass_env": "FIDELITY_PASS"},
+    {"name": "amex",     "account": "credit",    "user_env": "AMEX_USER",     "pass_env": "AMEX_PASS"},
+]
+
+
+def statement_filename(institution: dict) -> str:
+    """Return the canonical filename for this month's statement."""
+    now = datetime.now()
+    return f"{now.year:04d}-{now.month:02d}-{institution['name']}-{institution['account']}.pdf"
+
+
+def download_statement(institution: dict) -> None:
+    """Download and save one institution's statement."""
+    filename = statement_filename(institution)
+    dest = STATEMENTS_DIR / filename
+    print(f"  Downloading {filename} ...")
+    # TODO: implement institution-specific download using requests/playwright
+    # dest.write_bytes(pdf_bytes)
+    print(f"  Saved to {dest}")
+
+
+def main() -> None:
+    STATEMENTS_DIR.mkdir(parents=True, exist_ok=True)
+    print(f"Saving statements to: {STATEMENTS_DIR}")
+    for inst in INSTITUTIONS:
+        try:
+            download_statement(inst)
+        except Exception as exc:
+            print(f"ERROR ({inst['name']}): {exc}", file=sys.stderr)
+            sys.exit(1)
+    print("All statements downloaded successfully.")
+
+
+if __name__ == "__main__":
+    main()
+`;
+
+/**
+ * Mock LLM for the compile-procedure benchmark.
+ *
+ * Handles, in priority order:
+ *   1. Code-generation prompt (identified by "PROCEDURE TO AUTOMATE") — raw Python
+ *   2. Financial-statements setup exchanges (finance benchmark patterns)
+ */
+export function createCompileBenchmarkLLM(): LLMFn {
+  return createMultiPatternMockLLM([
+    // Code-gen call: identified by the unique phrase from buildCodeGenPrompt in pipeline.ts.
+    // Returns raw Python source (not JSON) — compileToProgram() uses the response verbatim.
+    { match: "PROCEDURE TO AUTOMATE", response: COMPILE_CODE_RESPONSE },
+    // Finance benchmark patterns — used to set up sessions 1–3 before compiling
+    { match: "always use that pattern", response: FINANCE_NAMING_CONVENTION_RESPONSE },
+    { match: "Add Amex too",           response: FINANCE_SESSION3_RESPONSE },
+  ]);
+}
+
 /**
  * Mock LLM for the lmp acronym benchmark.
  *

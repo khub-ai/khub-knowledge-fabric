@@ -9,6 +9,8 @@
  *   5. Process user message through PIL pipeline (learn for future sessions)
  */
 
+import { homedir } from "node:os";
+import { join } from "node:path";
 import {
   retrieve,
   isInjectable,
@@ -16,6 +18,7 @@ import {
 } from "@khub-ai/openclaw-plus/store";
 import {
   processMessage,
+  compileToProgram,
   formatForInjection,
   type InjectableArtifact,
 } from "@khub-ai/openclaw-plus/pipeline";
@@ -47,12 +50,23 @@ export type AgentTurnResult = {
 // Context formatting
 // ---------------------------------------------------------------------------
 
-function formatArtifactsForPrompt(artifacts: KnowledgeArtifact[]): string {
+/**
+ * Format stored artifacts for injection into the agent prompt.
+ *
+ * Procedure artifacts with a compiled program attached get an EXECUTABLE
+ * annotation so the agent LLM knows to prefer run-command over manual steps.
+ */
+export function formatArtifactsForPrompt(artifacts: KnowledgeArtifact[]): string {
   const injectable = artifacts
     .filter(isInjectable)
     .map((a) => {
       const label = getInjectLabel(a) ?? "[suggestion]";
-      return `${label} [${a.kind}] ${a.content}`;
+      let line = `${label} [${a.kind}] ${a.content}`;
+      // Append EXECUTABLE hint so the agent LLM can prefer the compiled script
+      if (a.kind === "procedure" && a.program?.path) {
+        line += ` [EXECUTABLE: ${a.program.path}]`;
+      }
+      return line;
     });
 
   if (injectable.length === 0) return "";
@@ -95,6 +109,44 @@ export async function runAgentTurn(
   // ── Step 3: Call agent LLM to determine action ────────────────────────────
   const rawResponse = await agentLlm(agentPrompt);
   const action = parseAgentResponse(rawResponse);
+
+  // ── Step 3.5: Handle compile-procedure (needs PIL store access) ──────────
+  //
+  // compile-procedure is intercepted here rather than in executeAction because
+  // it requires the retrieved artifacts and the pilLlm — neither of which are
+  // accessible from the stateless executeAction function.
+  if (action.kind === "compile-procedure") {
+    // Find the highest-confidence injectable procedure in the retrieved set
+    const procedure = retrieved
+      .filter((a) => a.kind === "procedure" && isInjectable(a))
+      .sort((a, b) => b.confidence - a.confidence)[0];
+
+    if (!procedure) {
+      return {
+        message: action.message,
+        action,
+        result: { success: false, error: "No stored procedure found to compile. Teach me a procedure first." },
+        injectedArtifacts,
+        learned: { created: [], updated: [] },
+      };
+    }
+
+    const relatedArtifacts = retrieved.filter((a) => a.id !== procedure.id);
+    const language = action.target || "python";
+    const saveDir = join(homedir(), ".openclaw", "programs");
+    const updated = await compileToProgram(procedure, relatedArtifacts, language, pilLlm, saveDir);
+
+    return {
+      message: action.message,
+      action,
+      result: {
+        success: true,
+        output: `Script saved to ${updated.program!.path ?? "(in-memory only)"}`,
+      },
+      injectedArtifacts,
+      learned: { created: [], updated: [updated] },
+    };
+  }
 
   // ── Step 4: Execute the action (unless dry-run) ───────────────────────────
   const result = dryRun

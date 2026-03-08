@@ -24,6 +24,7 @@ export type ActionKind =
   | "open-folder"
   | "open-url"
   | "run-command"
+  | "compile-procedure"  // handled in agent.ts (needs PIL store access)
   | "say"
   | "unknown";
 
@@ -170,6 +171,10 @@ export async function executeAction(action: Action): Promise<ActionResult> {
       return runCommand(action.target);
     case "say":
       return { success: true, output: action.message };
+    case "compile-procedure":
+      // Intercepted in agent.ts before executeAction is reached.
+      // If this branch is hit, something is wrong in the call site.
+      return { success: false, error: "compile-procedure must be handled in agent.ts before executeAction is called" };
     case "unknown":
     default:
       return { success: false, error: `Unknown action kind: ${action.kind}` };
@@ -205,6 +210,7 @@ export function parseAgentResponse(raw: string): Action {
       "open-folder",
       "open-url",
       "run-command",
+      "compile-procedure",
       "say",
     ];
 
