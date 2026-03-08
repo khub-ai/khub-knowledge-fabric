@@ -1,9 +1,11 @@
 # 03 — Accumulation and Consolidation Benchmark (Stages 2–3)
 
-**Pipeline stages:** Stage 2 — Match; Stage 3 — Resolve (accumulate or create)
-**Modules:** `packages/openclaw-plus/src/store.ts` → `matchCandidate()`, `accumulateEvidence()`; `packages/openclaw-plus/src/extract.ts` → `consolidateEvidence()`
-**Implementation status:** ✅ Implemented
-**Automated coverage:** ✅ Unit tests (mock LLM)
+| | |
+|---|---|
+| **Pipeline stages** | Stage 2 — Match; Stage 3 — Resolve (accumulate or create) |
+| **Modules** | `packages/openclaw-plus/src/store.ts` → `matchCandidate()`, `accumulateEvidence()`; `packages/openclaw-plus/src/extract.ts` → `consolidateEvidence()` |
+| **Implementation status** | ✅ Implemented |
+| **Automated coverage** | ✅ Unit tests (mock LLM) |
 
 ---
 

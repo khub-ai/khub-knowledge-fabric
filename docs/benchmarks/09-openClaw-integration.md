@@ -1,9 +1,11 @@
 # 09 — OpenClaw Integration Benchmark
 
-**Pipeline stages:** Hook wiring for all stages; `knowledge_search` tool
-**Modules:** `packages/openclaw-plus/index.ts`, `packages/openclaw-plus/src/tools.ts`
-**Implementation status:** 🔄 Partial — `knowledge_search` tool wired; hook wiring pending (Milestones 1c/1d)
-**Automated coverage:** ❌ Not yet
+| | |
+|---|---|
+| **Pipeline stages** | Hook wiring for all stages; `knowledge_search` tool |
+| **Modules** | `packages/openclaw-plus/index.ts`, `packages/openclaw-plus/src/tools.ts` |
+| **Implementation status** | 🔄 Partial — `knowledge_search` tool wired; hook wiring pending (Milestones 1c/1d) |
+| **Automated coverage** | ❌ Not yet |
 
 ---
 

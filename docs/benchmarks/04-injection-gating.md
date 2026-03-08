@@ -1,9 +1,11 @@
 # 04 — Injection Gating Benchmark (Stage 4)
 
-**Pipeline stage:** Stage 4 — Decide (injection gating)
-**Module:** `packages/openclaw-plus/src/store.ts` → `getInjectLabel()`, `isInjectable()`
-**Implementation status:** ✅ Implemented
-**Automated coverage:** ✅ Unit tests (mock)
+| | |
+|---|---|
+| **Pipeline stage** | Stage 4 — Decide (injection gating) |
+| **Module** | `packages/openclaw-plus/src/store.ts` → `getInjectLabel()`, `isInjectable()` |
+| **Implementation status** | ✅ Implemented |
+| **Automated coverage** | ✅ Unit tests (mock) |
 
 ---
 

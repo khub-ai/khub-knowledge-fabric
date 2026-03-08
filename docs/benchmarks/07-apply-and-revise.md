@@ -1,9 +1,11 @@
 # 07 — Apply and Revise Benchmark (Stages 7–8)
 
-**Pipeline stages:** Stage 7 — Apply; Stage 8 — Revise
-**Module:** `packages/openclaw-plus/src/store.ts` → `apply()`, `revise()`, `recordAccepted()`, `recordRejected()`
-**Implementation status:** ✅ Implemented
-**Automated coverage:** ✅ Unit tests (mock)
+| | |
+|---|---|
+| **Pipeline stages** | Stage 7 — Apply; Stage 8 — Revise |
+| **Module** | `packages/openclaw-plus/src/store.ts` → `apply()`, `revise()`, `recordAccepted()`, `recordRejected()` |
+| **Implementation status** | ✅ Implemented |
+| **Automated coverage** | ✅ Unit tests (mock) |
 
 ---
 

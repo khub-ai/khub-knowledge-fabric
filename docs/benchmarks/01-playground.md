@@ -1,9 +1,11 @@
 # 01 — Playground Walkthrough
 
-**Program:** `apps/playground/index.ts`
-**Milestones covered:** 1b (LLM extraction, accumulation, injection gating), 1c and 1d (core retrieval logic)
-**Kind:** Scripted end-to-end harness with a live LLM
-**Runtime:** ~15–30 seconds (4 Anthropic API calls)
+| | |
+|---|---|
+| **Program** | `apps/playground/index.ts` |
+| **Milestones covered** | 1b (LLM extraction, accumulation, injection gating), 1c and 1d (core retrieval logic) |
+| **Kind** | Scripted end-to-end harness with a live LLM |
+| **Runtime** | ~15–30 seconds (4 Anthropic API calls) |
 
 ---
 

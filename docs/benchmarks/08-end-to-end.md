@@ -1,9 +1,11 @@
 # 08 — End-to-End Scenarios Benchmark
 
-**Pipeline stages:** All stages (1–8)
-**Modules:** `pipeline.ts`, `extract.ts`, `store.ts`
-**Implementation status:** ✅ Core pipeline; hook wiring pending (Milestones 1c/1d)
-**Automated coverage:** ⚠️ Partial (mock scenarios); live LLM scenarios not yet automated
+| | |
+|---|---|
+| **Pipeline stages** | All stages (1–8) |
+| **Modules** | `pipeline.ts`, `extract.ts`, `store.ts` |
+| **Implementation status** | ✅ Core pipeline; hook wiring pending (Milestones 1c/1d) |
+| **Automated coverage** | ⚠️ Partial (mock scenarios); live LLM scenarios not yet automated |
 
 ---
 

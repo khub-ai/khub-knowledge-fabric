@@ -1,9 +1,11 @@
 # 02 — Extraction Benchmark (Stage 1)
 
-**Pipeline stage:** Stage 1 — Extract
-**Module:** `packages/openclaw-plus/src/extract.ts` → `extractFromMessage()`
-**Implementation status:** ✅ Implemented
-**Automated coverage:** ✅ Unit tests (mock LLM) + live LLM benchmark
+| | |
+|---|---|
+| **Pipeline stage** | Stage 1 — Extract |
+| **Module** | `packages/openclaw-plus/src/extract.ts` → `extractFromMessage()` |
+| **Implementation status** | ✅ Implemented |
+| **Automated coverage** | ✅ Unit tests (mock LLM) + live LLM benchmark |
 
 ---
 

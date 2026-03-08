@@ -1,9 +1,11 @@
 # 05 — Persistence Benchmark (Stage 5)
 
-**Pipeline stage:** Stage 5 — Persist
-**Module:** `packages/openclaw-plus/src/store.ts` → `persist()`, `loadAll()`
-**Implementation status:** ✅ Implemented
-**Automated coverage:** ✅ Unit tests (mock)
+| | |
+|---|---|
+| **Pipeline stage** | Stage 5 — Persist |
+| **Module** | `packages/openclaw-plus/src/store.ts` → `persist()`, `loadAll()` |
+| **Implementation status** | ✅ Implemented |
+| **Automated coverage** | ✅ Unit tests (mock) |
 
 ---
 
