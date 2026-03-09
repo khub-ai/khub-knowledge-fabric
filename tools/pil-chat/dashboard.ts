@@ -282,6 +282,35 @@ body {
 .param-key { color: #858585; white-space: nowrap; padding: 1px 0; }
 .param-val { color: #9cdcfe; word-break: break-all; padding: 1px 0; }
 .param-val.ro { color: #608b9f; font-style: italic; }
+/* ── Content detail modal ───────────────────────────────────────────── */
+#detail-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55); z-index: 200;
+  align-items: center; justify-content: center;
+}
+#detail-overlay.open { display: flex; }
+#detail-box {
+  background: #252526; border: 1px solid #3e3e42; border-radius: 4px;
+  padding: 16px 18px; max-width: 600px; width: 90vw; max-height: 72vh;
+  display: flex; flex-direction: column; gap: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+}
+#detail-hdr { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+#detail-meta { color: #858585; font-size: 11px; line-height: 1.7; }
+#detail-meta b { color: #d4d4d4; }
+#detail-close {
+  background: #37373d; color: #d4d4d4; border: 1px solid #3e3e42;
+  padding: 2px 10px; cursor: pointer; border-radius: 2px;
+  font-family: inherit; font-size: 12px; flex-shrink: 0;
+}
+#detail-close:hover { background: #4e4e55; }
+#detail-content {
+  color: #d4d4d4; white-space: pre-wrap; word-break: break-word;
+  overflow-y: auto; flex: 1; font-size: 13px; line-height: 1.65;
+  padding: 10px 12px; background: #1e1e1e; border-radius: 2px;
+  border: 1px solid #3e3e42;
+}
+.content-cell { cursor: pointer; }
+.content-cell:hover { color: #9cdcfe; text-decoration: underline dotted; }
 </style>
 </head>
 <body>
@@ -357,6 +386,17 @@ body {
   </div>
 </div>
 
+<!-- Content detail modal — shown when user clicks a content cell -->
+<div id="detail-overlay" onclick="if(event.target===this)closeDetail()">
+  <div id="detail-box">
+    <div id="detail-hdr">
+      <div id="detail-meta"></div>
+      <button id="detail-close" onclick="closeDetail()">✕ Close</button>
+    </div>
+    <div id="detail-content"></div>
+  </div>
+</div>
+
 <script>
 const messagesEl   = document.getElementById('messages');
 const inputEl      = document.getElementById('msg-input');
@@ -370,6 +410,16 @@ const confInputEl  = document.getElementById('conf-input');
 let busy = false;
 let pendingPilPre = null;  // pre-pass PIL state; annotates the next AI message bubble
 const selectedIds  = new Set();
+let storeEntries   = {};   // id → StoreEntry; kept in sync by renderStore()
+
+// Click on any content-cell row opens the detail modal.
+storeEl.addEventListener('click', e => {
+  const cell = e.target.closest('.content-cell');
+  if (!cell) return;
+  const id = cell.closest('tr')?.querySelector('input[type=checkbox]')?.dataset.id;
+  if (!id || !storeEntries[id]) return;
+  showDetail(storeEntries[id]);
+});
 
 // ── SSE ──────────────────────────────────────────────────────────────────────
 const es = new EventSource('/events');
@@ -488,6 +538,21 @@ function applyConf() {
     .catch(err => addMsg('error', 'Set confidence failed: ' + err.message));
 }
 
+// ── Content detail modal ──────────────────────────────────────────────────────
+function showDetail(a) {
+  const tags = (a.tags && a.tags.length) ? a.tags.join(', ') : '—';
+  const ev   = a.evidenceCount ? \` &nbsp;·&nbsp; evidence=\${a.evidenceCount}\` : '';
+  document.getElementById('detail-meta').innerHTML =
+    \`<b>\${esc(a.kind)}</b> / \${esc(a.stage)} &nbsp;·&nbsp; conf=\${a.confidence.toFixed(3)}\${ev}<br>\` +
+    \`tags: \${esc(tags)}<br><span style="color:#555;font-size:10px">\${esc(a.id)}</span>\`;
+  document.getElementById('detail-content').textContent = a.content;
+  document.getElementById('detail-overlay').classList.add('open');
+}
+function closeDetail() {
+  document.getElementById('detail-overlay').classList.remove('open');
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
+
 // ── Messages ─────────────────────────────────────────────────────────────────
 function addMsg(role, text, sublabel) {
   if (role === 'status') removeStatus();
@@ -573,6 +638,8 @@ function renderPilActivity(data) {
 
 // ── Store table ───────────────────────────────────────────────────────────────
 function renderStore(entries) {
+  // Keep the entries map in sync so the detail modal can look up full content.
+  storeEntries = {};
   if (!entries || !entries.length) {
     storeEl.innerHTML = '<tr><td colspan="6" style="color:#555;padding:8px;">(no artifacts)</td></tr>';
     selectedIds.clear();
@@ -580,6 +647,7 @@ function renderStore(entries) {
     return;
   }
   const sorted = [...entries].sort((a, b) => b.confidence - a.confidence);
+  for (const a of sorted) storeEntries[a.id] = a;
   storeEl.innerHTML = sorted.map(a => {
     const pct     = Math.round(a.confidence * 100);
     const color   = a.confidence >= 0.95 ? '#4ec9b0'
@@ -602,7 +670,7 @@ function renderStore(entries) {
         <span class="conf-wrap"><span class="conf-fill" style="width:\${pct}%;background:\${color}"></span></span>\${a.confidence.toFixed(2)}
       </td>
       <td>\${lbl}</td>
-      <td class="content-cell" title="\${esc(a.content)}">\${esc(snip(a.content, 65))}</td>
+      <td class="content-cell" title="Click to expand">\${esc(snip(a.content, 65))}</td>
     </tr>\`;
   }).join('');
   // Remove stale selected IDs (artifacts that no longer exist after a store update).
