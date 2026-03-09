@@ -111,7 +111,9 @@ function printHelp(): void {
 pil-chat — Interactive CLI chatbot for testing PIL
 
 Usage:
-  pnpm chat [-- <options>]
+  pnpm chat -- --help          ← note the "--" separator required by pnpm
+  pnpm chat -- <options>
+  pnpm chat:help               ← shortcut for --help
 
 Store options (mutually exclusive):
   (default)              Read/write from the default store
