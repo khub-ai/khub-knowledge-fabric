@@ -6,7 +6,7 @@ This is a client-side code framework, called **PIL (Persistable Interactive Lear
 
 ## Who this is for
 
-**Agent developers** — if you are building an agent or AI assistant, PIL gives it a long-term memory that grows with each user interaction. The agent learns patterns, preferences, and workflows naturally from conversation — without requiring the user to say "remember this." Knowledge is stored as lightweight, inspectable artifacts on the user's machine, and applied in future sessions only when confidence warrants it. PIL integrates into any conversation loop, works with any LLM, and is completely platform-agnostic. A complete worked example is available in `apps/computer-assistant/`.
+**Agent developers** — if you are building an user-facing agent or AI assistant, PIL gives it a long-term memory that grows with each user interaction. The agent learns patterns, preferences, and workflows naturally from conversation — without requiring the user to say "remember this." Knowledge is stored as lightweight, inspectable artifacts on the user's machine, and applied in future sessions only when confidence warrants it. PIL integrates into any conversation loop, works with any LLM, and is completely platform-agnostic. A complete worked example is available in `apps/computer-assistant/`.
 
 **OpenClaw users** — PIL is packaged as an OpenClaw extension, so your OpenClaw instance can learn the patterns of how you work and become progressively more efficient without you having to repeat yourself. It can also turn a procedure you perform repeatedly into an executable script — future runs become faster, cheaper, and fully reliable.
 
