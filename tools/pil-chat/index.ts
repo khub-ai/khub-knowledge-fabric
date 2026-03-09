@@ -11,8 +11,10 @@
  *   pnpm chat -- --no-persist              # ephemeral (discarded on exit)
  *   pnpm chat -- --verbose                 # show PIL pipeline details
  *   pnpm chat -- --log /tmp/session.log    # mirror all I/O to a log file
- *   pnpm chat -- --model claude-3-5-haiku-20241022
+ *   pnpm chat -- --model claude-sonnet-4-6
  *   pnpm chat -- --match-model claude-3-5-haiku-20241022  # cheap model for semantic matching
+ *   pnpm chat -- --dashboard               # browser-based chat + PIL monitor
+ *   pnpm chat -- --dashboard --port 8080   # custom port (default: 7331)
  *   pnpm chat -- --help
  *
  * Requires: ANTHROPIC_API_KEY environment variable
@@ -38,7 +40,14 @@ import {
   storePath,
   getInjectLabel,
 } from "@khub-ai/knowledge-fabric/store";
-import type { LLMFn } from "@khub-ai/knowledge-fabric/types";
+import type { KnowledgeArtifact, LLMFn } from "@khub-ai/knowledge-fabric/types";
+import type {
+  TurnResult,
+  PilActivity,
+  StoreEntry,
+  ProcessTurnFn,
+} from "./dashboard.js";
+import { startDashboard } from "./dashboard.js";
 
 // ─── CLI options ─────────────────────────────────────────────────────────────
 
@@ -50,6 +59,10 @@ interface Options {
   noPersist: boolean;
   customStore: string | null;
   logPath: string | null;
+  /** Launch browser-based dashboard instead of CLI readline loop. */
+  dashboard: boolean;
+  /** Port for the dashboard HTTP server (default: 7331). */
+  port: number;
 }
 
 function parseArgs(): Options {
@@ -61,6 +74,8 @@ function parseArgs(): Options {
     noPersist: false,
     customStore: null,
     logPath: null,
+    dashboard: false,
+    port: 7331,
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -77,6 +92,11 @@ function parseArgs(): Options {
       opts.matchModel = args[++i]!;
     } else if ((a === "--log" || a === "-l") && args[i + 1]) {
       opts.logPath = args[++i]!;
+    } else if (a === "--dashboard" || a === "-d") {
+      opts.dashboard = true;
+    } else if (a === "--port" && args[i + 1]) {
+      const p = parseInt(args[++i]!, 10);
+      if (!isNaN(p)) opts.port = p;
     } else if (a === "--help" || a === "-h") {
       printHelp();
       process.exit(0);
@@ -104,6 +124,10 @@ Store options (mutually exclusive):
                          you exit — PIL runs normally but nothing is saved
 
 Other options:
+  --dashboard, -d        Launch browser-based dashboard (chat + PIL monitor)
+                         When active the browser is the primary interface;
+                         the terminal only shows the startup line and URL.
+  --port <n>             Dashboard HTTP port (default: 7331)
   --log <path>           Mirror all I/O to a log file (appended each run)
   --model <model>        Anthropic model (default: claude-sonnet-4-6)
   --match-model <model>  Separate model for semantic pattern matching
@@ -112,7 +136,7 @@ Other options:
   --verbose, -v          Show PIL pipeline activity for every message
   --help, -h             Show this help
 
-REPL commands:
+REPL commands (CLI mode and dashboard /cmd buttons):
   /store                 Show current store path and artifact counts
   /list                  List all active artifacts in the store
   /clear                 Clear conversation history (store is unchanged)
@@ -267,53 +291,264 @@ function setupLLM(opts: Options): LLMHandle {
   return { pilLlm, matchLlm, chat, clearHistory };
 }
 
-// ─── PIL activity display ────────────────────────────────────────────────────
+// ─── PIL activity helpers ─────────────────────────────────────────────────────
 
-function showPilActivity(
+/** Convert raw processMessage() output to the serialisable PilActivity shape. */
+function toPilActivity(
   result: Awaited<ReturnType<typeof processMessage>>,
-  verbose: boolean,
-): void {
+): PilActivity {
+  return {
+    created: result.created.map((a) => ({
+      id: a.id,
+      kind: a.kind,
+      stage: a.stage ?? "candidate",
+      confidence: a.confidence,
+      content: a.content,
+      tags: a.tags ?? [],
+    })),
+    updated: result.updated.map((a) => ({
+      id: a.id,
+      evidenceCount: a.evidenceCount ?? 0,
+      confidence: a.confidence,
+      content: a.content,
+    })),
+    injectable: result.injectable.map(({ label, artifact }) => ({
+      label,
+      kind: artifact.kind,
+      content: artifact.content,
+    })),
+    candidates: result.candidates.map((c) => ({
+      kind: c.kind,
+      certainty: c.certainty,
+      tags: c.tags ?? [],
+      content: c.content,
+    })),
+  };
+}
+
+/** Convert a KnowledgeArtifact to the dashboard-safe StoreEntry shape. */
+function toStoreEntry(a: KnowledgeArtifact): StoreEntry {
+  return {
+    id: a.id,
+    kind: a.kind,
+    stage: a.stage ?? "candidate",
+    confidence: a.confidence,
+    content: a.content,
+    tags: a.tags ?? [],
+    evidenceCount: a.evidenceCount ?? 0,
+    label: getInjectLabel(a) ?? "",
+  };
+}
+
+/** Load and map all active (non-retired) artifacts to StoreEntry[]. */
+async function buildStoreSnapshot(): Promise<StoreEntry[]> {
+  const all = await loadAll();
+  return all.filter((a) => !a.retired).map(toStoreEntry);
+}
+
+/**
+ * Print PIL activity to the CLI terminal.
+ * Used only in CLI mode; the dashboard renders from the PilActivity JSON
+ * that is broadcast via SSE.
+ */
+function showPilActivityFromData(activity: PilActivity, verbose: boolean): void {
   if (verbose) {
-    if (result.candidates.length > 0) {
-      console.log(`  [PIL] Extracted ${result.candidates.length} candidate(s):`);
-      for (const c of result.candidates) {
+    if (activity.candidates.length > 0) {
+      console.log(`  [PIL] Extracted ${activity.candidates.length} candidate(s):`);
+      for (const c of activity.candidates) {
         console.log(`    • [${c.kind}/${c.certainty}] tags: ${c.tags.join(", ")}`);
         console.log(`      "${c.content}"`);
       }
     }
-    for (const a of result.created) {
+    for (const a of activity.created) {
       console.log(
-        `  [PIL] ✚ Created  [${a.stage}] conf=${a.confidence.toFixed(2)}` +
+        `  [PIL] ✚ Created  [${a.kind}/${a.stage}] conf=${a.confidence.toFixed(2)}` +
         `  "${a.content.slice(0, 70)}${a.content.length > 70 ? "…" : ""}"`,
       );
     }
-    for (const a of result.updated) {
+    for (const a of activity.updated) {
       console.log(
         `  [PIL] ↺ Updated  evidence=${a.evidenceCount}` +
         ` conf=${a.confidence.toFixed(2)}` +
         `  "${a.content.slice(0, 60)}${a.content.length > 60 ? "…" : ""}"`,
       );
     }
-    for (const { label, artifact } of result.injectable) {
+    for (const i of activity.injectable) {
       console.log(
-        `  [PIL] → ${label} [${artifact.kind}]` +
-        `  "${artifact.content.slice(0, 60)}${artifact.content.length > 60 ? "…" : ""}"`,
+        `  [PIL] → ${i.label} [${i.kind}]` +
+        `  "${i.content.slice(0, 60)}${i.content.length > 60 ? "…" : ""}"`,
       );
     }
   } else {
     // Brief one-liner
     const parts: string[] = [];
-    if (result.created.length > 0)    parts.push(`+${result.created.length} stored`);
-    if (result.updated.length > 0)    parts.push(`~${result.updated.length} updated`);
-    if (result.injectable.length > 0) parts.push(`${result.injectable.length} injectable`);
+    if (activity.created.length > 0)    parts.push(`+${activity.created.length} stored`);
+    if (activity.updated.length > 0)    parts.push(`~${activity.updated.length} updated`);
+    if (activity.injectable.length > 0) parts.push(`${activity.injectable.length} injectable`);
     if (parts.length > 0) console.log(`  [PIL: ${parts.join("  ")}]`);
   }
+}
+
+// ─── Core turn processor ──────────────────────────────────────────────────────
+
+/**
+ * Build a ProcessTurnFn that captures the LLM handles and runs the full PIL
+ * pipeline for each user message or REPL command.
+ *
+ * The returned function is called identically by both the CLI readline loop
+ * and the dashboard's POST /chat handler — the only difference is that CLI
+ * mode intercepts /reset for a confirmation prompt before calling it, and
+ * handles "exit"/"quit" at the loop level.
+ */
+function buildProcessTurn(
+  pilLlm: LLMFn,
+  matchLlm: LLMFn,
+  chat: (userMessage: string, systemPrompt: string) => Promise<string>,
+  clearHistory: () => void,
+  displayPath: string,
+): ProcessTurnFn {
+  return async function processTurn(userInput: string): Promise<TurnResult> {
+
+    // ── REPL commands ──────────────────────────────────────────────────────────
+
+    if (userInput === "exit" || userInput === "quit") {
+      return {
+        isCommand: true,
+        shouldExit: true,
+        storeSnapshot: await buildStoreSnapshot(),
+      };
+    }
+
+    if (userInput === "/help") {
+      return {
+        isCommand: true,
+        commandOutput: "Commands: /store  /list  /clear  /reset  /help  exit",
+        storeSnapshot: await buildStoreSnapshot(),
+      };
+    }
+
+    if (userInput === "/store") {
+      const all    = await loadAll();
+      const active = all.filter((a) => !a.retired);
+      return {
+        isCommand: true,
+        commandOutput:
+          `Path    : ${displayPath}\n` +
+          `Total   : ${all.length}  (${active.length} active, ${all.length - active.length} retired)`,
+        storeSnapshot: active.map(toStoreEntry),
+      };
+    }
+
+    if (userInput === "/list") {
+      const active = (await loadAll()).filter((a) => !a.retired);
+      const output = active.length === 0
+        ? "(no artifacts)"
+        : active
+            .map((a) => {
+              const label = (getInjectLabel(a) ?? "—").padEnd(15);
+              const conf  = a.confidence.toFixed(2);
+              const snip  = a.content.slice(0, 64) + (a.content.length > 64 ? "…" : "");
+              return `${label} [${a.kind}/${a.stage ?? "?"}] conf=${conf}  "${snip}"`;
+            })
+            .join("\n");
+      return { isCommand: true, commandOutput: output, storeSnapshot: active.map(toStoreEntry) };
+    }
+
+    if (userInput === "/clear") {
+      clearHistory();
+      return {
+        isCommand: true,
+        commandOutput: "Conversation history cleared.",
+        storeSnapshot: await buildStoreSnapshot(),
+      };
+    }
+
+    if (userInput === "/reset") {
+      await writeFile(storePath(), "");
+      return { isCommand: true, commandOutput: "Store cleared.", storeSnapshot: [] };
+    }
+
+    // ── PIL pre-pass ───────────────────────────────────────────────────────────
+
+    let pilPreResult: Awaited<ReturnType<typeof processMessage>>;
+    try {
+      pilPreResult = await processMessage(userInput, pilLlm, "pil-chat", matchLlm);
+    } catch (err) {
+      return {
+        isCommand: false,
+        error: `PIL error: ${err instanceof Error ? err.message : String(err)}`,
+        storeSnapshot: await buildStoreSnapshot(),
+      };
+    }
+
+    const pilPre = toPilActivity(pilPreResult);
+
+    // ── Context retrieval + system prompt ──────────────────────────────────────
+
+    const contextArtifacts = await retrieve(userInput);
+    const alreadyInjected  = new Set(pilPreResult.injectable.map((i) => i.artifact.id));
+    const contextInjectables: InjectableArtifact[] = contextArtifacts
+      .filter((a) => !alreadyInjected.has(a.id))
+      .flatMap((a) => {
+        const label = getInjectLabel(a);
+        return label ? [{ artifact: a, label }] : [];
+      });
+
+    const injectionText = formatForInjection([
+      ...pilPreResult.injectable,
+      ...contextInjectables,
+    ]);
+
+    const systemPrompt = [
+      "You are a helpful AI assistant.",
+      injectionText ? `\n${injectionText}` : "",
+    ].join("\n").trim();
+
+    // ── LLM response ───────────────────────────────────────────────────────────
+
+    let response: string;
+    try {
+      response = await chat(userInput, systemPrompt);
+    } catch (err) {
+      return {
+        isCommand: false,
+        error: `LLM error: ${err instanceof Error ? err.message : String(err)}`,
+        pilPre,
+        storeSnapshot: await buildStoreSnapshot(),
+      };
+    }
+
+    // ── Exchange PIL pass ──────────────────────────────────────────────────────
+    //
+    // Knowledge often emerges only from seeing both sides of a conversation.
+    // Example: user says "lmp" (opaque), assistant says it doesn't know, user
+    // clarifies "it means list my preferences" — the fact that 'lmp' = 'list
+    // my preferences' is only extractable when both turns are read together.
+    //
+    // Solution: after each turn, run a second PIL pass on the full exchange so
+    // the extractor can resolve pronouns and co-references.  This pass is for
+    // persistence only — it does not affect the current turn's system prompt.
+
+    let pilExchange: PilActivity | undefined;
+    try {
+      const exchangeText  = `User: ${userInput}\nAssistant: ${response}`;
+      const exchangeResult = await processMessage(
+        exchangeText, pilLlm, "pil-chat:exchange", matchLlm,
+      );
+      pilExchange = toPilActivity(exchangeResult);
+    } catch {
+      // Non-fatal: log the exchange-pass result only in verbose CLI mode
+    }
+
+    const storeSnapshot = await buildStoreSnapshot();
+    return { isCommand: false, response, pilPre, pilExchange, storeSnapshot };
+  };
 }
 
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
-  const opts = parseArgs();
+  const opts       = parseArgs();
   const sessionLog = setupLog(opts.logPath);
   const { displayPath, cleanup } = setupStore(opts);
   const { pilLlm, matchLlm, chat, clearHistory } = setupLLM(opts);
@@ -325,8 +560,37 @@ async function main(): Promise<void> {
   };
 
   process.on("exit", cleanup);
-  process.on("SIGINT", () => exit());
+  process.on("SIGINT",  () => exit());
   process.on("SIGTERM", () => exit());
+
+  const sessionStart = new Date().toISOString();
+  const processTurn  = buildProcessTurn(pilLlm, matchLlm, chat, clearHistory, displayPath);
+
+  // ── Dashboard mode ──────────────────────────────────────────────────────────
+
+  if (opts.dashboard) {
+    console.log("\npil-chat — PIL test harness");
+    console.log(`  Store : ${displayPath}`);
+    console.log(`  Model : ${opts.model}`);
+    if (opts.matchModel) console.log(`  Match : ${opts.matchModel} (semantic matching)`);
+    console.log(`  Mode  : dashboard`);
+    if (opts.logPath) console.log(`  Log   : ${opts.logPath}`);
+
+    startDashboard(
+      opts.port,
+      processTurn,
+      displayPath,
+      sessionStart,
+      () => buildStoreSnapshot(),
+    );
+
+    // Keep process alive — the HTTP server handles all interaction from here.
+    // SIGINT/SIGTERM handlers above will call exit() when the user presses Ctrl+C.
+    await new Promise<never>(() => { /* intentionally never resolves */ });
+    return;
+  }
+
+  // ── CLI mode (readline loop) ────────────────────────────────────────────────
 
   const iface = readline.createInterface({ input, output });
 
@@ -349,44 +613,10 @@ async function main(): Promise<void> {
     sessionLog.logInput(userInput);
     if (!userInput) continue;
 
-    // ── REPL commands ───────────────────────────────────────────────────────
-
+    // ── Exit ─────────────────────────────────────────────────────────────────
     if (userInput === "exit" || userInput === "quit") break;
 
-    if (userInput === "/help") {
-      console.log("  Commands: /store  /list  /clear  /reset  /help  exit");
-      continue;
-    }
-
-    if (userInput === "/store") {
-      const all = await loadAll();
-      const active = all.filter((a) => !a.retired);
-      console.log(`  Path    : ${displayPath}`);
-      console.log(`  Total   : ${all.length}  (${active.length} active, ${all.length - active.length} retired)`);
-      continue;
-    }
-
-    if (userInput === "/list") {
-      const active = (await loadAll()).filter((a) => !a.retired);
-      if (active.length === 0) {
-        console.log("  (no artifacts)");
-      } else {
-        for (const a of active) {
-          const label = (getInjectLabel(a) ?? "—").padEnd(15);
-          const conf  = a.confidence.toFixed(2);
-          const snip  = a.content.slice(0, 64) + (a.content.length > 64 ? "…" : "");
-          console.log(`  ${label} [${a.kind}/${a.stage}] conf=${conf}  "${snip}"`);
-        }
-      }
-      continue;
-    }
-
-    if (userInput === "/clear") {
-      clearHistory();
-      console.log("  Conversation cleared.");
-      continue;
-    }
-
+    // ── /reset: ask for confirmation before wiping the store ─────────────────
     if (userInput === "/reset") {
       const answer = (
         await iface.question("  Delete all artifacts in the current store? (yes/no): ")
@@ -401,84 +631,28 @@ async function main(): Promise<void> {
       continue;
     }
 
-    // ── PIL pipeline ────────────────────────────────────────────────────────
-
-    let pilResult: Awaited<ReturnType<typeof processMessage>>;
+    // ── All other commands and regular chat ───────────────────────────────────
+    let result: TurnResult;
     try {
-      pilResult = await processMessage(userInput, pilLlm, "pil-chat", matchLlm);
+      result = await processTurn(userInput);
     } catch (err) {
-      console.error(`  [PIL error] ${err instanceof Error ? err.message : String(err)}`);
+      console.error(`  [Error] ${err instanceof Error ? err.message : String(err)}`);
       continue;
     }
 
-    showPilActivity(pilResult, opts.verbose);
-
-    // ── Build context-aware system prompt ───────────────────────────────────
-
-    // Retrieve artifacts relevant to this query from prior sessions
-    const contextArtifacts = await retrieve(userInput);
-
-    // Pair each with its inject label, deduplicate against what PIL just produced
-    const alreadyInjected = new Set(pilResult.injectable.map((i) => i.artifact.id));
-    const contextInjectables: InjectableArtifact[] = contextArtifacts
-      .filter((a) => !alreadyInjected.has(a.id))
-      .flatMap((a) => {
-        const label = getInjectLabel(a);
-        return label ? [{ artifact: a, label }] : [];
-      });
-
-    const injectionText = formatForInjection([
-      ...pilResult.injectable,
-      ...contextInjectables,
-    ]);
-
-    const systemPrompt = [
-      "You are a helpful AI assistant.",
-      injectionText ? `\n${injectionText}` : "",
-    ].join("\n").trim();
-
-    // ── LLM response ────────────────────────────────────────────────────────
-
-    let response: string;
-    try {
-      response = await chat(userInput, systemPrompt);
-    } catch (err) {
-      console.error(`  [LLM error] ${err instanceof Error ? err.message : String(err)}`);
+    if (result.isCommand) {
+      if (result.commandOutput) console.log(result.commandOutput);
       continue;
     }
 
-    console.log(`\nAssistant: ${response}\n`);
-
-    // ── Exchange-level PIL pass ──────────────────────────────────────────────
-    //
-    // Knowledge often emerges only from seeing both sides of a conversation.
-    // Example: user says "lmp" (opaque), assistant says it doesn't know, user
-    // clarifies "it means list my preferences" — the fact that 'lmp' = 'list
-    // my preferences' is only extractable when both turns are read together.
-    //
-    // Solution: after each turn, run a second PIL pass on the full exchange so
-    // the extractor can resolve pronouns and co-references.  This pass is for
-    // persistence only — it does not affect the current turn's system prompt.
-    const exchangeText = `User: ${userInput}\nAssistant: ${response}`;
-    try {
-      const exchangeResult = await processMessage(
-        exchangeText,
-        pilLlm,
-        "pil-chat:exchange",
-        matchLlm,
-      );
-      if (opts.verbose) {
-        if (exchangeResult.candidates.length > 0 || exchangeResult.created.length > 0 || exchangeResult.updated.length > 0) {
-          console.log("  [PIL:exchange] — knowledge from full turn:");
-        }
-      }
-      showPilActivity(exchangeResult, opts.verbose);
-    } catch (err) {
-      // Non-fatal: log but don't abort the session
-      console.error(
-        `  [PIL error (exchange pass)] ${err instanceof Error ? err.message : String(err)}`,
-      );
+    if (result.error) {
+      console.error(result.error);
+      continue;
     }
+
+    if (result.pilPre)      showPilActivityFromData(result.pilPre,      opts.verbose);
+    if (result.response)    console.log(`\nAssistant: ${result.response}\n`);
+    if (result.pilExchange) showPilActivityFromData(result.pilExchange, opts.verbose);
   }
 
   iface.close();

@@ -8,7 +8,8 @@
     "test":       "pnpm --filter @khub-ai/computer-assistant test",
     "test:watch": "pnpm --filter @khub-ai/computer-assistant test:watch",
     "benchmark":  "pnpm --filter @khub-ai/computer-assistant benchmark",
-    "chat":       "pnpm --filter @khub-ai/pil-chat start"
+    "chat":       "pnpm --filter @khub-ai/pil-chat start",
+    "chat:dash":  "pnpm --filter @khub-ai/pil-chat start -- --dashboard"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
