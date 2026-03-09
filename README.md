@@ -2,15 +2,13 @@
 
 **A knowledge store that learns from your conversations, persists across sessions and agents, and stays on your machine — inspectable and portable by design.**
 
-This is a client-side code framework, called **PIL (Persistable Interactive Learning)**, that can be used with any local or cloud-based LLMs, to enable your agent to extracts knowledge from user interaction, distils it persistable memory artifacts or generalized knowledge, makes these artifacts available now and in future sessions, or transported and shared with others.
+This is a client-side code framework, called **PIL (Persistable Interactive Learning)**, that works with any local or cloud-based LLM to enable your agent to extract knowledge from user interaction, distil it into persistent memory artifacts or generalized knowledge, and make those artifacts available across sessions — or share them with others.
 
 ## Who this is for
 
-**OpenClaw users**  — this framework has been wrapped ass an OpenClaw extension, your OpenClaw instance can remember of pattern of how you work, so that your interaction with OpenClaw become much more efficient. PIL can also turn repetive steps into code, if you prefer, so that future excution of the steps are super-reliable and much less expensive. 
+**Agent developers** — if you are building an agent or AI assistant and want it to remember what it learns from each user, PIL is a drop-in knowledge layer. Wire `processMessage()` into your conversation loop and the agent begins accumulating typed, confidence-scored artifacts from natural interaction — no "save this" button required. Call `retrieve()` at session start to inject what the agent already knows into the prompt context. The LLM adapter is a single injected function (`LLMFn`), so PIL works with any model and any platform. The artifact store is a plain JSONL file that is easy to inspect and debug. See `apps/computer-assistant/` for a complete worked example of PIL wired into a real agent REPL.
 
-**Agent developers** - (fill this in)
-
-**Individual users and knowledge workers** — if you use an AI agent daily and find yourself re-explaining your preferences, correcting the same mistakes, or re-teaching your workflow every session, this is for you. PIL makes the agent accumulate what it learns about you across sessions — your communication style, your conventions, your judgment criteria — stored as files on your own machine that you can inspect, edit, and take with you if you switch platforms.
+**OpenClaw users** — PIL is packaged as an OpenClaw extension, so your OpenClaw instance can learn the patterns of how you work and become progressively more efficient without you having to repeat yourself. It can also turn a procedure you perform repeatedly into an executable script — future runs become faster, cheaper, and fully reliable.
 
 **Enterprise AI adopters** — deploying AI agents at organizational scale surfaces four problems that no single framing captures:
 
@@ -30,9 +28,11 @@ This is a client-side code framework, called **PIL (Persistable Interactive Lear
 
 ## Why this exists
 
-Modern AI agents appear to learn from interaction, but the knowledge they accumulate — whether through context windows, compacted session memory, or fine-tuning — remains **server-side, opaque, and platform-locked**. The user cannot easily inspect, edit, govern, or move it. If the user switches platforms, the knowledge disappears.
+If you use an AI agent daily you have likely found yourself re-explaining your preferences, correcting the same mistakes, or re-teaching your workflow every session. The knowledge the agent should have accumulated is simply not there — because most agents today do not have a durable, user-owned place to put it.
 
-This project takes a different approach: knowledge is extracted from interaction, stored locally as human-readable text, and owned entirely by the user. The artifacts are **model-agnostic** — any sufficiently capable LLM can consume them. They can be edited with a text editor, version-controlled with git, shared with colleagues, or imported into a different AI assistant.
+The deeper problem: the knowledge AI agents do accumulate — through context windows, compacted session memory, or fine-tuning — remains **server-side, opaque, and platform-locked**. The user cannot inspect, edit, govern, or move it. Switch platforms and it disappears entirely.
+
+PIL takes a different approach: knowledge is extracted from interaction, stored locally as human-readable text, and owned entirely by the user. The artifacts are **model-agnostic** — any sufficiently capable LLM can consume them. They can be edited with a text editor, version-controlled with git, shared with colleagues, or imported into a different AI assistant.
 
 → *[How this differs from existing agent memory](docs/design-decisions.md#how-this-differs-from-existing-agent-memory)*
 
