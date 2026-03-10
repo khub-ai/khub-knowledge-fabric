@@ -6,6 +6,8 @@
 - Worked example: [Expert-to-Agent Dialogic Learning With An Investment Expert](../specs/expert-to-agent-dialogic-learning-example-investing.md)
 - Glossary: [Glossary](./glossary.md)
 
+As of March 10, 2026. This landscape is changing quickly, so specific comparisons and deployment-readiness judgments should be read as time-sensitive.
+
  
 ## Purpose 
  
