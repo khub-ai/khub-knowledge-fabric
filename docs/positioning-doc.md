@@ -4,6 +4,8 @@
 
 # Positioning document: `khub-ai/khub-knowledge-fabric`
 
+Related focused note: [Expert-to-Agent Dialogic Learning In The Current Landscape](./dialogic-learning-positioning.md)
+
 ## Executive take
 
 **KHUB Knowledge Fabric should be positioned as a *local-first, model-agnostic knowledge layer* for agents — not as just another “memory feature.”** Its core differentiator is that it turns repeated user interaction into **typed, inspectable, portable knowledge artifacts** that can be reused across sessions, agents, and eventually organizations. The repo explicitly frames itself this way: a client-side Persistable Interactive Learning (PIL) framework that extracts knowledge from interaction, stores it locally, and makes it available across sessions or to other assistants. ([GitHub][1])

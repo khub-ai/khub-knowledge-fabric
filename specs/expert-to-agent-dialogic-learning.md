@@ -226,6 +226,7 @@ A natural companion to this spec would be a worked example such as: learning lon
 ## See Also
 
 - Worked example: [Expert-to-Agent Dialogic Learning With An Investment Expert](./expert-to-agent-dialogic-learning-example-investing.md)
+- Positioning: [Expert-to-Agent Dialogic Learning In The Current Landscape](../docs/dialogic-learning-positioning.md)
 
 ## Summary
 
