@@ -2,9 +2,9 @@
 
 ## Purpose
 
-This document specifies a learning pattern in which a knowledge-fabric agent acquires deep, reusable knowledge from a human domain expert through structured dialogue.
+This document specifies a learning pattern in which a [Knowledge Fabric](../docs/glossary.md#knowledge-fabric-kf) agent acquires deep, reusable knowledge from a human domain expert through structured dialogue.
 
-The goal is not merely to record what the expert says. The goal is to help the agent learn knowledge that is transferable, bounded, revisable, and useful in future cases.
+The goal is not merely to record what the expert says. The goal is to help the agent learn [knowledge artifacts](../docs/glossary.md#knowledge-artifact) that are transferable, bounded, revisable, and useful in future cases.
 
 This spec is written for two audiences:
 - developers who may implement the mechanism
@@ -14,7 +14,7 @@ This spec is written for two audiences:
 
 Many systems can store facts or summarize conversations. That is not enough. An expert is valuable not only because they know many facts, but because they know how to judge, how to prioritize, how to notice exceptions, and how to revise their thinking when evidence changes.
 
-Expert-to-agent dialogic learning is meant to capture that deeper layer. The agent learns not just answers, but methods, boundaries, failure modes, and standards of judgment.
+Expert-to-agent [dialogic learning](../docs/glossary.md#dialogic-learning) is meant to capture that deeper layer. The agent learns not just answers, but methods, boundaries, failure modes, and standards of judgment.
 
 ## Core Idea
 
@@ -68,8 +68,12 @@ This pattern can repeat at many levels, from small habits to broad strategic pri
 
 ## Agent Question Taxonomy
 
-The agent should internally classify its questions by learning objective.
+The agent should internally classify its questions by learning objective. This taxonomy should remain open-ended rather than fixed.
 
+
+A mature implementation should allow new question types to be added during learning itself. For example, an expert may explicitly tell the agent that a certain kind of question is necessary for learning well in that domain. When that happens, the system should be able to record the new question type, its purpose, and an example of when to use it.
+
+The goal is not to lock the agent into a frozen list of question classes. The goal is to give it a growing repertoire of effective learning moves.
 ### 1. Case Elicitation Questions
 Used to obtain a real example.
 Example: Walk me through a real investment you seriously considered.
@@ -152,7 +156,7 @@ This prevents the system from mistaking a polished anecdote for a robust princip
 
 ## What The Agent Should Store
 
-The system should store structured artifacts rather than only keeping the full transcript.
+The system should store structured [artifacts](../docs/glossary.md#knowledge-artifact) rather than only keeping the full transcript.
 
 Typical outputs include:
 - a procedural artifact describing a repeatable method
@@ -211,7 +215,7 @@ This mechanism is working well when:
 
 ## Relation To PIL
 
-This mechanism is consistent with the general principles of PIL. It assumes that knowledge is acquired through interaction, generalized into reusable artifacts, revised through feedback, and stored in a user-owned inspectable form.
+This mechanism is consistent with the general principles of [PIL](../docs/glossary.md#pil-persistable-interactive-learning). It assumes that knowledge is acquired through interaction, generalized into reusable artifacts, revised through feedback, and stored in a user-owned inspectable form.
 
 The exact implementation may evolve, but the learning pattern described here should remain valid even as storage, prompting, or runtime components change.
 
