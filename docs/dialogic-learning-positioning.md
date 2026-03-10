@@ -1,8 +1,11 @@
 # Positioning: Expert-to-Agent Dialogic Learning In The Current Landscape 
  
-Main spec: [Expert-to-Agent Dialogic Learning](../specs/expert-to-agent-dialogic-learning.md) 
-Worked example: [Expert-to-Agent Dialogic Learning With An Investment Expert](../specs/expert-to-agent-dialogic-learning-example-investing.md) 
-Glossary: [Glossary](./glossary.md) 
+## Related Documents
+
+- Main spec: [Expert-to-Agent Dialogic Learning](../specs/expert-to-agent-dialogic-learning.md)
+- Worked example: [Expert-to-Agent Dialogic Learning With An Investment Expert](../specs/expert-to-agent-dialogic-learning-example-investing.md)
+- Glossary: [Glossary](./glossary.md)
+
  
 ## Purpose 
  
