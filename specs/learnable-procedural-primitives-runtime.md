@@ -1,126 +1,207 @@
-# Spec: Learnable Procedural Primitives Runtime
+# Spec: LLM-Centered Procedural Learning Runtime
 
 ## Purpose
 
-This spec defines an optional PIL extension for learning and reusing executable procedures as programs over composable primitives.
+This spec defines an optional PIL extension for solving a fixed known set of structured problems through an LLM-centered loop of attempt, user guidance, revision, generalization, validation, and storage.
 
-It is intentionally broader than ARC. ARC-v2 and ARC-v3 are optional adapters that validate the design, not the reason for the design.
+The runtime is not designed as a benchmark-specific solver. ARC-v2 and ARC-v3 are optional adapters that provide one useful proving ground. The same runtime should also support other domains such as spreadsheets, symbolic tasks, and workflow problems.
+
+## Core Design Decision
+
+The runtime treats the LLM as the primary all-purpose processor. The system relies on the LLM to interpret tasks, propose solution procedures, apply stored knowledge artifacts, propose plausible generalizations, and revise its own approach based on user guidance and validation results.
+
+Deterministic helpers may still be used, but they are subordinate tools inside an LLM-centered runtime rather than the core of the runtime itself.
 
 ## Core Rules
 
 - Preserve PIL principles: local, inspectable, portable, artifact-based knowledge.
 - Do not change default repo behavior when the runtime is not configured.
 - Load ARC adapters only when explicitly requested.
-- Let humans tune penalties, promotion decisions, and generalization pressure.
-- Avoid benchmark-specific tricks in core abstractions.
 - Treat the canonical model as language-independent. TypeScript, Python, or other language bindings are implementations of the model, not the model itself.
+- Represent saved solutions in a well-defined natural-language DSL or pseudo-code form rather than a host-language-specific program definition.
+- Save only generalized solutions that have been validated against known problems beyond the originating problem.
+
+## Fixed-Set Operating Loop
+
+The runtime operates over a fixed set of problems known in advance for the current run.
+
+1. The agent is given the overall goal for the target problem set.
+2. The agent uses a domain adapter to retrieve one problem from the fixed set.
+3. The agent uses accumulated knowledge artifacts to attempt a solution.
+4. If the attempt fails, the agent solicits user guidance and revises its solution attempt. This repeats until that problem is solved.
+5. Once the problem is solved, the agent asks the LLM to produce a list of plausible generalizations of the solution.
+6. The agent immediately validates those plausible generalizations against additional known problems from the fixed set.
+7. The best validated generalization is saved to the store as a generalized solution artifact.
+8. The runtime moves to the next unsolved problem and repeats the loop.
+
+The runtime is complete for the current run when all problems in the fixed set are solved or explicitly marked unresolved.
 
 ## Architecture
 
 1. Core PIL handles persistence, provenance, retrieval, lifecycle, revision, confidence, and feedback.
-2. Procedural Runtime handles generic program induction and deterministic execution over primitives.
-3. Domain Adapters parse inputs, extract features, register primitives, generate candidates, and verify outputs.
-4. Benchmark Harness evaluates adapters but does not define the runtime model.
+2. Procedural Learning Runtime handles task selection, LLM prompting, solution attempts, user-guided revision, generalization proposals, validation, and artifact promotion.
+3. Domain Adapters expose the fixed problem set, provide task representations, and supply domain-specific rendering or checking utilities.
+4. Benchmark Harness measures progress over the fixed known set but does not define the runtime model.
 
-## Canonical Definition Style
+## Role Of The Adapter
 
-All definitions in this runtime should be specified as language-neutral records, enums, and lists.
-Canonical definitions should describe field names, required versus optional status, semantic meaning, allowed values, and invariants.
-Canonical definitions should not depend on TypeScript syntax, Python syntax, implementation-specific class hierarchies, or a specific serialization library.
+A domain adapter should do only the domain-specific work needed to let the runtime operate.
 
-The preferred long-term direction is:
-1. maintain a language-neutral schema definition
-2. generate or hand-maintain TypeScript bindings from that schema
-3. generate or hand-maintain Python bindings from that schema
+Adapter responsibilities:
+- enumerate or retrieve problems from the fixed set
+- render a problem into the form expected by the runtime
+- provide any domain-specific reference materials or views
+- provide validation utilities when available
+- provide problem IDs and split membership when relevant
 
-## Program Model
+Adapter responsibilities should not include embedding benchmark-specific solution heuristics into the runtime.
 
-Programs use a benchmark-neutral intermediate representation built from typed primitive calls with named inputs, outputs, and ordered steps.
-The representation must be plain-text serializable, executable without an LLM, inspectable, replayable, composable, portable across domains, and stable enough to persist in artifacts.
+## Role Of The LLM
+
+The LLM is responsible for:
+- interpreting the current problem
+- retrieving and applying prior knowledge artifacts
+- writing an initial solution in the runtime DSL
+- revising the solution after user feedback
+- proposing plausible generalizations of a solved solution
+- selecting among multiple generalization candidates
+- explaining why a candidate should or should not transfer
+
+The runtime should explicitly feed the LLM the requirement that only human-like judgments are acceptable when operating in domains such as ARC. In practice this means the prompt context should include domain-level judgment guidance rather than relying on pure pattern fitting alone.
+
+## Knowledge Use During Solving
+
+Before attempting a new problem, the runtime retrieves relevant artifacts from the store. These may include:
+- prior generalized solutions
+- prior failure cases
+- user guidance artifacts
+- domain-specific judgment artifacts
+- previously promoted DSL procedures
+
+The LLM should be prompted to use those artifacts explicitly when drafting the next attempt, rather than treating them as passive background text.
+
+## Solution Representation: Natural-Language DSL
+
+Saved solutions should be expressed in well-defined natural language pseudo-code rather than host-language-specific code. The goal is to make the solution directly readable by humans, directly usable by the LLM, and portable across implementation languages.
+
+A solution artifact in this DSL should include the following sections when applicable:
+- name
+- intent
+- domain
+- preconditions
+- steps
+- decision points
+- success criteria
+- failure signals
+- validation history
+- provenance
+
+A typical step should read like a controlled instruction rather than free-form prose. Example style: identify repeated structures, compare them for common pattern, keep the shared transformation, discard incidental variation.
+
+The DSL should be natural-language-first but structured enough that an LLM can reliably parse, apply, critique, and generalize it.
 
 ## Canonical Records
 
-This section defines the minimum language-independent records required by the runtime.
+All records below are language-independent conceptual records, not TypeScript or Python classes.
 
-### Program
-Required fields: `language`, `version`, `inputs`, `output`, `steps`.
+### Problem Reference
+Required fields: `adapter`, `problem_id`.
+Optional fields: `split`, `variant`, `sequence_index`.
 
-### Primitive Invocation
-Required fields: `op`, `args`.
-Optional fields: `bind`, `when`, `meta`.
+### Solution Attempt
+Required fields: `id`, `problem_ref`, `attempt_text`, `attempt_status`, `created_at`.
+Optional fields: `used_artifact_ids`, `trace_id`, `review_notes`.
 
-### Primitive Specification
-Required fields: `name`, `summary`, `input_shape`, `output_shape`, `deterministic`.
-Optional fields: `constraints`, `cost_hint`, `tags`.
+### User Guidance
+Required fields: `id`, `problem_ref`, `guidance_text`, `created_at`, `author`.
+Optional fields: `target_attempt_id`, `judgment_type`, `rationale`.
 
-### Hypothesis
-Required fields: `id`, `adapter`, `program`, `status`, `created_at`.
-Optional fields: `task_ref`, `score`, `rationale`, `trace_ids`, `counterexample_ids`.
+### Solved Procedure
+Required fields: `id`, `problem_ref`, `dsl_text`, `created_at`.
+Optional fields: `supporting_attempt_ids`, `supporting_guidance_ids`, `notes`.
 
-### Transform Rule
-Required fields: `id`, `name`, `program`, `scope`.
-Optional fields: `preconditions`, `success_history`, `derived_from`.
+### Generalization Candidate
+Required fields: `id`, `source_procedure_id`, `candidate_text`, `created_at`.
+Optional fields: `rationale`, `expected_transfer_scope`, `judgment_basis`.
 
-### Macro
-Required fields: `id`, `name`, `program_fragment`, `input_shape`, `output_shape`, `promoted_at`.
-Optional fields: `promotion_basis`, `source_hypothesis_ids`, `stability_score`.
+### Validation Record
+Required fields: `id`, `generalization_candidate_id`, `problem_ref`, `result`, `created_at`.
+Optional fields: `failure_summary`, `score_summary`, `review_notes`.
 
-### Execution Trace
-Required fields: `id`, `program_id`, `adapter`, `started_at`, `result`.
-Optional fields: `task_ref`, `step_results`, `score`, `error_summary`.
+### Generalized Solution Artifact
+Required fields: `id`, `name`, `dsl_text`, `scope`, `created_at`.
+Optional fields: `preconditions`, `validation_summary`, `source_problem_refs`, `source_guidance_ids`, `source_candidate_ids`.
 
-### Counterexample
-Required fields: `id`, `target_id`, `adapter`, `observed_failure`, `created_at`.
-Optional fields: `task_ref`, `expected_summary`, `actual_summary`.
+### Judgment Artifact
+Required fields: `id`, `domain`, `judgment_text`, `created_at`.
+Optional fields: `adapter`, `source`, `priority`.
 
 ### Penalty Profile
-Required fields: `id`, `name`, `complexity_weight`, `instability_weight`, `overfit_weight`, `runtime_weight`.
+Required fields: `id`, `name`, `complexity_weight`, `fragility_weight`, `overfit_weight`, `runtime_weight`.
 Optional fields: `adapter`, `notes`, `author`.
 
 ### Penalty Decision
 Required fields: `id`, `profile_id`, `decision_type`, `author`, `created_at`.
-Optional fields: `target_id`, `delta_complexity`, `delta_instability`, `delta_overfit`, `delta_runtime`, `delta_total`, `rationale`.
+Optional fields: `target_id`, `delta_complexity`, `delta_fragility`, `delta_overfit`, `delta_runtime`, `delta_total`, `rationale`.
 
-### Reasoning Score
-Required fields: `fit_score`, `complexity_penalty`, `instability_penalty`, `overfit_penalty`, `runtime_penalty`, `human_adjustment`, `total`.
-Optional fields: `exact_match_count`, `partial_match_score`, `notes`.
+## Generalization Step
 
-### Task Reference
-Required fields: `adapter`.
-Optional fields: `task_id`, `split`, `variant`.
+After a problem is solved, the runtime must ask the LLM to produce multiple plausible generalizations of the solved procedure. The runtime should not assume that the first generalization is the best one.
 
-## Learnable Procedural Primitives
+Each generalization candidate should attempt to separate:
+- essential transformation logic
+- likely domain-invariant judgment
+- incidental details tied only to the originating problem
 
-The base primitive set should stay small and generic. Expressivity should grow mainly through learned macros promoted from successful recurring subprograms.
-Macro names must describe general behavior, for example `compress_repeated_motif`, not benchmark-specific task IDs.
-Recommended primitive families are structural, selection, transformation, propagation, inference, and control.
-Example primitive names within those families: `extract_objects`, `connected_components`, `detect_symmetry`, `detect_periodicity`, `filter_items`, `select_best`, `choose_consensus`, `crop`, `translate`, `rotate`, `reflect`, `recolor`, `replace_if`, `trace_path`, `fill_region`, `propagate_until_blocked`, `infer_mapping`, `infer_template`, `majority_merge`, `if`, `for_each`, `map`, `reduce`, `return`.
+In domains such as ARC, the runtime should explicitly instruct the LLM that acceptable generalization must align with human-like judgment rather than mere benchmark-specific curve fitting. This guidance should be part of the prompt context for generalization and validation.
 
-## Artifact Integration
+## Validation Before Save
 
-Extend the existing artifact model rather than forking it. A reasoning payload may include adapter ID, task reference, program, extracted features, score, trace references, and counterexample references.
-Recommended reasoning artifact kinds are `hypothesis`, `transform-rule`, `counterexample`, `execution-trace`, `macro`, `penalty-profile`, and `penalty-decision`.
+A generalized solution must be immediately validated on additional known problems from the fixed set before it is saved.
 
-## Search And Retrieval
+Validation should answer at least three questions:
+- does the generalized procedure work beyond the original problem?
+- does it fail in a way that suggests overfitting or fragility?
+- does it still reflect the intended human-like judgment for the domain?
 
-The runtime should search over programs, not benchmark templates. The loop is: parse task, extract features, retrieve related programs and counterexamples, generate candidates, execute, score, retain top candidates, accept human feedback, and promote stable subprograms.
-Structured retrieval should coexist with the current text-based store and use keys such as input-output signature, object-count changes, symmetry profile, periodicity profile, graph motifs, and prior macro success.
+The runtime should prefer a generalized solution that is slightly less broad but clearly validated over one that sounds broader but has weak transfer evidence.
+
+## Search, Revision, And Guidance Loop
+
+The runtime should not be framed as blind program search. It is a guided iterative learning loop.
+
+The loop for one problem is:
+1. retrieve one problem
+2. retrieve relevant artifacts
+3. ask the LLM for a DSL-style attempt
+4. validate the attempt
+5. if failed, request user guidance
+6. revise the attempt using guidance and prior artifacts
+7. repeat until solved
+8. ask for plausible generalizations
+9. validate those generalizations on other known problems
+10. save the strongest validated generalized solution
 
 ## Human-Tunable Penalties
 
-Candidate score should combine fit with penalties for complexity, instability, overfitting, and runtime cost, then apply an explicit human adjustment term.
-Human input must work at three levels: global profile, adapter-specific profile, and per-candidate override.
-A penalty profile should minimally store weights for complexity, instability, overfitting, and runtime, plus optional overrides and reviewer notes.
-A penalty decision should record exactly what was changed, why it was changed, who changed it, and which target was affected.
+Candidate evaluation should include penalties for complexity, fragility, overfitting, and runtime cost, plus explicit human adjustment.
+
+Those penalties should influence:
+- which solution attempts are retained as useful
+- which generalization candidates are promoted or rejected
+- how the LLM is guided in later rounds
+
+A penalty decision should record exactly what changed, why it changed, who changed it, and which target it affected.
 
 ## Optional ARC Adapters
 
-ARC-v2 and ARC-v3 adapters remain optional packages. They must not introduce core dependencies, core prompts, or core artifact assumptions.
+ARC-v2 and ARC-v3 adapters remain optional packages. They provide problem access and domain framing, but they must not introduce hardcoded ARC-specific solving logic into the runtime core.
 
 ## Success Criteria
 
 - Existing PIL flows remain unchanged by default.
-- Induced programs are inspectable and replayable.
-- Repeated subprograms become reusable macros.
-- Humans can tune penalty values and promotion decisions directly.
-- Future domains can adopt the runtime through adapters with limited friction.
+- The LLM uses stored artifacts as active procedural knowledge, not as passive notes.
+- Solved procedures are represented in a structured natural-language DSL.
+- Generalizations are proposed by the LLM and validated before save.
+- User guidance can iteratively improve problem solving until the fixed set is solved.
+- Saved generalized solutions transfer across multiple known problems and remain inspectable by humans.
