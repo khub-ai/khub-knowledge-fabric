@@ -13,6 +13,8 @@ As of March 10, 2026. This landscape is changing quickly, so specific comparison
  
 This document positions KHUB's [PIL](./glossary.md#pil-persistable-interactive-learning) and Knowledge Fabric approach relative to adjacent research and products that also try to help generative AI agents learn across interactions. 
  
+KHUB should be understood here as a project still in an active planning and design phase, not as a finished deployment-ready system. The purpose of this note is partly analytical and partly invitational: it is meant to clarify the space, highlight tradeoffs, and help solicit informed discussion and participation.
+
 The key question is not whether other systems have memory. Many do. The more important question is what kind of learning they support, how reusable the resulting knowledge is, and whether they are close to practical deployment. 
  
 ## Why Another Learning Dimension Matters 
@@ -106,6 +108,16 @@ This group includes influential research lines such as Generative Agents, Reflex
 Strengths: conceptual clarity, strong research precedents, and useful mechanisms for reflection, memory hierarchy, and iterative self-improvement. 
 Weaknesses: they are usually not complete deployment products, often focus on narrow environments or benchmarks, and typically do not center the systematic extraction of generalized knowledge from a human expert through dialogue. 
 Deployment status: mixed, but generally less near-term than the product and infrastructure categories above. They are more useful as design inspirations than as directly deployable systems.
+
+### 4. Emerging GenAI Dialogic-Learning Research
+
+There is also a newer and more directly relevant line of research around generative AI as a dialogic partner, teachable conversational agents, and Socratic or pedagogy-guided LLM systems. This is closer to the KHUB topic than generic memory research, even though much of it still comes from education and learning-science settings rather than agent infrastructure.
+
+Examples include research on generative AI as a dialogic partner in science education, natural-language teachable conversational agents, and LLM-based Socratic or pedagogy-guided conversational systems. These works are important because they show that structured dialogue itself can change learning quality, reflection, and reasoning, not just information access.
+
+Strengths: they are closer to the actual mechanism KHUB cares about, namely learning through guided dialogue, questioning, and reflection.
+Weaknesses: many of these systems are still domain-specific, education-oriented, or evaluated in narrow task settings rather than positioned as general-purpose deployable knowledge fabrics.
+Deployment status: intellectually relevant and increasingly active, but still mostly closer to applied research than to broad deployment platforms.
  
 ## Representative Systems Compared More Explicitly 
  
@@ -225,4 +237,7 @@ The main risk in this positioning is overclaiming. The field has moved fast. Sev
 - [Voyager](https://arxiv.org/abs/2305.16291) 
 - [MemGPT](https://arxiv.org/abs/2310.08560) 
 - [Reflexion](https://arxiv.org/abs/2303.11366)
+- [Generative AI as a Dialogic Partner](https://link.springer.com/article/10.1007/s10956-025-10240-1)
+- [Teaching a Conversational Agent using Natural Language](https://link.springer.com/article/10.1007/s40593-025-00461-1)
+- [LLM-based Socratic conversational agent](https://www.sciencedirect.com/science/article/pii/S0360131525002623)
  
