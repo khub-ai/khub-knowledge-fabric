@@ -9,20 +9,28 @@
 // ---------------------------------------------------------------------------
 
 /**
- * The kind taxonomy: six values mapping to the four cognitive memory types.
+ * The kind taxonomy: nine values mapping to the four cognitive memory types.
  *
  * Cognitive mapping:
- *   preference + convention + fact → semantic memory
- *   procedure                      → procedural memory
- *   judgment + strategy            → evaluative memory
+ *   preference + convention + fact               → semantic memory
+ *   procedure                                    → procedural memory
+ *   judgment + strategy                          → evaluative memory
+ *   boundary + revision-trigger + failure-case   → dialogic knowledge (Phase 4)
+ *
+ * The three Phase 4 kinds are produced only by dialogic learning sessions.
+ * They are not created by the Phase 1 passive extraction pipeline.
  */
 export type KnowledgeKind =
-  | "preference"   // subjective style, taste, or personal choice
-  | "convention"   // agreed naming, terminology, or standards
-  | "fact"         // objective, verifiable information
-  | "procedure"    // step-by-step process or recipe
-  | "judgment"     // evaluative heuristic or quality criterion
-  | "strategy";    // general approach to a class of problems
+  | "preference"        // subjective style, taste, or personal choice
+  | "convention"        // agreed naming, terminology, or standards
+  | "fact"              // objective, verifiable information
+  | "procedure"         // step-by-step process or recipe
+  | "judgment"          // evaluative heuristic or quality criterion
+  | "strategy"          // general approach to a class of problems
+  // Phase 4 — produced only by dialogic learning sessions
+  | "boundary"          // when a rule does not apply
+  | "revision-trigger"  // evidence that should cause revision of a conclusion
+  | "failure-case";     // past mistake that refined later judgment
 
 /**
  * How strongly the knowledge was expressed (LLM-assigned at extraction).
@@ -206,3 +214,258 @@ export const AUTO_APPLY_THRESHOLDS: Record<NonNullable<KnowledgeArtifact["salien
 
 /** Default auto-apply threshold when salience is not set. */
 export const DEFAULT_AUTO_APPLY_THRESHOLD = 0.80;
+
+// ---------------------------------------------------------------------------
+// Phase 4 — Expert-to-Agent Dialogic Learning
+//
+// Types for the structured expert elicitation system. These extend the Phase 1
+// artifact store; DialogueSession is persisted separately at:
+//   ~/.openclaw/knowledge/sessions/<session-id>.json
+// ---------------------------------------------------------------------------
+
+/**
+ * The nine question types from the dialogic learning taxonomy.
+ *
+ * The taxonomy is open-ended: CustomQuestionType records additional types
+ * introduced by the expert during a session.
+ */
+export type QuestionType =
+  | "case-elicitation"   // obtain a real example
+  | "process-extraction" // recover sequence and decision logic
+  | "priority"           // determine which signals matter most
+  | "abstraction"        // separate general method from specific case details
+  | "boundary"           // determine where a rule stops applying
+  | "counterexample"     // test whether the rule survives difficult cases
+  | "revision"           // learn how the expert changes their mind
+  | "transfer"           // test whether knowledge applies beyond the original case
+  | "confidence";        // calibrate certainty and scope
+
+/**
+ * The six lifecycle stages of a dialogic session.
+ */
+export type SessionStage =
+  | "eliciting-case"     // asking for a concrete example; no rule yet proposed
+  | "extracting-process" // unpacking the expert's reasoning sequence
+  | "abstracting"        // generalizing from the case to a tentative rule
+  | "testing-boundaries" // asking for exceptions, failures, and limits
+  | "synthesizing"       // agent proposes a rule for the expert to correct
+  | "complete";          // all candidate rules consolidated or archived
+
+/**
+ * How an expert turn qualifies as a correction of a prior agent synthesis.
+ */
+export type CorrectionType =
+  | "rule-revision"        // expert explicitly revises the rule statement
+  | "scope-adjustment"     // expert narrows or widens the rule's scope
+  | "counterexample-added"; // expert introduces a case that invalidates the rule
+
+/**
+ * Which of the five minimum consolidation criteria have been met
+ * for a candidate rule.
+ *
+ * All five must be true before the candidate rule is promoted to the
+ * main artifact store.
+ */
+export type ConsolidationGapStatus = {
+  /** At least one concrete real-world example has been provided. */
+  hasConcreteCase: boolean;
+  /**
+   * The agent has proposed a generalized version and the expert has
+   * accepted or corrected it.
+   */
+  hasGeneralizedRestatement: boolean;
+  /** A scope statement or boundary condition has been captured. */
+  hasScopeOrBoundary: boolean;
+  /** At least one exception, counterexample, or failure mode has been recorded. */
+  hasExceptionOrFailureMode: boolean;
+  /** At least one revision trigger has been stated by the expert. */
+  hasRevisionTrigger: boolean;
+};
+
+/**
+ * A single turn in the session transcript.
+ *
+ * Agent turns carry questionType; expert turns may carry correctionType.
+ */
+export type DialogueTurn = {
+  turnId: string;
+  role: "agent" | "expert";
+  content: string;
+  timestamp: string;              // ISO 8601
+  /** Which question type was used. Present on agent turns only. */
+  questionType?: QuestionType;
+  /** Which candidate rule this turn was primarily advancing. */
+  candidateRuleId?: string;
+  /**
+   * Candidate knowledge fragments parsed from this expert turn.
+   * Populated after extraction; absent on agent turns.
+   */
+  extractedUnits?: string[];
+  /**
+   * Set when an expert turn contains a correction of a prior synthesis.
+   * Triggers correction processing in the pipeline.
+   */
+  correctionType?: CorrectionType;
+};
+
+/**
+ * Records which question types were asked for which candidate rule,
+ * used to prevent repetition within a session.
+ */
+export type QuestionHistoryEntry = {
+  questionType: QuestionType;
+  candidateRuleId: string;
+  turnId: string;
+};
+
+/**
+ * A question type introduced by the expert during a session.
+ *
+ * Extends the base nine-type taxonomy for domain-specific needs.
+ * Propagated to future sessions in the same domain.
+ */
+export type CustomQuestionType = {
+  id: string;
+  /** Short label, e.g. "competitive-moat". */
+  name: string;
+  /** What learning gap this question type addresses. */
+  purpose: string;
+  /** Representative example of the question. */
+  exampleQuestion: string;
+  addedAt: string;               // ISO 8601
+  addedBySessionId: string;
+};
+
+/**
+ * A candidate rule being developed within a session.
+ *
+ * Promoted to the artifact store when all five consolidation criteria
+ * in `gaps` are satisfied.
+ */
+export type CandidateRule = {
+  id: string;
+  /**
+   * Current best statement of the rule.
+   * Updated in place when a correction is applied; prior versions
+   * are archived in the related DialogueTurn's extractedUnits.
+   */
+  content: string;
+  /** Expected KnowledgeKind of the promoted artifact. */
+  kind: KnowledgeKind;
+  /** Progress toward the five minimum consolidation criteria. */
+  gaps: ConsolidationGapStatus;
+  /** IDs of the turns that contributed evidence to this rule. */
+  relatedTurnIds: string[];
+};
+
+/**
+ * The full state of one expert-to-agent dialogic learning session.
+ *
+ * Persisted at: ~/.openclaw/knowledge/sessions/<session-id>.json
+ * Retained permanently after completion as the audit record.
+ *
+ * Artifacts promoted from the session are written to artifacts.jsonl
+ * with provenance `session:<id>`.
+ */
+export type DialogueSession = {
+  id: string;
+  /**
+   * The declared learning goal in natural language.
+   * Example: "learn how this expert screens investment opportunities."
+   */
+  objective: string;
+  /**
+   * The topic area. Used to match this session to prior sessions in
+   * the same domain and to gate gap inheritance.
+   * Example: "long-term-fundamental-investing"
+   */
+  domain: string;
+  stage: SessionStage;
+  createdAt: string;             // ISO 8601
+  lastActiveAt: string;          // ISO 8601; updated on every turn
+  /** Full session transcript in chronological order. */
+  turns: DialogueTurn[];
+  /** Rules being developed in this session, each with a gap tracker. */
+  candidateRules: CandidateRule[];
+  /**
+   * History of which question types were asked for which candidate
+   * rule. Used to prevent repetition and to select rephrased variants.
+   */
+  questionHistory: QuestionHistoryEntry[];
+  /**
+   * IDs of artifacts promoted to the main store when this session ended.
+   * Empty while the session is in progress.
+   */
+  artifactIds: string[];
+  /** IDs of prior sessions in the same domain loaded at session start. */
+  priorSessionIds: string[];
+  /**
+   * IDs of artifacts inherited from prior sessions.
+   * These informed the starting state but were not created in this session.
+   */
+  inheritedArtifactIds: string[];
+  /**
+   * Question types introduced by the expert during this session.
+   * Propagated to future sessions in the same domain.
+   */
+  customQuestionTypes: CustomQuestionType[];
+};
+
+/**
+ * User-level communication preferences for dialogic sessions.
+ *
+ * Meta-knowledge about HOW to conduct dialogue with this expert —
+ * not about any specific domain. Applies to all sessions regardless
+ * of topic.
+ *
+ * Stored at: ~/.openclaw/knowledge/communication-profile.json
+ * Populated via pre-session calibration, adaptive signals, and
+ * Phase 1 preference capture.
+ */
+export type CommunicationProfile = {
+  /**
+   * Whether the expert prefers one question per turn or can handle
+   * grouped related questions.
+   * Default: "single"
+   */
+  questionGranularity: "single" | "grouped";
+  /**
+   * Whether the expert thinks better starting from a concrete example
+   * or from the principle.
+   * Default: "example-first"
+   */
+  framingPreference: "example-first" | "principle-first";
+  /**
+   * Whether the agent's questions should be brief and direct, or
+   * include contextual setup before the question itself.
+   */
+  verbosity: "brief" | "contextual";
+  /**
+   * Whether the expert wants the agent to reflect back what it heard
+   * before asking the next question, or move forward immediately.
+   */
+  acknowledgmentStyle: "reflect-back" | "forward";
+  /**
+   * How often the agent should synthesize and propose tentative rules.
+   *
+   * - "often": check understanding every few turns.
+   * - "at-milestones": only when all five consolidation criteria are met.
+   * - "session-end": only at the close of the session.
+   */
+  synthesisFrequency: "often" | "at-milestones" | "session-end";
+  /**
+   * Whether the agent can use domain-specific terms freely or should
+   * let the expert introduce terminology organically.
+   */
+  terminologyTolerance: "free" | "expert-led";
+
+  // ── Metadata ─────────────────────────────────────────────────────────
+  createdAt: string;             // ISO 8601; set after first calibration
+  updatedAt: string;             // ISO 8601; set after each adaptive update
+  /**
+   * Whether the initial pre-session calibration has been completed.
+   * When false, the session starts with the 3–4 calibration questions.
+   * When true, calibration is skipped and the stored profile is used.
+   */
+  calibrationComplete: boolean;
+};
