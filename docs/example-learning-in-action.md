@@ -126,3 +126,11 @@ Agent: Done. Updated the institution list, the procedure recipe,
 - **Recipe → program is optional:** Only after repeated identical execution does the agent suggest compiling to a script. It doesn't assume code is always the goal. The recipe is retained as documentation and fallback.
 - **Coherent revision:** When circumstances change (closed account, new account), the agent updates semantic and procedural artifacts together, including the generated script.
 - **User stays in control:** Every generalization and escalation — observation → convention → recipe → script — is proposed by the agent and confirmed by the user.
+
+---
+
+## See also
+
+This example shows *passive* learning from ordinary use — the agent observes, generalizes, and learns incrementally without a structured teaching interaction. A complementary pattern is *active* learning through structured dialogue with a domain expert:
+
+→ *[Expert-to-Agent Dialogic Learning](../specs/expert-to-agent-dialogic-learning.md)* — how an agent learns deep judgment, procedures, and boundaries through purposeful questioning of a human expert
