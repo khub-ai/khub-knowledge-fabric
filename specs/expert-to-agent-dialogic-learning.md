@@ -14,12 +14,12 @@ This spec is written for two audiences:
 
 This spec is part of a six-phase development roadmap. A brief orientation:
 
-- **Phase 1 — Personal Knowledge Store** ✅ complete: the agent passively accumulates facts, preferences, and procedures from ordinary conversation, and injects relevant knowledge into future sessions.
-- **Phase 2 — Generalization**: automatic consolidation of patterns observed across multiple sessions into reusable general rules.
-- **Phase 3 — Procedural Learning**: structured learning of repeatable multi-step procedures from interaction.
-- **Phase 4 — Expert-to-Agent Dialogic Learning** ← this spec: active, structured elicitation of deep knowledge from a domain expert through purposeful back-and-forth dialogue.
-- **Phase 5 — Portability**: exporting and importing knowledge packages across agents and platforms, enabling knowledge to be shared and sold.
-- **Phase 6 — Governance**: provenance, audit trails, and lifecycle management at organizational scale.
+- **[Phase 1 — Personal Knowledge Store](../docs/roadmap.md#phase-1--personal-knowledge-store-current)** ✅ complete: the agent passively accumulates facts, preferences, and procedures from ordinary conversation, and injects relevant knowledge into future sessions.
+- **[Phase 2 — Generalization](../docs/roadmap.md#phase-2--generalization-engine)**: automatic consolidation of patterns observed across multiple sessions into reusable general rules.
+- **[Phase 3 — Procedural Learning](../docs/roadmap.md#phase-3--procedural-memory-and-code-synthesis)**: structured learning of repeatable multi-step procedures from interaction.
+- **[Phase 4 — Expert-to-Agent Dialogic Learning](../docs/roadmap.md#phase-4--expert-to-agent-dialogic-learning)** ← this spec: active, structured elicitation of deep knowledge from a domain expert through purposeful back-and-forth dialogue.
+- **[Phase 5 — Portability](../docs/roadmap.md#phase-5--portability-and-cross-agent-compatibility)**: exporting and importing knowledge packages across agents and platforms, enabling knowledge to be shared and sold.
+- **[Phase 6 — Governance](../docs/roadmap.md#phase-6--governance-and-ecosystem-long-term)**: provenance, audit trails, and lifecycle management at organizational scale.
 
 Phase 4 builds directly on Phase 1's knowledge store, artifact types, and relation graph. It does not require Phases 2 or 3 to be complete first. Where this spec refers to "Phase 1" it means the passive accumulation pipeline; where it refers to "Phase 4" it means the active dialogic learning mechanism described here.
 
@@ -238,7 +238,7 @@ Typical outputs include:
 
 ## Artifact Type Mapping
 
-Phase 4 produces six artifact types. Three map directly to existing `KnowledgeKind` values defined in Phase 1. Three are new and require extending the kind taxonomy.
+[Phase 4](../docs/roadmap.md#phase-4--expert-to-agent-dialogic-learning) produces six artifact types. Three map directly to existing [`KnowledgeKind`](../packages/knowledge-fabric/src/types.ts) values defined in [Phase 1](../docs/roadmap.md#phase-1--personal-knowledge-store-current). Three are new and require extending the kind taxonomy.
 
 ### Existing Kinds Reused By Phase 4
 
@@ -248,7 +248,7 @@ Phase 4 produces six artifact types. Three map directly to existing `KnowledgeKi
 
 ### New KnowledgeKind Values
 
-The following three values should be added to `KnowledgeKind` in `types.ts`. They are produced only through dialogic sessions and are not created by passive Phase 1 extraction.
+The following three values should be added to [`KnowledgeKind`](../packages/knowledge-fabric/src/types.ts) in `types.ts`. They are produced only through dialogic sessions and are not created by passive [Phase 1](../docs/roadmap.md#phase-1--personal-knowledge-store-current) extraction.
 
 - `boundary` — a statement of when a rule does not apply. Example: "this survivability check is weaker in commodity-driven businesses where balance sheet structure reflects industry norms rather than fragility."
 - `revision-trigger` — a condition that should cause the expert to revise or abandon a conclusion. Example: "downgrade the thesis if confidence depends mainly on management promises rather than observable structure."
@@ -256,7 +256,7 @@ The following three values should be added to `KnowledgeKind` in `types.ts`. The
 
 ### Relations Between Artifact Types
 
-Dialogic artifacts are typically linked using the relation types already defined in Phase 1:
+Dialogic artifacts are typically linked using the relation types already defined in [Phase 1](../docs/roadmap.md#phase-1--personal-knowledge-store-current):
 
 - A `boundary` artifact `constrains` the `judgment` or `procedure` it limits.
 - A `revision-trigger` artifact `supports` the `procedure` or `judgment` it qualifies.
@@ -403,7 +403,7 @@ An implementation should actively avoid the following patterns:
 
 ### Phase 1 Passive Extraction During A Session
 
-When a `DialogueSession` is active, Phase 1 passive extraction via `processMessage()` is suspended for messages that are part of the session dialogue. The reason is that during a teaching session the expert's messages are processed by the Phase 4 pipeline, which applies the minimum consolidation criteria before any artifact is promoted. Running Phase 1 extraction in parallel would produce shallow candidate artifacts from half-formed rules that have not yet passed those criteria.
+When a `DialogueSession` is active, [Phase 1](../docs/roadmap.md#phase-1--personal-knowledge-store-current) passive extraction via [`processMessage()`](../packages/knowledge-fabric/src/pipeline.ts) is suspended for messages that are part of the session dialogue. The reason is that during a teaching session the expert's messages are processed by the [Phase 4](../docs/roadmap.md#phase-4--expert-to-agent-dialogic-learning) pipeline, which applies the minimum consolidation criteria before any artifact is promoted. Running Phase 1 extraction in parallel would produce shallow candidate artifacts from half-formed rules that have not yet passed those criteria.
 
 Phase 1 extraction resumes automatically when the session ends.
 

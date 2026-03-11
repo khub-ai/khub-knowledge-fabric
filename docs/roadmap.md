@@ -52,7 +52,7 @@ A developer can install the extension, accumulate knowledge across sessions (bot
 
 This is the transition from "memory" to "knowledge management." The agent stops merely recording what the user said and starts producing generalized rules, conventions, and judgment heuristics that apply across contexts.
 
-> **Note:** Phase 2 covers *passive* generalization — the agent learning automatically from ordinary use. *Active* expert-directed learning (where the agent conducts purposeful dialogue to elicit procedures, judgments, and revision rules from a domain expert) is a distinct mode addressed in Phase 4.
+> **Note:** Phase 2 covers *passive* generalization — the agent learning automatically from ordinary use. *Active* expert-directed learning (where the agent conducts purposeful dialogue to elicit procedures, judgments, and revision rules from a domain expert) is a distinct mode addressed in [Phase 4](#phase-4--expert-to-agent-dialogic-learning).
 
 ### Key capabilities
 - Episodic → semantic generalization (e.g., 5 corrections of summary format → 1 preference rule: "always use bullet points")

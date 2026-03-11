@@ -108,11 +108,11 @@ The system treats dialogue as a learning substrate and produces durable knowledg
 
 | Phase | Focus | Status |
 |---|---|---|
-| **2 — Generalization Engine** | Episodic → semantic/evaluative generalization, Tier 2 triggering, decay, feedback | Planned |
-| **3 — Procedural Memory & Code Synthesis** | Structured recipes, optional program compilation, tool library | Planned |
-| **4 — Expert-to-Agent Dialogic Learning** | Active expert elicitation through structured dialogue; produces procedures, judgments, boundary conditions, and revision triggers | Planned |
-| **5 — Portability** | Standard artifact format, import/export, cross-agent compatibility | Planned |
-| **6 — Governance & Ecosystem** | Team/org knowledge tiers, access controls, compliance audit trails, knowledge ecosystem and new business models | Long-term |
+| **[2 — Generalization Engine](docs/roadmap.md#phase-2--generalization-engine)** | Episodic → semantic/evaluative generalization, Tier 2 triggering, decay, feedback | Planned |
+| **[3 — Procedural Memory & Code Synthesis](docs/roadmap.md#phase-3--procedural-memory-and-code-synthesis)** | Structured recipes, optional program compilation, tool library | Planned |
+| **[4 — Expert-to-Agent Dialogic Learning](docs/roadmap.md#phase-4--expert-to-agent-dialogic-learning)** | Active expert elicitation through structured dialogue; produces procedures, judgments, boundary conditions, and revision triggers — see [spec](specs/expert-to-agent-dialogic-learning.md) | Planned |
+| **[5 — Portability](docs/roadmap.md#phase-5--portability-and-cross-agent-compatibility)** | Standard artifact format, import/export, cross-agent compatibility | Planned |
+| **[6 — Governance & Ecosystem](docs/roadmap.md#phase-6--governance-and-ecosystem-long-term)** | Team/org knowledge tiers, access controls, compliance audit trails, knowledge ecosystem and new business models | Long-term |
 
 → *[Detailed roadmap with milestones](docs/roadmap.md)* · *[Enterprise vision and investment thesis](docs/enterprise-vision.md)*
 
@@ -215,9 +215,9 @@ All four milestones are implemented. The LLM-backed pipeline is functional: know
 - Decay: effective confidence decreases for unretrieved, unreinforced artifacts
 - Semantic/vector retrieval
 - Evaluative knowledge generalization (judgment heuristics, value frameworks)
-- Procedural recipe compilation to executable programs (Phase 3)
-- Expert-to-Agent Dialogic Learning: structured expert sessions, six artifact types (Phase 4)
-- Import/export and cross-platform portability (Phase 5)
+- Procedural recipe compilation to executable programs ([Phase 3](docs/roadmap.md#phase-3--procedural-memory-and-code-synthesis))
+- Expert-to-Agent Dialogic Learning: structured expert sessions, six artifact types ([Phase 4](docs/roadmap.md#phase-4--expert-to-agent-dialogic-learning) · [spec](specs/expert-to-agent-dialogic-learning.md))
+- Import/export and cross-platform portability ([Phase 5](docs/roadmap.md#phase-5--portability-and-cross-agent-compatibility))
 - CLI for inspecting, editing, and deleting artifacts
 
 ## Non-goals

@@ -248,14 +248,14 @@ The format standard is the defensible asset. As more organizations accumulate kn
 
 ### What the technical foundation already provides
 
-The artifact design choices made in phases 1–5 are not accidental — they are the minimum required to make Phase 6 possible without rearchitecting:
+The artifact design choices made in phases [1](roadmap.md#phase-1--personal-knowledge-store-current)–[5](roadmap.md#phase-5--portability-and-cross-agent-compatibility) are not accidental — they are the minimum required to make [Phase 6](roadmap.md#phase-6--governance-and-ecosystem-long-term) possible without rearchitecting:
 
 | Design choice | Why it matters for Phase 6 |
 |---|---|
 | Text-based artifacts | Human-readable, no vendor-specific serialisation, editable with standard tools |
 | Model-agnostic | Knowledge packages are not invalidated by LLM vendor changes |
 | Versioned with provenance | Audit trails and certification are a presentation layer, not a redesign |
-| Additive-only field evolution | Phase 6 governance fields are backwards-compatible with Phase 1 artifacts |
+| Additive-only field evolution | [Phase 6](roadmap.md#phase-6--governance-and-ecosystem-long-term) governance fields are backwards-compatible with [Phase 1](roadmap.md#phase-1--personal-knowledge-store-current) artifacts |
 | Local-first storage | No central dependency; orgs can host their own registry without a third-party service |
 | Typed artifacts | Different governance rules can apply to different artifact kinds |
 
