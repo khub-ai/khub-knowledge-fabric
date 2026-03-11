@@ -82,6 +82,32 @@ The system treats dialogue as a learning substrate and produces durable knowledg
 7. **Apply** — confidence-gated: suggest, auto-apply, or hold back
 8. **Revise** — update or retire when contradicted or outdated
 
+## Architecture at a glance
+
+```mermaid
+graph TB
+    subgraph machine["🖥️  Your Machine"]
+        subgraph proc["Agent Process — PIL is a library, not a daemon or service"]
+            A["Your Agent"] -->|"processMessage · retrieve · apply · revise"| P["PIL Library"]
+        end
+        subgraph storage["~/.openclaw/knowledge/ — plain JSON, user-owned, inspectable, portable"]
+            J["artifacts.jsonl"]
+            S["sessions/"]
+            C["communication-profile.json"]
+        end
+        P -->|"read / write"| J & S & C
+    end
+
+    subgraph cloud["☁️  LLM Provider — Anthropic · OpenAI · Google · open-source · local"]
+        L["LLM API"]
+    end
+
+    P -->|"extract · consolidate — nothing stored remotely"| L
+    L -->|"structured response"| P
+```
+
+PIL runs entirely inside your agent process — there is no server, no daemon, and no extra infrastructure to start. Knowledge files are plain JSON on your machine, editable with any text editor. The LLM is called only for processing (extraction, consolidation, response generation) and never stores knowledge on your behalf. Any LLM provider, or a local model, can be substituted by replacing a single adapter function.
+
 ## Design goals
 
 - **User-owned and local** — knowledge lives on your machine, not a vendor's server
