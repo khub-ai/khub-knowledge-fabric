@@ -10,6 +10,21 @@ This spec is written for two audiences:
 - developers who may implement the mechanism
 - educated readers who want to understand the core idea without needing to read the source code first
 
+## Project Context
+
+This spec is part of a six-phase development roadmap. A brief orientation:
+
+- **Phase 1 — Personal Knowledge Store** ✅ complete: the agent passively accumulates facts, preferences, and procedures from ordinary conversation, and injects relevant knowledge into future sessions.
+- **Phase 2 — Generalization**: automatic consolidation of patterns observed across multiple sessions into reusable general rules.
+- **Phase 3 — Procedural Learning**: structured learning of repeatable multi-step procedures from interaction.
+- **Phase 4 — Expert-to-Agent Dialogic Learning** ← this spec: active, structured elicitation of deep knowledge from a domain expert through purposeful back-and-forth dialogue.
+- **Phase 5 — Portability**: exporting and importing knowledge packages across agents and platforms, enabling knowledge to be shared and sold.
+- **Phase 6 — Governance**: provenance, audit trails, and lifecycle management at organizational scale.
+
+Phase 4 builds directly on Phase 1's knowledge store, artifact types, and relation graph. It does not require Phases 2 or 3 to be complete first. Where this spec refers to "Phase 1" it means the passive accumulation pipeline; where it refers to "Phase 4" it means the active dialogic learning mechanism described here.
+
+For the full roadmap with milestone details see [docs/roadmap.md](../docs/roadmap.md).
+
 ## Why This Matters
 
 Many systems can store facts or summarize conversations. That is not enough. An expert is valuable not only because they know many facts, but because they know how to judge, how to prioritize, how to notice exceptions, and how to revise their thinking when evidence changes.
