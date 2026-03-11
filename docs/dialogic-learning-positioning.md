@@ -38,9 +38,21 @@ Dialogic learning is a different dimension. Its purpose is not just to help the 
  
 That difference matters because some of the most valuable human knowledge is not just factual. It is tacit, strategic, and judgment-heavy. It often lives in how a person asks questions, notices failure modes, prioritizes weak signals, and decides when a rule does not apply. 
  
-## Where Dialogic Learning Is Especially Valuable 
- 
-Dialogic learning is especially useful when: 
+## The Expert Incentive Problem — And Why Portability Solves It
+
+The history of expert systems and knowledge engineering offers a cautionary lesson. From the 1980s onward, structured attempts to extract knowledge from domain experts repeatedly stalled on a practical obstacle that was never really a technical problem: experts had no incentive to invest the effort, and even less incentive to ensure accuracy. When knowledge elicitation is a pure cost to the expert — time, cognitive effort, the discomfort of having one's reasoning made explicit — the results are predictably shallow, distorted, or simply abandoned.
+
+KHUB's portability layer changes this equation structurally. When the output of a dialogic session is a portable, typed, user-owned artifact that can be packaged and distributed across any PIL-compatible agent, the expert's investment in quality becomes economically rational. A senior investment analyst who participates in a rigorous elicitation session is not merely donating time to a system integrator. They are authoring a knowledge package they can publish, license, and sell.
+
+This is the missing incentive that previous expert knowledge capture approaches lacked. The combination of dialogic learning — which surfaces the right knowledge through structured back-and-forth — and portability — which makes that knowledge distributable and saleable — creates a self-sustaining production model for expert knowledge packages. Experts have reason to participate. They have reason to get it right. And market feedback on agent performance creates ongoing pressure for accuracy that is absent in systems where experts are asked to contribute to an internal knowledge base with no personal stake in the outcome.
+
+The analogy to Excel is instructive. Excel did not simply make spreadsheet work faster for existing accountants. It created a new class of knowledge worker — the financial model author — who could produce, refine, and share financial models without any programming expertise, and whose work had genuine market value. PIL and dialogic learning may do something structurally similar for expert knowledge: making it possible for domain experts to author AI-ready knowledge packages without any AI or coding expertise, and giving them an economic reason to invest in doing it well.
+
+This reframes dialogic learning from a technical mechanism into an economic architecture. The technology enables the elicitation. The portability model provides the incentive. The combination is what makes KHUB a different category from previous approaches — not just a better implementation of something that has been tried before.
+
+## Where Dialogic Learning Is Especially Valuable
+
+Dialogic learning is especially useful when:
  
 - the important knowledge is partly tacit and hard to write down cleanly in advance 
 - the user or expert wants the system to learn a method, not just remember facts 
@@ -166,13 +178,14 @@ Deployment status: intellectually relevant and increasingly active, but still mo
  
 KHUB's core distinction is that dialogue is not just a way to gather text. Dialogue is the mechanism by which the system learns generalized [knowledge artifacts](./glossary.md#knowledge-artifact). In the KHUB view, the durable asset is not merely a better context window or a larger memory store. The durable asset is a reusable unit of know-how. 
  
-The strongest differentiators are: 
- 
-- local-first and user-owned storage 
-- explicit artifact types such as procedures, judgments, boundaries, and revision triggers 
-- consolidation from repeated interaction into generalized knowledge 
-- a natural fit for expert teaching rather than only passive memory capture 
-- an implementation path that can remain model-agnostic while still using LLMs as the primary processor 
+The strongest differentiators are:
+
+- local-first and user-owned storage
+- explicit artifact types such as procedures, judgments, boundaries, and revision triggers
+- consolidation from repeated interaction into generalized knowledge
+- a natural fit for expert teaching rather than only passive memory capture
+- an implementation path that can remain model-agnostic while still using LLMs as the primary processor
+- a portability model that creates an economic incentive for experts to invest in quality elicitation — not just a feature of the system, but the mechanism that makes expert participation rational and durable
  
 ## Relative Strengths And Weaknesses 
  
@@ -202,15 +215,19 @@ A simple deployment-readiness view is:
  
 The practical implication is important: KHUB should not be positioned as the most finished generic memory platform in the market. It is better positioned as a differentiated learning architecture with a strong long-term thesis and a plausible near-term path in power-user, research, and high-accountability settings. 
  
-## Recommended Positioning Language 
- 
-A strong concise framing is: 
- 
-KHUB is a local-first knowledge fabric for AI agents that turns expert interaction into reusable knowledge artifacts, so learned know-how can persist across sessions, tools, and eventually agents. 
- 
-A second useful framing is: 
- 
-KHUB is not just helping agents remember. It is helping them learn in a way that remains inspectable and governable. 
+## Recommended Positioning Language
+
+A strong concise framing is:
+
+KHUB is a local-first knowledge fabric for AI agents that turns expert interaction into reusable knowledge artifacts, so learned know-how can persist across sessions, tools, and eventually agents.
+
+A second useful framing is:
+
+KHUB is not just helping agents remember. It is helping them learn in a way that remains inspectable and governable.
+
+A third framing that captures the economic argument:
+
+KHUB is the missing economic layer for expert knowledge. Previous approaches asked experts to donate their judgment to a system that benefited someone else. KHUB gives experts a portable, distributable output they can publish and sell — which is why it may succeed where knowledge engineering has repeatedly failed.
  
 ## Cautions 
  

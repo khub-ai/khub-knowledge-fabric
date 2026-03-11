@@ -140,6 +140,14 @@ For enterprise adopters, this value gradient has a concrete implication: the org
 
 Domain experts with years of accumulated judgment can publish curated PIL packages: a senior tax attorney's framework for analyzing a particular class of transaction, a clinical pharmacist's decision heuristics for drug interaction review, a structural engineer's checklist for evaluating retrofit proposals. Consumers import these packages into their agents. The knowledge is *active* — it surfaces at the right moment and adapts to context — rather than inert (a textbook that must be found and read).
 
+**Why experts will participate — and why they will get it right.** The history of expert systems and knowledge engineering is a history of failed elicitation. Not because the techniques were wrong, but because the incentive structure was wrong: experts were asked to invest significant time and cognitive effort in exchange for no personal benefit. The result was shallow participation, distorted self-reports, and eventually abandoned initiatives.
+
+PIL changes this equation. The output of an expert elicitation session is not an entry in a corporate knowledge base that the expert never sees again. It is a portable, typed artifact they own, can refine over time, and can distribute. A tax attorney who invests in a rigorous elicitation session is authoring a publishable knowledge package. Their return is proportional to its quality and adoption — which creates the incentive to do the elicitation carefully and accurately.
+
+This is the structural difference between KHUB and every previous attempt at capturing expert knowledge. The technology enables the elicitation. The portability model provides the incentive. Without both, you get either no participation or inaccurate participation. With both, you get a production model for expert knowledge that can scale.
+
+The analogy to Excel is instructive. Excel did not just speed up accounting. It created a new class of knowledge worker — the financial model author — who could produce and distribute financial models without programming expertise. PIL may do something structurally similar: enabling domain experts to author AI-ready knowledge packages without any AI or coding expertise, with an economic return that reflects the value of what they produce.
+
 This is not a distant economic possibility. It is the application of a well-understood package distribution model to a new asset class. The infrastructure precedent (npm, pip, Maven) is clear; the asset class is new.
 
 ### Professional certification of knowledge packages
@@ -234,14 +242,14 @@ The format standard is the defensible asset. As more organizations accumulate kn
 
 ### What the technical foundation already provides
 
-The artifact design choices made in phases 1–4 are not accidental — they are the minimum required to make Phase 5 possible without rearchitecting:
+The artifact design choices made in phases 1–5 are not accidental — they are the minimum required to make Phase 6 possible without rearchitecting:
 
-| Design choice | Why it matters for Phase 5 |
+| Design choice | Why it matters for Phase 6 |
 |---|---|
 | Text-based artifacts | Human-readable, no vendor-specific serialisation, editable with standard tools |
 | Model-agnostic | Knowledge packages are not invalidated by LLM vendor changes |
 | Versioned with provenance | Audit trails and certification are a presentation layer, not a redesign |
-| Additive-only field evolution | Phase 5 governance fields are backwards-compatible with Phase 1 artifacts |
+| Additive-only field evolution | Phase 6 governance fields are backwards-compatible with Phase 1 artifacts |
 | Local-first storage | No central dependency; orgs can host their own registry without a third-party service |
 | Typed artifacts | Different governance rules can apply to different artifact kinds |
 

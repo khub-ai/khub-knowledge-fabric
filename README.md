@@ -22,6 +22,10 @@ This is a client-side code framework, called **PIL (Persistable Interactive Lear
 
 **AI ecosystem builders and strategists** — if you are tracking where durable value accumulates in the AI stack, PIL proposes a new asset class: portable, typed, user-owned knowledge artifacts. The artifact format, if it achieves adoption, defines a coordination layer — analogous to what npm did for packages or OpenAPI did for APIs — around which expert knowledge marketplaces, org custody services, and certification businesses can form.
 
+The economic logic is structural, not speculative. Previous attempts at expert knowledge capture — expert systems in the 1980s, knowledge management platforms in the 2000s — failed because they asked experts to invest effort in exchange for nothing. PIL changes this: the output of an expert elicitation session is a portable artifact the expert owns and can distribute. A domain expert who participates in a rigorous session is authoring something they can publish and sell. That is the incentive that previous approaches lacked, and the reason the knowledge economy around PIL artifacts has a credible production model.
+
+Think of it as the Excel moment for expert knowledge. Excel did not just speed up accounting — it created a new class of knowledge worker who could author and sell financial models without programming expertise. PIL may do the same for domain know-how: accessible authoring, portable output, and an economic return that scales with quality.
+
 **AI platforms and potential partners** — PIL's default integration is with OpenClaw, but the artifact format and core library are platform-agnostic. A platform that supports PIL artifact import/export gains interoperability with an emerging knowledge ecosystem and a credible story for user data portability and governance.
 
 → *[Detailed enterprise and investment case](docs/enterprise-vision.md)* · *[Security threat model](docs/security.md)*
