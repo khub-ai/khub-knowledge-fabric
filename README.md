@@ -87,19 +87,19 @@ The system treats dialogue as a learning substrate and produces durable knowledg
 ```mermaid
 graph TB
     subgraph machine["🖥️  Your Machine"]
-        subgraph proc["Agent Process — PIL is a library, not a daemon or service"]
-            A["Your Agent"] -->|"processMessage · retrieve · apply · revise"| P["PIL Library"]
+        subgraph proc["Agent Process"]
+            A["Your Agent"] -->|"processMessage · retrieve · apply · revise"| P["PIL Library  (embedded — no daemon needed)"]
         end
-        subgraph storage["~/.openclaw/knowledge/ — plain JSON, user-owned, inspectable, portable"]
-            J["artifacts.jsonl"]
-            S["sessions/"]
-            C["communication-profile.json"]
+        subgraph storage["~/.openclaw/knowledge/  —  plain JSON, user-owned"]
+            J["artifacts.jsonl — preferences, rules, procedures, judgments"]
+            S["sessions/ — dialogic learning sessions"]
+            C["communication-profile.json — dialogue preferences"]
         end
         P -->|"read / write"| J & S & C
     end
 
-    subgraph cloud["☁️  LLM Provider — Anthropic · OpenAI · Google · open-source · local"]
-        L["LLM API"]
+    subgraph cloud["☁️  LLM Provider"]
+        L["Anthropic · OpenAI · Google · open-source · local"]
     end
 
     P -->|"extract · consolidate — nothing stored remotely"| L
