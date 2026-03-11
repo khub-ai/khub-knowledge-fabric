@@ -14,7 +14,21 @@ This spec is written for two audiences:
 
 Many systems can store facts or summarize conversations. That is not enough. An expert is valuable not only because they know many facts, but because they know how to judge, how to prioritize, how to notice exceptions, and how to revise their thinking when evidence changes.
 
-Expert-to-agent [dialogic learning](../docs/glossary.md#dialogic-learning) is meant to capture that deeper layer. The agent learns not just answers, but methods, boundaries, failure modes, and standards of judgment.
+A large share of valuable human knowledge is tacit. It does not exist as a clean manual waiting to be retrieved. It lives in examples, corrections, edge cases, habits of attention, and the reasons an expert gives when they say a tempting conclusion is wrong. If an agent cannot learn that layer, then it will remember surface facts while missing the deeper know-how that actually matters.
+
+Dialogue is one of the best ways to surface this kind of knowledge because experts often reveal what they know while explaining, correcting, contrasting cases, and reacting to overgeneralization. Expert-to-agent [dialogic learning](../docs/glossary.md#dialogic-learning) is meant to capture that deeper layer. The agent learns not just answers, but methods, boundaries, failure modes, and standards of judgment.
+
+## Why We Think This Approach Can Succeed
+
+The case for this approach is not that no one else is working on memory, teachable agents, or dialogic systems. Many are. The case is that this particular combination may solve an important part of the problem more effectively than several adjacent approaches on their own.
+
+First, it turns what is learned into explicit [knowledge artifacts](../docs/glossary.md#knowledge-artifact) rather than leaving it buried in conversation history or implicit in model behavior. That makes the result inspectable, revisable, and reusable.
+
+Second, it is better suited than full fine-tuning for many person-specific, team-specific, and expert-specific forms of adaptation. Fine-tuning is powerful, but it is slow to revise, expensive to iterate, and poorly matched to the incremental teaching of changing conventions, judgment criteria, and boundary conditions.
+
+Third, it gives the system a credible path to practical value even before general intelligence is solved. If the agent can reliably learn a domain experts own procedures, judgment patterns, and revision triggers in an inspectable form, then the result can already be useful in power-user, team, and high-accountability settings.
+
+This does not guarantee success. The main risks remain real: extracting the right abstractions, validating them, avoiding overgeneralization, and proving practical value in live use. But the reason to pursue this path is that it targets a gap that other mechanisms often leave open: the accumulation of generalized know-how through guided interaction.
 
 ## Core Idea
 
