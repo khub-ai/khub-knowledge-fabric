@@ -47,6 +47,24 @@ In short, RAG is a retrieval mechanism for existing document knowledge. PIL is a
 
 ---
 
+### What is Expert-to-Agent Dialogic Learning?
+
+Expert-to-agent dialogic learning is a learning pattern in which an agent acquires deep, reusable knowledge from a domain expert through structured back-and-forth dialogue — not by passively recording conversation, but by asking purposeful questions that surface procedures, judgment rules, boundary conditions, and revision triggers.
+
+The distinction from ordinary memory is important: the goal is not recall of what was said, but distillation of how the expert thinks. A domain expert knows not just facts but methods — which signals to prioritize, when a rule stops applying, what evidence should change a conclusion, and which past mistakes to avoid repeating. That tacit knowledge is hard to write down in advance but can be drawn out through a well-structured dialogue.
+
+The agent plays an active role: proposing tentative generalizations for the expert to correct, asking for failure cases and exceptions, and testing whether a rule still holds in a difficult case. The result is a set of structured artifacts — procedures, judgment rules, boundary conditions, failure cases — that the agent can reuse in future interactions, not a transcript.
+
+This pattern is most valuable when:
+- the important knowledge is partly tacit and not captured in existing documents
+- the user wants the agent to learn a *method*, not just remember facts
+- the domain requires caveats and revision conditions rather than simple answers
+- the knowledge should remain inspectable and editable after it is learned
+
+→ *[Expert-to-Agent Dialogic Learning spec](../specs/expert-to-agent-dialogic-learning.md)* · *[Worked example: investing domain](../specs/expert-to-agent-dialogic-learning-example-investing.md)* · *[Landscape positioning](./dialogic-learning-positioning.md)*
+
+---
+
 ### How is PIL different from fine-tuning?
 
 Fine-tuning adjusts model weights on domain-specific training data and is appropriate for *capability expansion* — teaching a new vocabulary, a new code style, a specialized domain. For *behavioral adaptation to a specific user, team, or operational context*, fine-tuning is ill-matched: it is expensive, requires batch training cycles, cannot practically adapt to an individual, and has no mechanism for correcting a learned behavior without risking collateral damage to others.
