@@ -1,13 +1,11 @@
- 
-# Worked Example: Expert-to-Agent Dialogic Learning With An Investment Expert 
-Return to the main spec: [Expert-to-Agent Dialogic Learning](./expert-to-agent-dialogic-learning.md)
 
- 
-## Purpose 
- 
-This example shows how a Knowledge Fabric agent can learn deep, reusable knowledge from a domain expert through dialogue. It is written as a blueprint for developers, but also as a readable demonstration for broader audiences. 
- 
-The example is feasible under the general principles of PIL, even if every supporting implementation detail is not yet complete. 
+# Worked Example: Expert-to-Agent Dialogic Learning With An Investment Expert
+
+## Purpose
+
+This example shows how a Knowledge Fabric agent can learn deep, reusable knowledge from a domain expert through dialogue. It is written as a blueprint for developers, but also as a readable demonstration for broader audiences.
+
+The example is feasible under the general principles of the Knowledge Fabric framework (PIL — Persistable Interactive Learning), even if every supporting implementation detail is not yet complete. 
  
 ## Domain And Participants 
  
@@ -230,9 +228,9 @@ A successful implementation of Expert-to-Agent Dialogic Learning should not mere
  
 The example above is intentionally modest in scope. That is a strength. It shows a realistic path to deep learning without requiring magic. The agent learns effectively because it asks for a case, extracts process, proposes a rule, gets corrected, asks for failure conditions, applies the revised knowledge, and records a new kind of question introduced by the expert. 
  
-## Related Documents 
- 
-- Main spec: [Expert-to-Agent Dialogic Learning](./expert-to-agent-dialogic-learning.md) 
+## Related Documents
+
+- Main spec: [Expert-to-Agent Dialogic Learning](./expert-to-agent-dialogic-learning.md)
 - Glossary: [Glossary](../docs/glossary.md) 
  
 ## Summary 
