@@ -17,6 +17,7 @@ import {
   CONSOLIDATION_THRESHOLD,
   DEFAULT_AUTO_APPLY_THRESHOLD,
   AUTO_APPLY_THRESHOLDS,
+  DECAY_CONSTANTS,
 } from "./types.js";
 import { consolidateEvidence } from "./extract.js";
 
@@ -94,6 +95,74 @@ function jaccard(a: string, b: string): number {
 }
 
 // ---------------------------------------------------------------------------
+// Phase 2a — Effective confidence (decay-adjusted)
+// ---------------------------------------------------------------------------
+
+/**
+ * Compute the effective (decay-adjusted) confidence of an artifact.
+ *
+ * The stored `confidence` field represents ground truth from accumulated
+ * evidence and explicit user feedback. Effective confidence is derived at
+ * read time by applying a time-based decay that slows down as validation
+ * strength grows. It is never written back to disk.
+ *
+ * This means:
+ *   - New evidence immediately restores full confidence (no "undo" needed).
+ *   - The original confidence is preserved as an audit record.
+ *   - No background process is required.
+ *
+ * See DECAY_CONSTANTS in types.ts for the full formula and design rationale.
+ */
+export function effectiveConfidence(artifact: KnowledgeArtifact): number {
+  const {
+    confidence,
+    lastRetrievedAt,
+    reinforcementCount = 0,
+    acceptedCount = 0,
+    rejectedCount = 0,
+    stage,
+    salience,
+  } = artifact;
+
+  // Validation strength: how thoroughly confirmed this artifact is.
+  // Acceptance counts double (explicit positive signal > passive reinforcement).
+  const validationStrength = Math.max(
+    0,
+    reinforcementCount + 2 * (acceptedCount ?? 0) - (rejectedCount ?? 0),
+  );
+
+  // Half-life grows with validation: more confirmed → slower decay.
+  const halfLifeDays =
+    DECAY_CONSTANTS.BASE_HALF_LIFE_DAYS *
+    (1 + DECAY_CONSTANTS.VALIDATION_ALPHA * validationStrength);
+
+  // Decay factor: 1.0 if never retrieved; exponential decay from last retrieval.
+  let decayFactor = 1.0;
+  if (lastRetrievedAt) {
+    const daysSince =
+      (Date.now() - new Date(lastRetrievedAt).getTime()) / 86_400_000;
+    decayFactor = Math.pow(0.5, daysSince / halfLifeDays);
+  }
+
+  // Floor: only consolidated artifacts have a non-zero floor.
+  // Candidates and accumulating artifacts decay to zero — they are meant to
+  // expire naturally if the user never confirms them.
+  let floor = 0;
+  if (stage === "consolidated") {
+    floor = Math.min(
+      DECAY_CONSTANTS.DECAY_FLOOR_MAX,
+      DECAY_CONSTANTS.DECAY_FLOOR_BASE +
+        DECAY_CONSTANTS.DECAY_FLOOR_PER_VALIDATION * validationStrength,
+    );
+    // Salience modulates the floor: safety-critical knowledge resists decay.
+    if (salience === "high") floor = Math.min(DECAY_CONSTANTS.DECAY_FLOOR_MAX, floor * 1.25);
+    if (salience === "low")  floor = floor * 0.75;
+  }
+
+  return Math.max(floor, floor + (confidence - floor) * decayFactor);
+}
+
+// ---------------------------------------------------------------------------
 // Inject label helpers
 // ---------------------------------------------------------------------------
 
@@ -103,17 +172,16 @@ export type InjectLabel = "[provisional]" | "[established]" | "[suggestion]";
  * Determine whether an artifact is injectable and what label it gets.
  *
  * Injection rules:
- *   consolidated + confidence ≥ threshold  → [established]  (auto-apply)
- *   consolidated + confidence < threshold  → [suggestion]
- *   accumulating                           → [suggestion]   (2+ obs; more reliable
- *                                                            than a single candidate)
- *   candidate    + certainty "definitive"  → [provisional]  (single strong obs)
- *   candidate    + non-definitive          → null            (not injectable)
+ *   consolidated + effectiveConfidence ≥ threshold  → [established]  (auto-apply)
+ *   consolidated + effectiveConfidence < threshold  → [suggestion]
+ *   accumulating                                    → [suggestion]
+ *   candidate    + certainty "definitive"           → [provisional]
+ *   candidate    + non-definitive                   → null
  *
- * Note: accumulating was previously non-injectable, but that was backwards —
- * an artifact with 2+ observations is MORE substantiated than a single
- * definitive candidate. The [suggestion] label appropriately hedges the
- * injection while still making the knowledge available to the LLM.
+ * Uses effectiveConfidence (decay-adjusted) for the consolidated threshold
+ * check: an artifact that hasn't been retrieved in a long time will
+ * automatically drop from [established] to [suggestion] as its effective
+ * confidence falls below the auto-apply threshold.
  */
 export function getInjectLabel(artifact: KnowledgeArtifact): InjectLabel | null {
   if (artifact.retired) return null;
@@ -123,12 +191,10 @@ export function getInjectLabel(artifact: KnowledgeArtifact): InjectLabel | null 
       artifact.salience !== undefined
         ? AUTO_APPLY_THRESHOLDS[artifact.salience]
         : DEFAULT_AUTO_APPLY_THRESHOLD;
-    return artifact.confidence >= threshold ? "[established]" : "[suggestion]";
+    const eff = effectiveConfidence(artifact);
+    return eff >= threshold ? "[established]" : "[suggestion]";
   }
 
-  // 2+ observations: inject as a suggestion. Content is still verbatim (not yet
-  // LLM-distilled), but multiple observations make it more reliable than a
-  // single provisional candidate.
   if (artifact.stage === "accumulating") {
     return "[suggestion]";
   }
@@ -137,7 +203,7 @@ export function getInjectLabel(artifact: KnowledgeArtifact): InjectLabel | null 
     return "[provisional]";
   }
 
-  return null; // tentative/uncertain candidate — needs more evidence
+  return null;
 }
 
 export function isInjectable(artifact: KnowledgeArtifact): boolean {
@@ -393,7 +459,8 @@ export async function retrieve(
     .split(/\W+/)
     .filter((w) => w.length > 2);
 
-  const now = Date.now();
+  const nowMs  = Date.now();
+  const nowIso = new Date(nowMs).toISOString();
 
   const scored = active
     .map((artifact) => {
@@ -412,8 +479,8 @@ export async function retrieve(
       const contentScore = jaccard(query, artifact.content);
       score += contentScore * 0.30;
 
-      // Confidence boost
-      score += artifact.confidence * 0.10;
+      // Effective-confidence boost (decay-aware — replaces raw confidence boost)
+      score += effectiveConfidence(artifact) * 0.10;
 
       // Consolidated artifacts get a slight priority boost
       if (artifact.stage === "consolidated") score += 0.05;
@@ -426,7 +493,7 @@ export async function retrieve(
       //   older  →  0
       const latestTs = artifact.revisedAt ?? artifact.createdAt;
       if (latestTs) {
-        const ageHours = (now - Date.parse(latestTs)) / 3_600_000;
+        const ageHours = (nowMs - Date.parse(latestTs)) / 3_600_000;
         const recencyBoost =
           ageHours < 1  ? 0.20 :
           ageHours < 6  ? 0.10 :
@@ -439,7 +506,26 @@ export async function retrieve(
     .filter(({ score }) => score > 0.05)
     .sort((a, b) => b.score - a.score);
 
-  return scored.slice(0, limit).map(({ artifact }) => artifact);
+  const results = scored.slice(0, limit).map(({ artifact }) => artifact);
+
+  // Update lastRetrievedAt for returned artifacts — feeds the decay formula
+  // so that actively-used knowledge keeps its effective confidence high.
+  // Only when a real query was issued (not list-all operations).
+  if (results.length > 0) {
+    const returnedIds = new Set(results.map((a) => a.id));
+    let modified = false;
+    const updatedAll = all.map((a) => {
+      if (returnedIds.has(a.id) && a.lastRetrievedAt !== nowIso) {
+        modified = true;
+        return { ...a, lastRetrievedAt: nowIso };
+      }
+      return a;
+    });
+    if (modified) await saveAll(updatedAll);
+    return results.map((a) => ({ ...a, lastRetrievedAt: nowIso }));
+  }
+
+  return results;
 }
 
 // ---------------------------------------------------------------------------

@@ -21,9 +21,10 @@ import {
   getInjectLabel,
   isInjectable,
   loadAll,
+  effectiveConfidence,
 } from "@khub-ai/knowledge-fabric/store";
 import { candidateToArtifact } from "@khub-ai/knowledge-fabric/extract";
-import { CONFIDENCE_SEED, CONSOLIDATION_THRESHOLD } from "@khub-ai/knowledge-fabric/types";
+import { CONFIDENCE_SEED, CONSOLIDATION_THRESHOLD, DECAY_CONSTANTS } from "@khub-ai/knowledge-fabric/types";
 import type { KnowledgeArtifact } from "@khub-ai/knowledge-fabric/types";
 import {
   createPatternMockLLM,
@@ -460,5 +461,136 @@ describe("revise", () => {
     const all = await loadAll();
     const original = all.find((a) => a.id === artifact.id);
     expect(original?.retired).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// effectiveConfidence — Phase 2a decay
+// ---------------------------------------------------------------------------
+
+/** ISO timestamp for N days in the past. */
+function daysAgo(n: number): string {
+  return new Date(Date.now() - n * 86_400_000).toISOString();
+}
+
+describe("effectiveConfidence", () => {
+  it("equals stored confidence when artifact has never been retrieved", () => {
+    const a = makeArtifact({ confidence: 0.82, stage: "consolidated" });
+    // No lastRetrievedAt → decayFactor = 1.0 → effective = confidence
+    expect(effectiveConfidence(a)).toBeCloseTo(0.82, 3);
+  });
+
+  it("barely decays when artifact was retrieved today", () => {
+    const a = makeArtifact({
+      confidence: 0.82,
+      stage: "consolidated",
+      lastRetrievedAt: daysAgo(0.1),
+    });
+    const eff = effectiveConfidence(a);
+    expect(eff).toBeGreaterThan(0.81);
+    expect(eff).toBeLessThanOrEqual(0.82);
+  });
+
+  it("halves a candidate artifact after one BASE_HALF_LIFE_DAYS with no validation", () => {
+    const a = makeArtifact({
+      confidence: 0.65,
+      stage: "candidate",
+      lastRetrievedAt: daysAgo(DECAY_CONSTANTS.BASE_HALF_LIFE_DAYS),
+      reinforcementCount: 0,
+      acceptedCount: 0,
+      rejectedCount: 0,
+    });
+    // Expected: 0.65 × 0.5 = 0.325 (no floor for candidates)
+    expect(effectiveConfidence(a)).toBeCloseTo(0.65 * 0.5, 2);
+  });
+
+  it("consolidated artifact with no validation stays above DECAY_FLOOR_BASE", () => {
+    const a = makeArtifact({
+      confidence: 0.85,
+      stage: "consolidated",
+      lastRetrievedAt: daysAgo(365), // very stale
+      reinforcementCount: 0,
+      acceptedCount: 0,
+      rejectedCount: 0,
+    });
+    const eff = effectiveConfidence(a);
+    expect(eff).toBeGreaterThanOrEqual(DECAY_CONSTANTS.DECAY_FLOOR_BASE - 0.001);
+  });
+
+  it("highly-validated consolidated artifact has a higher floor", () => {
+    const aLow = makeArtifact({
+      confidence: 0.90,
+      stage: "consolidated",
+      lastRetrievedAt: daysAgo(365),
+      reinforcementCount: 0,
+      acceptedCount: 0,
+      rejectedCount: 0,
+    });
+    const aHigh = makeArtifact({
+      confidence: 0.90,
+      stage: "consolidated",
+      lastRetrievedAt: daysAgo(365),
+      reinforcementCount: 10,
+      acceptedCount: 3,
+      rejectedCount: 0,
+    });
+    expect(effectiveConfidence(aHigh)).toBeGreaterThan(effectiveConfidence(aLow));
+  });
+
+  it("high-validation artifact decays slower than low-validation artifact", () => {
+    const base = {
+      confidence: 0.85,
+      stage: "consolidated" as const,
+      lastRetrievedAt: daysAgo(60),
+    };
+    const aNoValidation = makeArtifact({ ...base, reinforcementCount: 0 });
+    const aValidated    = makeArtifact({ ...base, reinforcementCount: 10, acceptedCount: 2 });
+    expect(effectiveConfidence(aValidated)).toBeGreaterThan(effectiveConfidence(aNoValidation));
+  });
+
+  it("high-salience consolidated artifact has a higher floor than default", () => {
+    const base = {
+      confidence: 0.90,
+      stage: "consolidated" as const,
+      lastRetrievedAt: daysAgo(365),
+      reinforcementCount: 0,
+    };
+    const aDefault = makeArtifact({ ...base });
+    const aHigh    = makeArtifact({ ...base, salience: "high" as const });
+    expect(effectiveConfidence(aHigh)).toBeGreaterThan(effectiveConfidence(aDefault));
+  });
+
+  it("getInjectLabel drops consolidated artifact from [established] to [suggestion] when decayed", () => {
+    // confidence 0.85 would normally be [established] (above DEFAULT_AUTO_APPLY_THRESHOLD 0.80)
+    // but after heavy decay it falls below 0.80
+    const a = makeArtifact({
+      confidence: 0.85,
+      stage: "consolidated",
+      certainty: "definitive",
+      lastRetrievedAt: daysAgo(200), // very stale, no validation → heavy decay
+      reinforcementCount: 0,
+      acceptedCount: 0,
+      rejectedCount: 0,
+    });
+    // Effective confidence should be well below 0.80
+    expect(effectiveConfidence(a)).toBeLessThan(0.80);
+    // Therefore label should be [suggestion], not [established]
+    expect(getInjectLabel(a)).toBe("[suggestion]");
+  });
+
+  it("retrieve updates lastRetrievedAt for matched artifacts", async () => {
+    const artifact = makeArtifact({
+      stage: "consolidated",
+      tags: ["summary-format", "bullet-points"],
+    });
+    await persist(artifact);
+
+    const before = await loadAll();
+    expect(before[0]?.lastRetrievedAt).toBeUndefined();
+
+    await retrieve("bullet summary format");
+
+    const after = await loadAll();
+    expect(after[0]?.lastRetrievedAt).toBeTruthy();
   });
 });

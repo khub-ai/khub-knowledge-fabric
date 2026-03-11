@@ -216,6 +216,48 @@ export const AUTO_APPLY_THRESHOLDS: Record<NonNullable<KnowledgeArtifact["salien
 export const DEFAULT_AUTO_APPLY_THRESHOLD = 0.80;
 
 // ---------------------------------------------------------------------------
+// Phase 2a — Decay constants
+// ---------------------------------------------------------------------------
+
+/**
+ * Tunable parameters for the effective-confidence decay formula.
+ *
+ * Effective confidence is computed at read time (not written back to disk) so
+ * that the stored `confidence` field remains the ground-truth evidence record.
+ *
+ * Formula:
+ *   validationStrength = reinforcementCount + 2×acceptedCount − rejectedCount
+ *   halfLifeDays       = BASE_HALF_LIFE_DAYS × (1 + VALIDATION_ALPHA × validationStrength)
+ *   decayFactor        = 0.5 ^ (daysSinceRetrieved / halfLifeDays)
+ *   floor              = min(DECAY_FLOOR_MAX,
+ *                            DECAY_FLOOR_BASE + DECAY_FLOOR_PER_VALIDATION × validationStrength)
+ *                        (consolidated artifacts only; 0 for candidate/accumulating)
+ *   effectiveConfidence = max(floor, floor + (confidence − floor) × decayFactor)
+ *
+ * Design rationale:
+ *   - candidate/accumulating artifacts have no floor: unconfirmed observations
+ *     should expire naturally if the user never reinforces them.
+ *   - consolidated artifacts decay toward a floor, not zero: validated knowledge
+ *     doesn't disappear, it shifts from [established] toward [suggestion].
+ *   - high-validation artifacts have longer half-lives and higher floors:
+ *     knowledge confirmed many times resists decay appropriately.
+ *   - salience further modulates the floor: safety-critical knowledge decays
+ *     more slowly regardless of validation count.
+ */
+export const DECAY_CONSTANTS = {
+  /** Half-life (days) for an artifact with zero validation strength. */
+  BASE_HALF_LIFE_DAYS: 30,
+  /** Each unit of validation strength multiplies the half-life by (1 + VALIDATION_ALPHA). */
+  VALIDATION_ALPHA: 0.20,
+  /** Minimum effective-confidence floor for a consolidated artifact with no validation. */
+  DECAY_FLOOR_BASE: 0.20,
+  /** Maximum floor — the most validated artifact cannot exceed this as a floor. */
+  DECAY_FLOOR_MAX: 0.60,
+  /** Each unit of validation strength raises the floor by this increment. */
+  DECAY_FLOOR_PER_VALIDATION: 0.04,
+} as const;
+
+// ---------------------------------------------------------------------------
 // Phase 4 — Expert-to-Agent Dialogic Learning
 //
 // Types for the structured expert elicitation system. These extend the Phase 1

@@ -40,10 +40,12 @@ import {
   loadAll,
   storePath,
   getInjectLabel,
+  effectiveConfidence,
 } from "@khub-ai/knowledge-fabric/store";
 import {
   CONSOLIDATION_THRESHOLD,
   DEFAULT_AUTO_APPLY_THRESHOLD,
+  DECAY_CONSTANTS,
 } from "@khub-ai/knowledge-fabric/types";
 import type { KnowledgeArtifact, LLMFn } from "@khub-ai/knowledge-fabric/types";
 import type {
@@ -369,15 +371,42 @@ function toPilActivity(
 
 /** Convert a KnowledgeArtifact to the dashboard-safe StoreEntry shape. */
 function toStoreEntry(a: KnowledgeArtifact): StoreEntry {
+  const eff = effectiveConfidence(a);
+
+  // Compute decay components for the dashboard decay panel.
+  const validationStrength = Math.max(
+    0,
+    (a.reinforcementCount ?? 0) +
+    2 * (a.acceptedCount    ?? 0) -
+      (a.rejectedCount      ?? 0),
+  );
+  const halfLifeDays =
+    DECAY_CONSTANTS.BASE_HALF_LIFE_DAYS *
+    (1 + DECAY_CONSTANTS.VALIDATION_ALPHA * validationStrength);
+  let decayFactor = 1.0;
+  if (a.lastRetrievedAt) {
+    const daysSince =
+      (Date.now() - new Date(a.lastRetrievedAt).getTime()) / 86_400_000;
+    decayFactor = Math.pow(0.5, daysSince / halfLifeDays);
+  }
+
   return {
     id: a.id,
     kind: a.kind,
     stage: a.stage ?? "candidate",
     confidence: a.confidence,
+    effectiveConfidence: Math.round(eff * 1000) / 1000,
     content: a.content,
     tags: a.tags ?? [],
     evidenceCount: a.evidenceCount ?? 0,
     label: getInjectLabel(a) ?? "",
+    lastRetrievedAt: a.lastRetrievedAt ?? null,
+    reinforcementCount: a.reinforcementCount ?? 0,
+    acceptedCount:      a.acceptedCount      ?? 0,
+    rejectedCount:      a.rejectedCount       ?? 0,
+    validationStrength,
+    halfLifeDays:  Math.round(halfLifeDays),
+    decayFactor:   Math.round(decayFactor * 1000) / 1000,
   };
 }
 

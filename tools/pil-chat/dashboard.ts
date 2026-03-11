@@ -46,12 +46,26 @@ export interface StoreEntry {
   id: string;
   kind: string;
   stage: string;
+  /** Stored (ground-truth) confidence from evidence accumulation and feedback. */
   confidence: number;
+  /** Effective confidence after decay — computed at read time, never persisted. */
+  effectiveConfidence: number;
   content: string;
   tags: string[];
   evidenceCount: number;
   /** Inject label — mirrors getInjectLabel() from store.ts; "" when not injectable. */
   label: string;
+  // ── Decay fields ────────────────────────────────────────────────────────
+  lastRetrievedAt: string | null;
+  reinforcementCount: number;
+  acceptedCount: number;
+  rejectedCount: number;
+  /** validationStrength = reinforcementCount + 2×acceptedCount − rejectedCount */
+  validationStrength: number;
+  /** Computed half-life in days for display. */
+  halfLifeDays: number;
+  /** Current decay factor (1.0 = no decay, 0.0 = fully decayed). */
+  decayFactor: number;
 }
 
 export interface TurnResult {
@@ -237,8 +251,18 @@ body {
 .conf-wrap {
   width: 52px; background: #2d2d2d; height: 5px; border-radius: 3px;
   display: inline-block; vertical-align: middle; margin-right: 4px; overflow: hidden;
+  position: relative;
 }
 .conf-fill { height: 100%; border-radius: 3px; }
+/* Effective-confidence overlay — sits on top of the stored-conf bar */
+.conf-eff-fill {
+  position: absolute; top: 0; left: 0; height: 100%; border-radius: 3px;
+  opacity: 0.45;
+}
+.decay-indicator {
+  font-size: 10px; color: #7a5c2a; margin-left: 2px;
+  vertical-align: middle; display: inline-block;
+}
 .lbl-established { color: #4ec9b0; font-size: 11px; }
 .lbl-suggestion  { color: #dcdcaa; font-size: 11px; }
 .lbl-provisional { color: #569cd6; font-size: 11px; }
@@ -359,8 +383,9 @@ body {
               <th class="cb-col"><input type="checkbox" id="sel-all" title="Select all" onclick="toggleSelectAll(this.checked)"></th>
               <th>Kind</th>
               <th>Stage</th>
-              <th>Conf</th>
+              <th title="Stored confidence (ground truth) / effective confidence after decay">Conf / Eff</th>
               <th>Label</th>
+              <th>Tags</th>
               <th>Content</th>
             </tr>
           </thead>
@@ -542,9 +567,36 @@ function applyConf() {
 function showDetail(a) {
   const tags = (a.tags && a.tags.length) ? a.tags.join(', ') : '—';
   const ev   = a.evidenceCount ? \` &nbsp;·&nbsp; evidence=\${a.evidenceCount}\` : '';
+  const eff  = a.effectiveConfidence ?? a.confidence;
+  const decayed = a.confidence - eff > 0.005;
+
+  // Decay section
+  let decayHtml = '';
+  if (a.halfLifeDays !== undefined) {
+    const lastRet = a.lastRetrievedAt
+      ? (() => {
+          const days = (Date.now() - new Date(a.lastRetrievedAt).getTime()) / 86400000;
+          return days < 1 ? 'today' : days < 2 ? 'yesterday' : \`\${Math.round(days)} days ago\`;
+        })()
+      : 'never';
+    decayHtml = \`
+      <div style="margin-top:10px;padding:8px 10px;background:#1a1a1a;border:1px solid #333;border-radius:3px;font-size:11px;line-height:1.9">
+        <div style="color:#858585;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;font-size:10px">Decay</div>
+        <div><span style="color:#555">stored confidence</span>  <span style="color:#9cdcfe">\${a.confidence.toFixed(3)}</span></div>
+        <div><span style="color:#555">validation strength</span>  <span style="color:#9cdcfe">\${a.validationStrength ?? 0}</span>
+          <span style="color:#444;font-size:10px"> (reinf: \${a.reinforcementCount??0}, acc: \${a.acceptedCount??0}, rej: \${a.rejectedCount??0})</span></div>
+        <div><span style="color:#555">half-life</span>  <span style="color:#9cdcfe">\${a.halfLifeDays} days</span></div>
+        <div><span style="color:#555">last retrieved</span>  <span style="color:#9cdcfe">\${lastRet}</span></div>
+        <div><span style="color:#555">decay factor</span>  <span style="color:\${decayed?'#dcdcaa':'#4ec9b0'}">\${(a.decayFactor??1).toFixed(3)}</span></div>
+        <div><span style="color:#555">effective confidence</span>  <span style="color:\${decayed?'#dcdcaa':'#4ec9b0'}"><b>\${eff.toFixed(3)}</b></span>
+          \${decayed ? '<span style="color:#7a5c2a;font-size:10px"> ↓ decayed</span>' : ''}</div>
+      </div>\`;
+  }
+
   document.getElementById('detail-meta').innerHTML =
     \`<b>\${esc(a.kind)}</b> / \${esc(a.stage)} &nbsp;·&nbsp; conf=\${a.confidence.toFixed(3)}\${ev}<br>\` +
-    \`tags: \${esc(tags)}<br><span style="color:#555;font-size:10px">\${esc(a.id)}</span>\`;
+    \`tags: \${esc(tags)}<br><span style="color:#555;font-size:10px">\${esc(a.id)}</span>\` +
+    decayHtml;
   document.getElementById('detail-content').textContent = a.content;
   document.getElementById('detail-overlay').classList.add('open');
 }
@@ -646,31 +698,46 @@ function renderStore(entries) {
     updateActionBar();
     return;
   }
-  const sorted = [...entries].sort((a, b) => b.confidence - a.confidence);
+  const sorted = [...entries].sort((a, b) => b.effectiveConfidence - a.effectiveConfidence);
   for (const a of sorted) storeEntries[a.id] = a;
   storeEl.innerHTML = sorted.map(a => {
-    const pct     = Math.round(a.confidence * 100);
-    const color   = a.confidence >= 0.95 ? '#4ec9b0'
-                  : a.confidence >= 0.85 ? '#dcdcaa'
-                  : a.confidence >= 0.75 ? '#569cd6'
+    const eff     = a.effectiveConfidence ?? a.confidence;
+    const pctBase = Math.round(a.confidence * 100);
+    const pctEff  = Math.round(eff * 100);
+    const color   = eff >= 0.95 ? '#4ec9b0'
+                  : eff >= 0.85 ? '#dcdcaa'
+                  : eff >= 0.75 ? '#569cd6'
                   : '#858585';
-    const kdCls   = ['preference','convention','fact','procedure','judgment','strategy'].includes(a.kind)
-                    ? 'kd-' + a.kind : 'kd-fact';
+    const kdCls   = ['preference','convention','fact','procedure','judgment','strategy',
+                     'boundary','revision-trigger','failure-case'].includes(a.kind)
+                    ? 'kd-' + a.kind.replace('-','').replace('-','') : 'kd-fact';
     const stCls   = ['candidate','accumulating','consolidated'].includes(a.stage)
                     ? 'st-' + a.stage : 'st-candidate';
     const lbl     = a.label
                     ? \`<span class="\${labelCls(a.label)}">\${esc(a.label)}</span>\`
                     : '<span class="lbl-none">—</span>';
+    const decayed = a.confidence - eff > 0.03;
+    const decayHint = decayed
+      ? \`<span class="decay-indicator" title="Decay active: stored=\${a.confidence.toFixed(2)} → eff=\${eff.toFixed(2)}">↓</span>\`
+      : '';
     const checked = selectedIds.has(a.id) ? 'checked' : '';
+    const tagsHtml = (a.tags && a.tags.length)
+      ? a.tags.slice(0,3).map(t => \`<span style="color:#4a6a8a;font-size:10px">\${esc(t)}</span>\`).join(' ')
+      + (a.tags.length > 3 ? \`<span style="color:#444;font-size:10px"> +\${a.tags.length-3}</span>\` : '')
+      : '<span style="color:#444;font-size:10px">—</span>';
     return \`<tr>
       <td class="cb-col"><input type="checkbox" data-id="\${esc(a.id)}" \${checked} onchange="toggleSelect('\${a.id}', this.checked)"></td>
       <td><span class="badge \${kdCls}">\${esc(a.kind)}</span></td>
       <td><span class="badge \${stCls}">\${esc(a.stage)}</span></td>
       <td style="white-space:nowrap">
-        <span class="conf-wrap"><span class="conf-fill" style="width:\${pct}%;background:\${color}"></span></span>\${a.confidence.toFixed(2)}
+        <span class="conf-wrap">
+          <span class="conf-fill" style="width:\${pctBase}%;background:#3a3a3a"></span>
+          <span class="conf-eff-fill" style="width:\${pctEff}%;background:\${color}"></span>
+        </span>\${eff.toFixed(2)}\${decayHint}
       </td>
       <td>\${lbl}</td>
-      <td class="content-cell" title="Click to expand">\${esc(snip(a.content, 65))}</td>
+      <td style="max-width:120px;overflow:hidden">\${tagsHtml}</td>
+      <td class="content-cell" title="Click to expand">\${esc(snip(a.content, 55))}</td>
     </tr>\`;
   }).join('');
   // Remove stale selected IDs (artifacts that no longer exist after a store update).
