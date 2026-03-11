@@ -10,7 +10,8 @@
     "./extract": "./src/extract.ts",
     "./pipeline": "./src/pipeline.ts",
     "./store": "./src/store.ts",
-    "./tools": "./src/tools.ts"
+    "./tools": "./src/tools.ts",
+    "./hooks": "./src/hooks.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -20,9 +21,13 @@
     "typescript": "^5.8.2"
   },
   "peerDependencies": {
+    "@anthropic-ai/sdk": ">=0.20.0",
     "openclaw": ">=2026.1.26"
   },
   "peerDependenciesMeta": {
+    "@anthropic-ai/sdk": {
+      "optional": true
+    },
     "openclaw": {
       "optional": true
     }

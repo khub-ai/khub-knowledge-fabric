@@ -349,9 +349,9 @@ describe("getInjectLabel", () => {
     expect(getInjectLabel(artifact)).toBe("[provisional]");
   });
 
-  it("returns null for accumulating artifact (not injectable)", () => {
+  it("returns [suggestion] for accumulating artifact (2+ observations)", () => {
     const artifact = makeArtifact({ stage: "accumulating" });
-    expect(getInjectLabel(artifact)).toBeNull();
+    expect(getInjectLabel(artifact)).toBe("[suggestion]");
   });
 
   it("returns null for candidate with tentative certainty (not injectable)", () => {
@@ -406,8 +406,18 @@ describe("apply", () => {
     expect(suggestion).toContain("[suggestion]");
   });
 
-  it("returns empty for non-injectable artifact", async () => {
+  it("suggests accumulating artifact (2+ observations)", async () => {
     const artifact = makeArtifact({ stage: "accumulating" });
+    await persist(artifact);
+
+    const { suggestion, autoApply } = await apply(artifact, "context");
+    expect(autoApply).toBe(false);
+    expect(suggestion).toContain("[suggestion]");
+  });
+
+  it("returns empty for non-injectable candidate artifact", async () => {
+    // A bare candidate with non-definitive certainty is not yet injectable
+    const artifact = makeArtifact({ stage: "candidate", certainty: "possible" });
     await persist(artifact);
 
     const { suggestion, autoApply } = await apply(artifact, "context");
