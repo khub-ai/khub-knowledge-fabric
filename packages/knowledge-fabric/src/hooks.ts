@@ -1,15 +1,21 @@
 /**
  * OpenClaw lifecycle hooks for Milestones 1c and 1d.
  *
- * 1c — message_received: passive extraction from every inbound message.
- *      Gated by sender check. Requires an LLM adapter for extraction.
+ * 1c — Two-pass passive extraction:
+ *      • message_received (pre-pass)   — extracts from the raw inbound message
+ *        before the agent responds. Gated by per-sender trust check.
+ *      • agent_end (exchange-pass)     — extracts from the full user→agent turn
+ *        after the agent finishes. Carries richer signal (agent phrasing may
+ *        confirm or clarify facts the user stated). Gated on trustedSenders
+ *        being non-empty and on the turn having succeeded.
+ *      Both passes require an LLM adapter for extraction.
  *
  * 1d — before_prompt_build: automatic retrieval and artifact injection
  *      at near-zero cost (in-memory tag-overlap lookup, no LLM call needed).
  *
- * Both hooks are registered together; either can be skipped gracefully if
- * its prerequisites are not met (e.g. no LLM adapter = 1c disabled but 1d
- * still works).
+ * All hooks are registered together; each degrades gracefully when its
+ * prerequisites are not met (e.g. no LLM adapter = 1c disabled, 1d still
+ * works; trustedSenders empty = exchange-pass skipped).
  */
 
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
@@ -53,6 +59,49 @@ function isTrustedSender(from: string, trustedSenders: string[]): boolean {
   if (trustedSenders.includes("*")) return true;
   const fromLower = from.toLowerCase();
   return trustedSenders.some((s) => s.toLowerCase() === fromLower);
+}
+
+/**
+ * Format an `agent_end` messages array as a readable exchange string for
+ * extraction. The messages array uses Anthropic message format internally.
+ *
+ * Takes the last `maxMessages` entries to bound token cost on long sessions.
+ * Returns null when no usable text can be extracted.
+ */
+function formatExchangeForExtraction(
+  messages: unknown[],
+  maxMessages = 8,
+): string | null {
+  const tail = messages.slice(-maxMessages);
+  const lines: string[] = [];
+
+  for (const msg of tail) {
+    if (typeof msg !== "object" || msg === null) continue;
+    const { role, content } = msg as { role?: unknown; content?: unknown };
+    if (role !== "user" && role !== "assistant") continue;
+
+    let text: string | null = null;
+    if (typeof content === "string") {
+      text = content;
+    } else if (Array.isArray(content)) {
+      const parts = content
+        .filter(
+          (b): b is { type: "text"; text: string } =>
+            typeof b === "object" &&
+            b !== null &&
+            (b as { type?: unknown }).type === "text" &&
+            typeof (b as { text?: unknown }).text === "string",
+        )
+        .map((b) => b.text);
+      if (parts.length > 0) text = parts.join(" ");
+    }
+
+    if (text?.trim()) {
+      lines.push(`${role === "user" ? "User" : "Agent"}: ${text.trim()}`);
+    }
+  }
+
+  return lines.length > 0 ? lines.join("\n") : null;
 }
 
 /**
@@ -118,6 +167,28 @@ export function registerKnowledgeHooks(
       } catch (err) {
         api.logger.warn(`[knowledge-fabric] extraction failed: ${String(err)}`);
       }
+    }
+  });
+
+  // ── Milestone 1c (exchange-pass): extract from the completed turn ─────────
+  //
+  // Fires after the agent finishes responding. At this point we have the full
+  // user→agent exchange, which carries richer extraction signal than the raw
+  // inbound message alone (the agent's phrasing may confirm or clarify facts).
+  //
+  // Sender-check rationale: agent_end has no per-message `from` field, so we
+  // gate on trustedSenders being non-empty (user has opted into learning) and
+  // on the turn having succeeded (avoid extracting from error sessions).
+  api.on("agent_end", async (event, _ctx) => {
+    if (!llm || trustedSenders.length === 0 || !event.success) return;
+
+    const exchange = formatExchangeForExtraction(event.messages);
+    if (!exchange) return;
+
+    try {
+      await processMessage(exchange, llm, "agent_end");
+    } catch (err) {
+      api.logger.warn(`[knowledge-fabric] exchange-pass extraction failed: ${String(err)}`);
     }
   });
 
