@@ -136,7 +136,7 @@ PIL runs entirely inside your agent process — there is no server, no daemon, a
 |---|---|---|
 | **[2 — Generalization Engine](docs/roadmap.md#phase-2--generalization-engine)** | Episodic → semantic/evaluative generalization, Tier 2 triggering, decay, feedback | Planned |
 | **[3 — Procedural Memory & Code Synthesis](docs/roadmap.md#phase-3--procedural-memory-and-code-synthesis)** | Structured recipes, optional program compilation, tool library | Planned |
-| **[4 — Expert-to-Agent Dialogic Learning](docs/roadmap.md#phase-4--expert-to-agent-dialogic-learning)** | Active expert elicitation through structured dialogue; produces procedures, judgments, boundary conditions, and revision triggers — see [spec](specs/expert-to-agent-dialogic-learning.md) | Planned |
+| **[4 — Expert-to-Agent Dialogic Learning](docs/roadmap.md#phase-4--expert-to-agent-dialogic-learning)** | Active expert elicitation through structured dialogue; produces procedures, judgments, boundary conditions, and revision triggers — see [spec](specs/expert-to-agent-dialogic-learning.md) · [demo](docs/demo-dialogic-learning.md) | ✅ Done |
 | **[5 — Portability](docs/roadmap.md#phase-5--portability-and-cross-agent-compatibility)** | Standard artifact format, import/export, cross-agent compatibility | Planned |
 | **[6 — Governance & Ecosystem](docs/roadmap.md#phase-6--governance-and-ecosystem-long-term)** | Team/org knowledge tiers, access controls, compliance audit trails, knowledge ecosystem and new business models | Long-term |
 
@@ -203,6 +203,11 @@ pnpm start        # runs all 8 PIL stages against sample input
 pnpm dev          # re-runs on file changes (watch mode)
 pnpm test         # runs the full test suite (no API key required)
 pnpm chat         # interactive PIL chatbot (see tools/pil-chat/)
+pnpm chat -- --fresh   # start with a clean store
+
+# Teach the agent something via structured dialogue (Phase 4):
+# /teach <domain> "<what to learn>"
+# Then answer the agent's follow-up questions until the rule is synthesised.
 ```
 
 Artifacts are stored at `~/.openclaw/knowledge/artifacts.jsonl`.
@@ -212,9 +217,9 @@ To run the library as a plugin inside a live OpenClaw instance, see **[docs/open
 
 ## Implementation status
 
-Milestones 1a–1d are implemented. The LLM-backed pipeline is functional and tested.
+Phases 1 and 4 are implemented. The passive learning pipeline (1a–1d) and the dialogic learning engine (Phase 4) are both functional.
 
-### What's implemented (Milestones 1a–1d)
+### What's implemented
 
 | Component | Module | Status |
 |---|---|---|
@@ -230,19 +235,23 @@ Milestones 1a–1d are implemented. The LLM-backed pipeline is functional and te
 | **Computer-assistant demo** | `apps/computer-assistant/` | REPL, Anthropic LLM adapter, OS actions, PIL-aware agent |
 | **Test suite** | `apps/computer-assistant/src/tests/` | 112 tests covering extraction, store, pipeline, scenarios, and benchmarks |
 | **Benchmark suite** | `apps/computer-assistant/benchmarks/` | Extraction precision/recall/F1; retrieval hit rate; 18+ scenarios |
+| **Session management** | `src/session.ts` | `createSession`, `loadSession`, `saveSession`, `listSessionsByDomain`, `promoteSession` (idempotent) |
+| **Dialogic engine** | `src/dialogue.ts` | Gap-driven question ladder, LLM synthesis, correction parsing, `processTurn` entrypoint |
+| **pil-chat teach mode** | `tools/pil-chat/index.ts` | `/teach <domain> "<objective>"`, gap-status bar, `/endteach`; see [demo walkthrough](docs/demo-dialogic-learning.md) |
 
-### Phase 1 complete ✅
+### Phases 1 and 4 complete ✅
 
-All four milestones are implemented. The LLM-backed pipeline is functional: knowledge is extracted passively from every inbound message, accumulated across interactions, consolidated into generalized rules, and injected into future prompts via the `before_prompt_build` hook.
+**Phase 1** — passive learning: knowledge is extracted from every inbound message, accumulated across interactions, consolidated into generalized rules, and injected into future prompts automatically via the `before_prompt_build` hook.
 
-### Phase 2 and beyond
+**Phase 4** — dialogic learning: the expert runs `/teach <domain> "<objective>"` in pil-chat. The agent asks five targeted follow-up questions (one per consolidation gap), proposes a synthesis when all gaps are closed, parses the expert's correction, and promotes the confirmed rule to `artifacts.jsonl` with session provenance. A subsequent session in the same domain retrieves and injects the rule automatically. See the [full demo walkthrough](docs/demo-dialogic-learning.md).
+
+### Phases 2, 3, 5, 6 — planned
 
 - True Tier-2 triggering: cheap LLM disambiguation of partial tag matches
 - Decay: effective confidence decreases for unretrieved, unreinforced artifacts
 - Semantic/vector retrieval
 - Evaluative knowledge generalization (judgment heuristics, value frameworks)
 - Procedural recipe compilation to executable programs ([Phase 3](docs/roadmap.md#phase-3--procedural-memory-and-code-synthesis))
-- Expert-to-Agent Dialogic Learning: structured expert sessions, six artifact types ([Phase 4](docs/roadmap.md#phase-4--expert-to-agent-dialogic-learning) · [spec](specs/expert-to-agent-dialogic-learning.md))
 - Import/export and cross-platform portability ([Phase 5](docs/roadmap.md#phase-5--portability-and-cross-agent-compatibility))
 - CLI for inspecting, editing, and deleting artifacts
 
@@ -255,7 +264,7 @@ All four milestones are implemented. The LLM-backed pipeline is functional: know
 
 ## Status
 
-Milestones 1a–1d implemented. The LLM-backed pipeline is functional: knowledge is extracted from user messages, accumulated across interactions, consolidated into generalized rules, and injected into future prompts. A working computer-assistant demo shows PIL learning user-specific patterns (aliases, file-handling preferences, procedures) across sessions. 112 tests pass with no API key required; a benchmark suite measures extraction precision/recall and retrieval hit rate against a curated scenario set.
+Phases 1 and 4 implemented. Passive learning (Milestones 1a–1d) extracts knowledge from user messages, accumulates evidence across interactions, and injects consolidated rules into future prompts automatically. Phase 4 adds active expert elicitation via `/teach` in pil-chat — the agent asks targeted follow-up questions, synthesises a rule when all five consolidation gaps are closed, and promotes it to the knowledge store with full session provenance. 112 tests pass with no API key required.
 
 ## Contributing
 
