@@ -11,7 +11,9 @@
     "./pipeline": "./src/pipeline.ts",
     "./store": "./src/store.ts",
     "./tools": "./src/tools.ts",
-    "./hooks": "./src/hooks.ts"
+    "./hooks": "./src/hooks.ts",
+    "./session": "./src/session.ts",
+    "./dialogue": "./src/dialogue.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

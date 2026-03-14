@@ -302,7 +302,8 @@ export type SessionStage =
 export type CorrectionType =
   | "rule-revision"        // expert explicitly revises the rule statement
   | "scope-adjustment"     // expert narrows or widens the rule's scope
-  | "counterexample-added"; // expert introduces a case that invalidates the rule
+  | "counterexample-added" // expert introduces a case that invalidates the rule
+  | "redirect";            // expert refocuses the discussion on a different aspect
 
 /**
  * Which of the five minimum consolidation criteria have been met
@@ -401,6 +402,14 @@ export type CandidateRule = {
   gaps: ConsolidationGapStatus;
   /** IDs of the turns that contributed evidence to this rule. */
   relatedTurnIds: string[];
+  /**
+   * Lifecycle state of this candidate rule.
+   *   active      — being developed through dialogue
+   *   paused      — development suspended (redirect occurred; resumable)
+   *   synthesized — agent proposed a rule and expert confirmed or corrected it
+   *   archived    — session ended without consolidation; retained for reference
+   */
+  status: "active" | "paused" | "synthesized" | "archived";
 };
 
 /**
@@ -454,6 +463,11 @@ export type DialogueSession = {
    * Propagated to future sessions in the same domain.
    */
   customQuestionTypes: CustomQuestionType[];
+  /**
+   * True once all synthesized candidate rules have been promoted to
+   * artifacts.jsonl. Set by promoteSession() to ensure idempotency.
+   */
+  committed?: boolean;
 };
 
 /**

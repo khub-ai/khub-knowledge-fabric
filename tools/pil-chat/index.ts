@@ -48,7 +48,18 @@ import {
   DEFAULT_AUTO_APPLY_THRESHOLD,
   DECAY_CONSTANTS,
 } from "@khub-ai/knowledge-fabric/types";
-import type { KnowledgeArtifact, LLMFn } from "@khub-ai/knowledge-fabric/types";
+import type {
+  KnowledgeArtifact,
+  LLMFn,
+  ConsolidationGapStatus,
+  DialogueSession,
+} from "@khub-ai/knowledge-fabric/types";
+import {
+  createSession,
+  saveSession,
+  listSessionsByDomain,
+} from "@khub-ai/knowledge-fabric/session";
+import { processTurn as dialogueProcessTurn } from "@khub-ai/knowledge-fabric/dialogue";
 import type {
   TurnResult,
   PilActivity,
@@ -485,6 +496,28 @@ function showPilActivityFromData(activity: PilActivity, verbose: boolean): void 
   }
 }
 
+// ─── Teach mode helpers ───────────────────────────────────────────────────────
+
+/**
+ * Render a compact gap-status bar showing which of the five consolidation
+ * criteria have been closed for the active candidate rule.
+ *
+ * Example: "  Gaps: [✓ case] [ process] [✓ boundary] [ exception] [ revision]"
+ */
+function formatGapBar(gaps: ConsolidationGapStatus): string {
+  const items: Array<[string, boolean]> = [
+    ["case",      gaps.hasConcreteCase],
+    ["process",   gaps.hasGeneralizedRestatement],
+    ["boundary",  gaps.hasScopeOrBoundary],
+    ["exception", gaps.hasExceptionOrFailureMode],
+    ["revision",  gaps.hasRevisionTrigger],
+  ];
+  return (
+    "  Gaps: " +
+    items.map(([name, done]) => (done ? `[✓ ${name}]` : `[ ${name}]`)).join(" ")
+  );
+}
+
 // ─── Core turn processor ──────────────────────────────────────────────────────
 
 /**
@@ -504,6 +537,9 @@ function buildProcessTurn(
   displayPath: string,
   sessionLog: SessionLog,
 ): ProcessTurnFn {
+  // ── Teach mode state ────────────────────────────────────────────────────────
+  let activeSession: DialogueSession | null = null;
+
   return async function processTurn(userInput: string): Promise<TurnResult> {
 
     // ── REPL commands ──────────────────────────────────────────────────────────
@@ -519,7 +555,9 @@ function buildProcessTurn(
     if (userInput === "/help") {
       return {
         isCommand: true,
-        commandOutput: "Commands: /store  /list  /clear  /reset  /help  exit",
+        commandOutput:
+        "Commands: /store  /list  /clear  /reset  /help  exit\n" +
+        "Teach:    /teach <domain> \"<objective>\"   /endteach",
         storeSnapshot: await buildStoreSnapshot(),
       };
     }
@@ -572,6 +610,116 @@ function buildProcessTurn(
     if (userInput === "/reset") {
       await writeFile(storePath(), "");
       return { isCommand: true, commandOutput: "Store cleared.", storeSnapshot: [] };
+    }
+
+    // ── /teach <domain> <objective> ────────────────────────────────────────────
+
+    if (userInput.startsWith("/teach ")) {
+      const rest = userInput.slice("/teach ".length).trim();
+      const spaceIdx = rest.indexOf(" ");
+      if (spaceIdx < 0) {
+        return {
+          isCommand: true,
+          commandOutput: 'Usage: /teach <domain> "<objective>"',
+          storeSnapshot: await buildStoreSnapshot(),
+        };
+      }
+
+      const domain    = rest.slice(0, spaceIdx).toLowerCase().replace(/\s+/g, "-");
+      const objective = rest.slice(spaceIdx + 1).trim().replace(/^["']|["']$/g, "");
+
+      // Load prior sessions in the same domain for continuity metadata
+      const priorSessions = await listSessionsByDomain(domain);
+      const priorIds      = priorSessions.map((s) => s.id);
+      const inheritedIds  = priorSessions.flatMap((s) => s.artifactIds);
+
+      let session = createSession(domain, objective);
+      session = {
+        ...session,
+        priorSessionIds:      priorIds,
+        inheritedArtifactIds: inheritedIds,
+      };
+      await saveSession(session);
+
+      // Cold-start: pass a synthetic opening so processTurn generates the
+      // first case-elicitation question immediately.
+      const { session: s2, agentResponse } = await dialogueProcessTurn(
+        session,
+        `I want to learn about: ${objective}`,
+        pilLlm,
+      );
+      activeSession = s2;
+
+      const header    = `[Teach mode] Session: ${session.id}  domain: ${domain}`;
+      const priorNote = priorIds.length > 0
+        ? `  Inherited ${inheritedIds.length} artifact(s) from ${priorIds.length} prior session(s)`
+        : "";
+
+      return {
+        isCommand: true,
+        commandOutput: [header, priorNote, "", `Agent: ${agentResponse}`]
+          .filter(Boolean)
+          .join("\n"),
+        storeSnapshot: await buildStoreSnapshot(),
+      };
+    }
+
+    // ── /endteach ──────────────────────────────────────────────────────────────
+
+    if (userInput === "/endteach") {
+      if (!activeSession) {
+        return {
+          isCommand: true,
+          commandOutput: "Not currently in teach mode.",
+          storeSnapshot: await buildStoreSnapshot(),
+        };
+      }
+      const s         = activeSession;
+      activeSession   = null;
+      const ruleCount = s.candidateRules.length;
+      const promoted  = s.artifactIds.length;
+      return {
+        isCommand: true,
+        commandOutput:
+          `[Teach mode ended]\n` +
+          `  Session   : ${s.id}\n` +
+          `  Domain    : ${s.domain}\n` +
+          `  Objective : ${s.objective}\n` +
+          `  Stage     : ${s.stage}\n` +
+          `  Rules     : ${ruleCount} developed,  ${promoted} promoted to store`,
+        storeSnapshot: await buildStoreSnapshot(),
+      };
+    }
+
+    // ── Teach mode routing ─────────────────────────────────────────────────────
+
+    if (activeSession) {
+      let turnResult: Awaited<ReturnType<typeof dialogueProcessTurn>>;
+      try {
+        turnResult = await dialogueProcessTurn(activeSession, userInput, pilLlm);
+      } catch (err) {
+        return {
+          isCommand: false,
+          error: `Dialogue error: ${err instanceof Error ? err.message : String(err)}`,
+          storeSnapshot: await buildStoreSnapshot(),
+        };
+      }
+
+      activeSession = turnResult.session;
+
+      const activeRule = turnResult.session.candidateRules.find(
+        (r) => r.status === "active" || r.status === "synthesized",
+      );
+      const gapBar = activeRule ? formatGapBar(activeRule.gaps) : "";
+
+      if (turnResult.stage === "complete") activeSession = null;
+
+      return {
+        isCommand: false,
+        response:      turnResult.agentResponse,
+        commandOutput: gapBar || undefined,
+        storeSnapshot: await buildStoreSnapshot(),
+      };
     }
 
     // ── PIL pre-pass ───────────────────────────────────────────────────────────
