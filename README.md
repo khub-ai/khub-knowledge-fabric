@@ -213,6 +213,17 @@ pnpm chat -- --fresh   # start with a clean store
 Artifacts are stored at `~/.openclaw/knowledge/artifacts.jsonl`.
 Override with `KNOWLEDGE_STORE_PATH=/your/path pnpm start`.
 
+> **Windows PowerShell users:** if `pnpm` fails with a script execution policy
+> error (`npm.ps1 cannot be loaded ... not digitally signed`), run this once to
+> allow locally-installed package manager scripts:
+> ```powershell
+> Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+> ```
+> Alternatively, bypass pnpm entirely and run pil-chat directly with Node:
+> ```powershell
+> node --loader ts-node/esm/transpile-only --no-warnings tools/pil-chat/index.ts -- --fresh
+> ```
+
 To run the library as a plugin inside a live OpenClaw instance, see **[docs/openclaw-plugin-setup.md](docs/openclaw-plugin-setup.md)**.
 
 ## Implementation status

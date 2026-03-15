@@ -340,6 +340,65 @@ cases. The rule produced is inspectable, editable, and portable.
 
 ---
 
+## Troubleshooting
+
+### `pnpm` fails with execution policy error (Windows PowerShell)
+
+```
+npm.ps1 cannot be loaded. The file ... is not digitally signed.
+```
+
+This is a Windows execution policy restriction on `.ps1` script shims, not a
+pnpm or Node problem. Fix it once for your user account:
+
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+Then retry `pnpm chat -- --fresh --verbose`. Alternatively, bypass pnpm
+entirely by running the TypeScript entrypoint directly with Node:
+
+```powershell
+node --loader ts-node/esm/transpile-only --no-warnings tools/pil-chat/index.ts -- --fresh --verbose
+```
+
+### `ANTHROPIC_API_KEY is not set` / process exits immediately
+
+pil-chat requires the key at startup and hard-exits if it is missing. Set the
+variable before launching:
+
+```powershell
+$env:ANTHROPIC_API_KEY = "sk-ant-..."   # current session only
+```
+
+To persist it across sessions (writes to `HKCU\Environment`):
+```powershell
+[System.Environment]::SetEnvironmentVariable("ANTHROPIC_API_KEY", "sk-ant-...", "User")
+# then restart your terminal / Claude Code
+```
+
+### Gap bar does not appear after `/teach`
+
+Expected — the gap bar only renders on the turn *after* `/teach`, once the
+session is active and the agent has asked its first question. Type your first
+response and the bar will appear above it.
+
+### A gap stays false after several turns
+
+The LLM-backed gap assessor may not register a gap as closed if the response
+is indirect or very brief. Try being more explicit — e.g. for the `boundary`
+gap: "This rule does not apply when X" stated plainly closes it more reliably
+than embedding the boundary condition inside a longer answer.
+
+### Session stuck at "synthesizing" stage
+
+This means the synthesis proposal was shown but the correction parsing LLM
+call returned an unparseable result. Just respond again — the correction parser
+retries on the next turn and falls back to the original synthesis text if it
+fails again.
+
+---
+
 ## Known v1 gaps vs. full spec
 
 | Gap | Full spec | v1 |
