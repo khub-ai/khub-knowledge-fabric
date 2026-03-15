@@ -51,11 +51,22 @@ export ANTHROPIC_API_KEY=sk-ant-...   # macOS/Linux/WSL
 # $env:ANTHROPIC_API_KEY="sk-ant-..." # Windows PowerShell
 ```
 
-Alternatively, if `pnpm` is not on your `PATH`, the pil-chat entrypoint can
-be run directly with Node (v18+):
+Alternatively, if `pnpm` is not on your `PATH` (or blocked by execution policy
+on Windows), run pil-chat directly with Node (v18+) and the ts-node ESM loader:
 
 ```bash
-node tools/pil-chat/index.js --fresh --verbose
+node --loader ts-node/esm/transpile-only --no-warnings \
+  tools/pil-chat/index.ts -- --fresh --verbose
+```
+
+On Windows PowerShell in a single line:
+```powershell
+node --loader ts-node/esm/transpile-only --no-warnings tools/pil-chat/index.ts -- --fresh --verbose
+```
+
+If pnpm itself is blocked by execution policy, fix it once with:
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
 ---
