@@ -693,11 +693,19 @@ export async function revise(
     jaccard(artifact.content, update.content) < 0.5;
 
   if (contentChanged) {
-    // Retire original, persist new entry with fresh id
+    // Retire original, then persist the revision as a new entry without
+    // revisedAt (it is freshly created, not a revision of itself).
     await persist({ ...artifact, retired: true, revisedAt: now });
-    revised.id = randomUUID();
-    revised.createdAt = now;
-    delete revised.revisedAt;
+    // Destructure out revisedAt so the new artifact has no revisedAt field.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { revisedAt: _dropped, ...base } = revised;
+    const promoted: KnowledgeArtifact = {
+      ...base,
+      id: randomUUID(),
+      createdAt: now,
+    };
+    await persist(promoted);
+    return promoted;
   }
 
   await persist(revised);
