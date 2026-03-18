@@ -333,7 +333,14 @@ async function handleAPI(req, res) {
   const url = req.url.split('?')[0];
   const M   = req.method;
 
-  if (M === 'GET'  && url === '/api/entries')  return sendJSON(res, 200, _lastEntries);
+  if (M === 'GET'  && url.startsWith('/api/entries')) {
+    const qs     = new URLSearchParams(req.url.split('?')[1] || '');
+    const before = qs.get('before') || '';
+    const limit  = parseInt(qs.get('limit') || '0', 10);
+    let entries  = before ? _lastEntries.filter(e => e.timestamp < before) : _lastEntries;
+    if (limit > 0) entries = entries.slice(-limit);
+    return sendJSON(res, 200, { entries, total: _lastEntries.length });
+  }
   if (M === 'GET'  && url === '/api/agents')   return sendJSON(res, 200, allAgentStatuses());
   if (M === 'GET'  && url === '/api/config')   return sendJSON(res, 200, getConfig());
   if (M === 'GET'  && url === '/api/rules')    return sendJSON(res, 200, getConfig().automationRules);
@@ -406,9 +413,12 @@ const httpServer = createServer(async (req, res) => {
 
 const wss = new WebSocketServer({ server: httpServer });
 
+const INIT_LIMIT = 500; // max entries sent on WebSocket connect; client can page for older ones
+
 wss.on('connection', ws => {
   _clients.add(ws);
-  ws.send(JSON.stringify({ type: 'init', entries: _lastEntries, agents: allAgentStatuses(), config: getConfig() }));
+  const initEntries = _lastEntries.slice(-INIT_LIMIT);
+  ws.send(JSON.stringify({ type: 'init', entries: initEntries, total: _lastEntries.length, agents: allAgentStatuses(), config: getConfig() }));
   ws.on('close',   () => _clients.delete(ws));
   ws.on('error',   () => _clients.delete(ws));
 });

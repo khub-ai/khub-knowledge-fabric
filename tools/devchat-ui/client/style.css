@@ -133,6 +133,14 @@ html, body { height: 100%; font-family: system-ui, -apple-system, sans-serif; fo
   display: flex; flex-direction: column; gap: 8px;
 }
 
+/* ── Load-older bar ─────────────────────────────────────────────────────────── */
+#load-older-bar {
+  text-align: center; padding: 7px 0; font-size: 12px; color: var(--accent);
+  cursor: pointer; border: 1px dashed var(--border); border-radius: var(--radius);
+  background: var(--bg2); flex-shrink: 0;
+}
+#load-older-bar:hover { background: var(--bg3); }
+
 /* ── Entry card ─────────────────────────────────────────────────────────────── */
 .entry-card {
   border: 1px solid var(--border); border-radius: var(--radius);

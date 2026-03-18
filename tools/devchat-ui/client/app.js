@@ -28,6 +28,8 @@ let _logTarget     = null;    // agent id currently in log drawer
 let _logLines      = {};      // id → string[]
 let _searchQuery   = '';
 let _filterAuthors = new Set();   // empty = all
+let _totalEntries  = 0;           // server-reported total (may exceed what's loaded)
+let _loadingOlder  = false;       // guard against concurrent fetches
 let _filterFrom    = '';
 let _filterTo      = '';
 let _filterNewOnly = false;
@@ -69,8 +71,10 @@ function connectWS() {
     switch (msg.type) {
       case 'init':
         _config = msg.config;
+        _totalEntries = msg.total ?? msg.entries.length;
         handleEntries(msg.entries, false);
         collapseInitialOldEntries();
+        updateLoadOlderBar();
         handleAgents(msg.agents);
         renderConfig();
         renderAuthorFilters();
@@ -134,13 +138,56 @@ function collapseInitialOldEntries() {
   _entries.forEach((e, i) => {
     if (i < cutoff) {
       _collapseState[e.id] = true;
-      rebuildCard(e.id);
+      rebuildCard(e.id, true); // silent — batch; single applyFilters below
     }
   });
-  // Scroll to bottom after collapse so newest entries are visible
-  requestAnimationFrame(() => {
-    $list.scrollTop = $list.scrollHeight;
+  applyFilters(); // one pass after all states set
+  requestAnimationFrame(() => { $list.scrollTop = $list.scrollHeight; });
+}
+
+// ── Load-older bar ────────────────────────────────────────────────────────────
+
+const $loadOlder = (() => {
+  const bar = document.createElement('div');
+  bar.id = 'load-older-bar';
+  bar.hidden = true;
+  bar.addEventListener('click', loadOlderEntries);
+  // prepend into chatlog-list when the DOM is ready
+  $list.prepend(bar);
+  return bar;
+})();
+
+function updateLoadOlderBar() {
+  const unloaded = _totalEntries - _entries.length;
+  if (unloaded <= 0) { $loadOlder.hidden = true; return; }
+  $loadOlder.hidden = false;
+  $loadOlder.textContent = `↑ Load ${unloaded} older ${unloaded === 1 ? 'entry' : 'entries'}`;
+}
+
+async function loadOlderEntries() {
+  if (_loadingOlder || _entries.length === 0) return;
+  _loadingOlder = true;
+  $loadOlder.textContent = 'Loading…';
+
+  const oldestTs = _entries[0].timestamp;
+  const PAGE = 100;
+  const data  = await api('GET', `/api/entries?before=${encodeURIComponent(oldestTs)}&limit=${PAGE}`);
+  const older = (data.entries || []).filter(e => !_knownIds.has(e.id)).reverse(); // server returns oldest→newest; reverse to prepend newest-first
+  _totalEntries = data.total ?? _totalEntries;
+
+  // Prepend cards (collapsed) after the load-older bar
+  const frag = document.createDocumentFragment();
+  older.forEach(e => {
+    _knownIds.add(e.id);
+    _collapseState[e.id] = true;
+    _entries.unshift(e);
+    frag.appendChild(buildCard(e, false));
   });
+  $loadOlder.after(frag);
+
+  applyFilters();
+  _loadingOlder = false;
+  updateLoadOlderBar();
 }
 
 function handleAgents(agents) {
@@ -264,21 +311,29 @@ function toggleCard(id) {
   rebuildCard(id);
 }
 
-function rebuildCard(id) {
+// silent=true skips applyFilters — use when rebuilding in a batch (caller must call applyFilters after)
+function rebuildCard(id, silent = false) {
   const entry = _entries.find(e => e.id === id);
   if (!entry) return;
   const old   = document.getElementById(`card-${id}`);
   if (!old) return;
   const card  = buildCard(entry, _sessionNewIds.has(id));
   old.replaceWith(card);
-  applyFilters();
+  if (!silent) applyFilters();
 }
 
-function collapseAll()  { _entries.forEach(e => { _collapseState[e.id] = true;  rebuildCard(e.id); }); }
-function expandAll()    { _entries.forEach(e => { _collapseState[e.id] = false; rebuildCard(e.id); }); }
+function collapseAll() {
+  _entries.forEach(e => { _collapseState[e.id] = true;  rebuildCard(e.id, true); });
+  applyFilters();
+}
+function expandAll() {
+  _entries.forEach(e => { _collapseState[e.id] = false; rebuildCard(e.id, true); });
+  applyFilters();
+}
 function collapseBeforeDate(dateStr) {
   _entries.filter(e => e.timestamp.slice(0,10) < dateStr)
-    .forEach(e => { _collapseState[e.id] = true; rebuildCard(e.id); });
+    .forEach(e => { _collapseState[e.id] = true; rebuildCard(e.id, true); });
+  applyFilters();
 }
 
 document.getElementById('btn-collapse-all').addEventListener('click', collapseAll);
