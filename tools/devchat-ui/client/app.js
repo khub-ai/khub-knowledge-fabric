@@ -10,6 +10,10 @@
 const AUTHOR_COLORS = ['#2563eb','#16a34a','#9333ea','#ea580c','#0891b2','#db2777'];
 const authorColor = a => AUTHOR_COLORS[parseInt(a.replace('DEV#',''),10) % AUTHOR_COLORS.length];
 
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const INITIAL_VISIBLE = 20;   // newest N entries expanded on first load; older ones collapsed
+
 // ── State ─────────────────────────────────────────────────────────────────────
 
 let _entries       = [];      // Entry[]
@@ -66,6 +70,7 @@ function connectWS() {
       case 'init':
         _config = msg.config;
         handleEntries(msg.entries, false);
+        collapseInitialOldEntries();
         handleAgents(msg.agents);
         renderConfig();
         renderAuthorFilters();
@@ -120,6 +125,22 @@ function handleEntries(entries, isNew) {
   });
 
   updateEntryCount();
+}
+
+// Collapse all entries except the newest INITIAL_VISIBLE on first load,
+// then scroll the list to the bottom so those recent entries are in view.
+function collapseInitialOldEntries() {
+  const cutoff = _entries.length - INITIAL_VISIBLE;
+  _entries.forEach((e, i) => {
+    if (i < cutoff) {
+      _collapseState[e.id] = true;
+      rebuildCard(e.id);
+    }
+  });
+  // Scroll to bottom after collapse so newest entries are visible
+  requestAnimationFrame(() => {
+    $list.scrollTop = $list.scrollHeight;
+  });
 }
 
 function handleAgents(agents) {
