@@ -43,6 +43,7 @@ const $agentCards   = document.getElementById('agent-cards');
 const $ruleList     = document.getElementById('rule-list');
 const $authorFilters= document.getElementById('author-filters');
 const $searchInput  = document.getElementById('search-input');
+const $searchClear  = document.getElementById('search-clear');
 const $logDrawer    = document.getElementById('log-drawer');
 const $logContent   = document.getElementById('log-drawer-content');
 const $logTitle     = document.getElementById('log-drawer-title');
@@ -268,14 +269,18 @@ document.getElementById('btn-collapse-before').addEventListener('click', () => {
 
 // ── Search ────────────────────────────────────────────────────────────────────
 
-$searchInput.addEventListener('input', e => {
-  _searchQuery = e.target.value.toLowerCase().trim();
+function setSearch(val) {
+  $searchInput.value = val;
+  _searchQuery = val.toLowerCase().trim();
+  const hasQ = _searchQuery.length > 0;
+  $searchInput.classList.toggle('has-query', hasQ);
+  $searchClear.hidden = !hasQ;
   applyFilters();
-});
+}
 
-$searchInput.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { $searchInput.value = ''; _searchQuery = ''; applyFilters(); }
-});
+$searchInput.addEventListener('input', e => setSearch(e.target.value));
+$searchInput.addEventListener('keydown', e => { if (e.key === 'Escape') setSearch(''); });
+$searchClear.addEventListener('click', () => { setSearch(''); $searchInput.focus(); });
 
 // ── Filter sidebar ────────────────────────────────────────────────────────────
 
@@ -314,8 +319,8 @@ document.getElementById('filter-new').addEventListener('change',  e => { _filter
 document.getElementById('filter-code').addEventListener('change', e => { _filterCode    = e.target.checked; applyFilters(); });
 document.getElementById('btn-clear-filters').addEventListener('click', () => {
   _filterAuthors.clear(); _filterFrom = ''; _filterTo = '';
-  _filterNewOnly = false; _filterCode = false; _searchQuery = '';
-  $searchInput.value = '';
+  _filterNewOnly = false; _filterCode = false;
+  setSearch('');
   document.getElementById('filter-from').value = '';
   document.getElementById('filter-to').value   = '';
   document.getElementById('filter-new').checked  = false;
@@ -367,9 +372,9 @@ function highlightQuery(html, q) {
 
 function updateEntryCount(visible) {
   const total = _entries.length;
-  $entryCount.textContent = visible !== undefined && visible !== total
-    ? `${visible} / ${total} entries`
-    : `${total} entries`;
+  const isFiltered = visible !== undefined && visible !== total;
+  $entryCount.textContent = isFiltered ? `${visible} / ${total} entries` : `${total} entries`;
+  $entryCount.classList.toggle('filtered', isFiltered);
 }
 
 // ── Scroll detection ──────────────────────────────────────────────────────────

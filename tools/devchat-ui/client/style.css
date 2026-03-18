@@ -63,8 +63,8 @@ html, body { height: 100%; font-family: system-ui, -apple-system, sans-serif; fo
   display: grid;
   grid-template-columns: var(--sidebar-w) 1fr var(--agents-w);
   grid-template-rows: 1fr;
-  height: 100vh;
-  padding-top: var(--topbar-h);
+  position: fixed;
+  top: var(--topbar-h); left: 0; right: 0; bottom: 0;
 }
 
 #sidebar, #agents-panel {
@@ -94,11 +94,20 @@ html, body { height: 100%; font-family: system-ui, -apple-system, sans-serif; fo
 .agent-pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
 .agent-pill.running .dot { background: #16a34a; box-shadow: 0 0 0 2px #bbf7d0; }
 
+#search-wrap {
+  position: relative; display: flex; align-items: center;
+}
 #search-input {
-  padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 6px 28px 6px 10px; border: 1px solid var(--border); border-radius: var(--radius);
   background: var(--bg3); color: var(--text); font-size: 13px; width: 220px;
 }
 #search-input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+#search-input.has-query { border-color: var(--accent); }
+#search-clear {
+  position: absolute; right: 4px; border: none; background: none; padding: 2px 5px;
+  font-size: 13px; color: var(--text-muted); cursor: pointer; border-radius: 4px;
+}
+#search-clear:hover { color: var(--text); background: var(--border); }
 
 /* ── Sidebar panels ─────────────────────────────────────────────────────────── */
 .panel-section { margin-bottom: 20px; }
@@ -116,6 +125,7 @@ html, body { height: 100%; font-family: system-ui, -apple-system, sans-serif; fo
   border-bottom: 1px solid var(--border); background: var(--bg2); flex-shrink: 0;
 }
 #entry-count { margin-left: auto; font-size: 12px; }
+#entry-count.filtered { color: #d97706; font-weight: 600; }
 
 /* ── Chatlog list ───────────────────────────────────────────────────────────── */
 #chatlog-list {
