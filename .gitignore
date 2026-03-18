@@ -21,4 +21,8 @@ Thumbs.db
 !.vscode/extensions.json
 .idea/
 
+# Claude Code local config (launch.json has machine-specific paths; CLAUDE.md is shareable)
+.claude/*
+!.claude/CLAUDE.md
+
 .private/ 
