@@ -4,6 +4,8 @@
 
 *What follows describes a specialized instantiation of KF applied to solving ARC-AGI puzzles. The core KF principles are fully in place here; we intend to apply the same architecture to other domains in the near future.*
 
+> **Early stage notice**: Knowledge Fabric is in active early-stage development and is not yet ready for commercialization. What is described here reflects current research progress, not a production-ready product.
+
 ---
 
 ## ARC-AGI: The Proving Ground
@@ -188,7 +190,7 @@ The system never needed the human's insight again. Any future puzzle with a simi
 
 The SUPERVISOR role is where Knowledge Fabric diverges most sharply from conventional AI development — and where an honest assessment is warranted.
 
-In the ARC-AGI use case, Claude Code (Anthropic's AI-powered development environment) acts as SUPERVISOR. When the inference loop exhausts its revision budget, Claude Code analyzes the failure, categorizes the gap — whether it lies in the hypothesis strategy, the tool library, the execution logic, or the rule representation — and proposes a targeted system-level change: not a workaround, but a structural improvement to the system itself. It then reruns the system with no hints and no task-specific shortcuts to confirm the fix produces a correct solution autonomously.
+In the ARC-AGI use case, Claude Code (Anthropic's AI-powered development environment) acts as SUPERVISOR. Claude Code was selected for this role because of its strong debugging and code reasoning capabilities — its ability to read a failure trace, identify a root cause across multiple interacting components, and propose a targeted code-level fix is well suited to the kind of system-level diagnosis SUPERVISOR requires. Different use cases will call for different SUPERVISOR agents: a clinical reasoning system might use a medical AI as SUPERVISOR; a financial compliance system might use a specialized regulatory agent. The architecture supports any trusted expert agent in this role. When the inference loop exhausts its revision budget, Claude Code analyzes the failure, categorizes the gap — whether it lies in the hypothesis strategy, the tool library, the execution logic, or the rule representation — and proposes a targeted system-level change: not a workaround, but a structural improvement to the system itself. It then reruns the system with no hints and no task-specific shortcuts to confirm the fix produces a correct solution autonomously.
 
 A critical discipline governs this process: **gap repair must never become answer injection**. The distinction is concrete: adding a new built-in tool or a new reasoning step to the solver prompt is gap repair — any future puzzle can benefit from it. Pre-seeding the specific answer for the failing task — telling the system which rule applies, or what the output should be — is answer injection. Answer injection produces a one-time fix that transfers nothing. Gap repair permanently expands the class of problems the system can solve on its own.
 
