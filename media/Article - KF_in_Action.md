@@ -152,8 +152,8 @@ The creation of tools is not a workflow optimization — it addresses a fundamen
 
 Deterministic Python tools eliminate this failure mode entirely. Once `fill_enclosed` exists and is verified, it produces the exact same output every time, on any input, with zero probability of a counting error. This has two direct consequences:
 
-- **Reliability**: tasks that previously failed due to execution errors now pass consistently. The system's accuracy ceiling rises as the tool library grows.
-- **Cost**: tool execution has no LLM inference cost. A task solved via Round 0 rule match plus a registered tool costs a fraction of a task requiring full hypothesis generation. As the registry fills, average cost per task drops measurably.
+- **Reliability**: tasks that previously failed due to execution errors pass consistently once the right tool exists. The design intent is that the system's accuracy ceiling rises as the tool library grows; early results support this directionally.
+- **Cost**: tool execution has no LLM inference cost. A task solved via Round 0 rule match plus a registered tool costs a fraction of a task requiring full hypothesis generation — in the 1190bc91 example, cost dropped from $0.91 to $0.17. Whether this compounds materially at scale remains to be validated.
 
 ---
 
@@ -182,7 +182,7 @@ Round 3: EXECUTOR: All demos passed.
 | Cost | $0.91 | $0.17 |
 | Outcome | Fail | Correct (100%) |
 
-The system never needed the human's insight again. Any future puzzle with a similar structure — linear sequences where the longest dominates and the shorter ones fill remaining space — will be recognized in Round 0 and solved directly. One human sentence became a permanent capability.
+The system has not needed the human's insight again in subsequent runs. Any future puzzle with a similar structure — linear sequences where the longest dominates and the shorter ones fill remaining space — should be recognized in Round 0 and solved directly. Whether rule `r_102` generalizes reliably across all structurally similar puzzles in the wild remains to be seen; what is clear is that the repair cost nothing to apply to future tasks.
 
 ---
 
@@ -216,6 +216,20 @@ The fair claim is this: SUPERVISOR is not just a debugging assistant; it is a pr
 
 ---
 
+## Known Limitations
+
+The following limitations are acknowledged in the current implementation and are active areas of development:
+
+**Rule matching is LLM-based and imprecise.** In Round 0, MEDIATOR reads the full rule registry as text and decides which rules apply. This can produce false positives (a rule fires on the wrong task type) or miss valid matches. Structured condition predicates with programmatic matching are planned as a replacement.
+
+**Tool verification is limited to training pairs.** A generated tool is registered if it passes all training pairs for the task that requested it. There is no held-out validation set. A tool that passes three training pairs may still fail on a structurally different instance of the same pattern class.
+
+**Rule transfer evidence is early-stage.** The candidate → active promotion policy is designed to prevent premature generalization, but the long-term behaviour of the rule base at scale has not yet been fully observed or measured.
+
+**Prompt drift at scale is uncharted.** As the rule registry grows, MEDIATOR's context window fills with more rules. The effect of a large rule base on matching accuracy and reasoning quality has not been tested beyond the current scale.
+
+---
+
 ## Benefits and Application Domains
 
 ### Why This Architecture Matters
@@ -240,16 +254,16 @@ Knowledge Fabric's architecture delivers the greatest value in domains where:
 
 **Strongest candidates:**
 
-**Medical diagnosis and clinical decision support** — diagnostic rules generalize across patients; tools can compute lab value thresholds, risk scores, and differential rankings with exactness that prose LLM responses cannot guarantee. Provenance of each rule (which cases informed it) is a regulatory requirement.
+**Medical diagnosis and clinical decision support** — the architecture is well-suited to this domain: diagnostic rules can generalize across patients, tools can compute lab value thresholds and risk scores with exactness that prose LLM responses cannot guarantee, and provenance tracking maps naturally onto regulatory auditability requirements. Application to this domain has not yet been attempted.
 
-**Legal reasoning and contract analysis** — legal rules are inherently structured as condition-action pairs; tools can extract clause patterns, compute obligation timelines, and flag conflicts deterministically. Firm-specific rule bases stay local and proprietary.
+**Legal reasoning and contract analysis** — legal rules are inherently structured as condition-action pairs, tools can extract clause patterns and compute obligation timelines deterministically, and firm-specific rule bases can remain local and proprietary. Application to this domain has not yet been attempted.
 
-**Financial analysis and risk assessment** — quantitative rules generalize across assets and time periods; tools eliminate the arithmetic errors that LLMs make on multi-step calculations. Audit trails are mandatory.
+**Financial analysis and risk assessment** — quantitative rules can generalize across assets and time periods, and tools can eliminate the arithmetic errors that LLMs make on multi-step calculations in contexts where audit trails are mandatory. Application to this domain has not yet been attempted.
 
-**Scientific research and experiment design** — hypotheses about experimental patterns can be formalized as rules; tools can apply statistical tests, normalize data, and detect anomalies with precision. Reproducibility requires deterministic execution.
+**Scientific research and experiment design** — experimental patterns can be formalized as rules, and tools can apply statistical tests and detect anomalies with the precision and reproducibility that research contexts require. Application to this domain has not yet been attempted.
 
-**Manufacturing and quality control** — inspection rules generalize across product variants; tools apply geometric and statistical checks that require exact computation. Local storage keeps proprietary process knowledge off external servers.
+**Manufacturing and quality control** — inspection rules can generalize across product variants, tools can apply geometric and statistical checks with exact computation, and local storage keeps proprietary process knowledge off external servers. Application to this domain has not yet been attempted.
 
-**Software engineering and code review** — code patterns generalize across codebases; tools can run static analysis, compute complexity metrics, and detect anti-patterns deterministically. Rule bases accumulate institutional knowledge that currently lives only in senior engineers' heads.
+**Software engineering and code review** — code patterns can generalize across codebases, tools can run static analysis and detect anti-patterns deterministically, and rule bases can accumulate institutional knowledge that currently lives only in senior engineers' heads. Application to this domain has not yet been attempted.
 
 The common thread: **any domain where expertise can be expressed as generalizable rules, where execution requires precision, and where the knowledge has enough value to be worth owning.**
