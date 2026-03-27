@@ -159,7 +159,7 @@ The fair claim for the article is this: Claude Code is not just a coding assista
 
 | Property | Benefit |
 |---|---|
-| Knowledge artifacts | Rules and tools are created dynamically as the system solves problems, then persisted — each one a reusable asset that reduces the cost and increases the reliability of every future similar task |
+| Create generalized knowledge artifacts | Rules and tools are created dynamically as the system solves problems, then persisted — each one a reusable asset that reduces the cost and increases the reliability of every future similar task |
 | Rules in natural language | Auditable, explainable, editable by domain experts without engineering involvement |
 | Tools in verified Python | Exact, deterministic execution; eliminates the precision errors that LLMs are prone to on repetitive or computational tasks |
 | Local storage | User owns all accumulated knowledge; full provenance; no vendor dependency |
