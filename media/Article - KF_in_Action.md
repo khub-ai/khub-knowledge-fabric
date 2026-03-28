@@ -307,7 +307,7 @@ In the interest of precision, here is an honest account of where the evidence st
 - SUPERVISOR-guided structural repair without answer injection
 - Round 0 rule matching bypassing full inference on previously learned patterns
 - Concrete cost reduction on matched task families (e.g. $0.91 to $0.17 on one task family)
-- Successful operation across a growing set of ARC-AGI puzzle types
+- Successful operation across a growing set of ARC-AGI-2 puzzle types
 
 **Still to be proven:**
 
@@ -318,5 +318,10 @@ In the interest of precision, here is an honest account of where the evidence st
 - SUPERVISOR effectiveness in domains beyond software and code reasoning
 - Enterprise operational workflows: multi-user rule bases, access control, audit export
 - Behaviour under adversarial or out-of-distribution inputs
+- Application of the Knowledge Fabric methodology to domains beyond ARC-AGI — planned but not yet started
 
 This distinction matters. The architecture is principled and the early results are encouraging. The claims about what the system *can do* in the sections above describe design properties that are implemented and functioning. The claims about what it *will do* at scale and across domains are hypotheses that we intend to test — not assurances.
+
+---
+
+*Last updated: 2026-03-28*
