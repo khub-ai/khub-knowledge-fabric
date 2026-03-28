@@ -321,6 +321,7 @@ In the interest of precision, here is an honest account of where the evidence st
 - Enterprise operational workflows: multi-user rule bases, access control, audit export
 - Behaviour under adversarial or out-of-distribution inputs
 - Application of the Knowledge Fabric methodology to domains beyond ARC-AGI — planned but not yet started
+- Meta-learning — applying KF's own methodology to its internal operation logs (rule matching decisions, revision strategies, tool generation patterns) to discover rules that improve pipeline efficiency. The data streams exist: which rules were considered and why, how many revision cycles were needed, which tool specs passed on the first attempt. In principle, KF can learn meta-rules such as "when a task involves color permutation on grids larger than 10x10, skip single-SOLVER hypothesis and use decomposition." ARC-AGI provides a natural validation ground due to its clear ground truth and existing instrumentation, but sufficient data volume has not yet been accumulated
 
 This distinction matters. The architecture is principled and the early results are encouraging. The claims about what the system *can do* in the sections above describe design properties that are implemented and functioning. The claims about what it *will do* at scale and across domains are hypotheses that we intend to test — not assurances.
 
