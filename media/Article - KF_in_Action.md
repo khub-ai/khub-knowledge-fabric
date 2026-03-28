@@ -12,15 +12,44 @@ Agentic AI is advancing quickly, but one essential layer is still missing: a pra
 
 Before describing what Knowledge Fabric does, it is worth situating it against the current landscape. Most AI systems handle knowledge retention in one of the following ways:
 
-| Approach | How knowledge is "retained" |
-|---|---|
-| RAG | Retrieves documents — abstraction is limited to chunk selection, not rule extraction |
-| Fine-tuning | Updates weights — knowledge is implicit in parameters, not inspectable or provenance-tracked |
-| Memory systems (MemGPT, etc.) | Stores facts and conversation summaries — generalization across tasks is not the design goal |
-| Tool use (function calling) | Operates on pre-defined tools — dynamic tool generation from task evidence is not standard practice |
-| o1/o3 reasoning | Deep per-task reasoning — accumulated cross-task knowledge is not part of the architecture |
-| Neurosymbolic / ILP | Combines neural and symbolic reasoning — typically requires hand-designed symbolic structures or formal languages, and does not generate verified executable tools from task experience |
-| DreamCoder (MIT, 2021) | Synthesizes programs from examples and builds a reusable abstraction library — the closest structural precedent to KF (see note below) |
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%;">
+  <thead>
+    <tr style="background-color: #f2f2f2;">
+      <th style="text-align: left; width: 25%;">Approach</th>
+      <th style="text-align: left;">How knowledge is "retained"</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>RAG</td>
+      <td>Retrieves documents — abstraction is limited to chunk selection, not rule extraction</td>
+    </tr>
+    <tr>
+      <td>Fine-tuning</td>
+      <td>Updates weights — knowledge is implicit in parameters, not inspectable or provenance-tracked</td>
+    </tr>
+    <tr>
+      <td>Memory systems (MemGPT, etc.)</td>
+      <td>Stores facts and conversation summaries — generalization across tasks is not the design goal</td>
+    </tr>
+    <tr>
+      <td>Tool use (function calling)</td>
+      <td>Operates on pre-defined tools — dynamic tool generation from task evidence is not standard practice</td>
+    </tr>
+    <tr>
+      <td>o1/o3 reasoning</td>
+      <td>Deep per-task reasoning — accumulated cross-task knowledge is not part of the architecture</td>
+    </tr>
+    <tr>
+      <td>Neurosymbolic / ILP</td>
+      <td>Combines neural and symbolic reasoning — typically requires hand-designed symbolic structures or formal languages, and does not generate verified executable tools from task experience</td>
+    </tr>
+    <tr>
+      <td>DreamCoder (MIT, 2021)</td>
+      <td>Synthesizes programs from examples and builds a reusable abstraction library — the closest structural precedent to KF (see note below)</td>
+    </tr>
+  </tbody>
+</table>
 
 None of these approaches is wrong for its intended purpose. The point is that none of them is designed to do what Knowledge Fabric does: extract abstract, generalizable rules from task experience, generate and verify executable tools, and accumulate both in a local, auditable knowledge base that compounds in value over time.
 
