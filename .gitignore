@@ -25,4 +25,7 @@ Thumbs.db
 .claude/*
 !.claude/CLAUDE.md
 
-.private/ 
+.private/
+# Generated ARC-AGI-3 run artifacts
+tests/arc-agi-3/logs/
+tests/arc-agi-3/playlogs/
