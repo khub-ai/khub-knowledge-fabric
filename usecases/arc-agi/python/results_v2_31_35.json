@@ -1,0 +1,51 @@
+{
+  "summary": {
+    "correct": 0,
+    "total": 1,
+    "accuracy": 0.0,
+    "avg_ms": 585372.0,
+    "conv_rate": 0.0,
+    "total_cost_usd": 0.913263,
+    "avg_cost_usd": 0.913263,
+    "total_tokens": 164233,
+    "total_cache_creation": 0,
+    "total_cache_read": 0,
+    "hints_used": 0,
+    "model": "claude-sonnet-4-6",
+    "dataset": "training",
+    "timestamp": "2026-03-24T15:08:24Z",
+    "rules": {
+      "total": 81,
+      "active": 75,
+      "deprecated": 6,
+      "total_fired": 89,
+      "total_succeeded": 74
+    }
+  },
+  "tasks": [
+    {
+      "task_id": "1190bc91",
+      "correct": false,
+      "cell_accuracy": 0.0,
+      "converged": false,
+      "rounds": 8,
+      "duration_ms": 585372,
+      "cost_usd": 0.913263,
+      "input_tokens": 129186,
+      "cache_creation_tokens": 0,
+      "cache_read_tokens": 0,
+      "output_tokens": 35047,
+      "api_calls": 28,
+      "human_hints": false,
+      "tools_generated": [
+        "diagonal_sequence_radiation",
+        "diagonal_radiation",
+        "diagonal_radiation_nearest",
+        "diagonal_radiation_fixed",
+        "diagonal_radiation_v2"
+      ],
+      "model": "claude-sonnet-4-6",
+      "dataset": "training"
+    }
+  ]
+}

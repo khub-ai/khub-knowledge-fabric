@@ -1,0 +1,62 @@
+{
+  "name": "ARC-AGI Ensemble",
+  "description": "5-agent ensemble that solves ARC-AGI-2 abstract reasoning puzzles through structured adversarial debate. Exposes a synchronous REST endpoint that behaves like a single super-intelligent agent from the outside.",
+  "participants": [
+    {
+      "id": "SOLVER-SPATIAL",
+      "label": "Spatial Solver",
+      "mode": "api",
+      "apiProvider": "anthropic",
+      "apiModel": "claude-sonnet-4-20250514",
+      "role": "solver",
+      "systemPromptFile": "prompts/solver-spatial.md"
+    },
+    {
+      "id": "SOLVER-PROCEDURAL",
+      "label": "Procedural Solver",
+      "mode": "api",
+      "apiProvider": "anthropic",
+      "apiModel": "claude-sonnet-4-20250514",
+      "role": "solver",
+      "systemPromptFile": "prompts/solver-procedural.md"
+    },
+    {
+      "id": "SOLVER-ANALOGICAL",
+      "label": "Analogical Solver",
+      "mode": "api",
+      "apiProvider": "anthropic",
+      "apiModel": "claude-sonnet-4-20250514",
+      "role": "solver",
+      "systemPromptFile": "prompts/solver-analogical.md"
+    },
+    {
+      "id": "CRITIC",
+      "label": "Critic / Verifier",
+      "mode": "api",
+      "apiProvider": "anthropic",
+      "apiModel": "claude-sonnet-4-20250514",
+      "role": "critic",
+      "systemPromptFile": "prompts/critic.md"
+    },
+    {
+      "id": "MEDIATOR",
+      "label": "Mediator / Decision Maker",
+      "mode": "api",
+      "apiProvider": "anthropic",
+      "apiModel": "claude-sonnet-4-20250514",
+      "role": "mediator",
+      "systemPromptFile": "prompts/mediator.md"
+    }
+  ],
+  "ensemble": {
+    "rounds": [
+      { "agents": ["SOLVER-SPATIAL", "SOLVER-PROCEDURAL", "SOLVER-ANALOGICAL"], "parallel": true },
+      { "agents": ["CRITIC"], "parallel": false },
+      { "agents": ["SOLVER-SPATIAL", "SOLVER-PROCEDURAL", "SOLVER-ANALOGICAL"], "parallel": true },
+      { "agents": ["MEDIATOR"], "parallel": false }
+    ],
+    "maxRounds": 4,
+    "convergenceEnabled": true,
+    "maxTokens": 4096
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "summary": {
+    "correct": 1,
+    "total": 1,
+    "accuracy": 1.0,
+    "avg_ms": 46387.0,
+    "conv_rate": 1.0,
+    "total_cost_usd": 0.23733,
+    "avg_cost_usd": 0.23733,
+    "total_tokens": 70650,
+    "total_cache_creation": 0,
+    "total_cache_read": 0,
+    "hints_used": 0,
+    "model": "claude-sonnet-4-6",
+    "dataset": "training",
+    "timestamp": "2026-03-28T07:24:13Z",
+    "rules": {
+      "total": 107,
+      "active": 95,
+      "candidates": 4,
+      "deprecated": 8,
+      "total_fired": 116,
+      "total_succeeded": 90
+    }
+  },
+  "tasks": [
+    {
+      "task_id": "15663ba9",
+      "correct": true,
+      "cell_accuracy": 1.0,
+      "converged": true,
+      "rounds": 3,
+      "duration_ms": 46387,
+      "cost_usd": 0.23733,
+      "input_tokens": 68535,
+      "cache_creation_tokens": 0,
+      "cache_read_tokens": 0,
+      "output_tokens": 2115,
+      "api_calls": 3,
+      "human_hints": false,
+      "tools_generated": [],
+      "matched_rule_ids": [
+        "r_098",
+        "r_116",
+        "r_117"
+      ],
+      "model": "claude-sonnet-4-6",
+      "dataset": "training"
+    }
+  ]
+}

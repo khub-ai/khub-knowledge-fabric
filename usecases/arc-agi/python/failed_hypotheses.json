@@ -1,0 +1,29 @@
+{
+  "0a2355a6": [
+    "Each connected group of 8-cells forms a distinct object. Count the total number of 8-cells in each object. Rank the objects from fewest 8-cells to most 8-cells. Assign colors based on rank: rank 1 (fewest cells) \u2192 color 1 (blue), rank 2 \u2192 color 2 (red), rank 3 \u2192 color 3 (green), rank 4 (most cells) \u2192 color 4 (yellow). Replace all 8-cells in each object with its assigned color. If two objects tie i"
+  ],
+  "103eff5b": [
+    "The transformation has two components: (1) a small 'key' pattern of colored cells (non-zero, non-8 values) and (2) a larger pattern made entirely of 8s arranged in rectangular blocks of uniform size. The 8-pattern, when divided into equal-sized unit blocks (each block N\u00d7N cells), forms the same spatial layout as the key pattern. Each unit block of 8s is replaced by a solid fill of the color corres"
+  ],
+  "1190bc91": [
+    "There are one or more colored sequences in the input (vertical or horizontal). Each sequence acts as a 'source' that radiates outward from its innermost/last element: the output cell at Chebyshev distance d from the source origin gets the color of the sequence element at index d (0-indexed from the innermost element). When multiple sources compete for the same cell, the source whose sequence eleme"
+  ],
+  "12eac192": [
+    "Identify all cells containing value 5. These are 'seed' cells. Perform a flood-fill starting from every 5-valued cell, propagating through adjacent cells (4-connectivity: up/down/left/right) that contain value 1 or value 8. All cells reached by this flood-fill (including the original 5s) are replaced with value 3. All other cells remain unchanged."
+  ],
+  "13f06aa5": [
+    "There are two special-marker objects in the grid (each embedded in a shape made of a non-background color). Each special marker (the unique non-background, non-shape color cell) shoots a ray toward the nearest grid edge. The ray travels along the row (if going left/right) or column (if going up/down) from the marker to the edge. Along the ray, the marker color is placed at every other cell (i.e., "
+  ],
+  "14754a24": [
+    "Find each group of 4-cells that forms a partial plus/cross pattern (exactly 3 arms around a center, or a center plus 3 arms). For each such group: identify the center cell C (the cell orthogonally adjacent to all 3 or 4 of the cluster's 4-cells, or the 4-cell itself that is adjacent to all others). The complete cross consists of C and its 4 orthogonal neighbors. Among these 5 positions, any cell t"
+  ],
+  "14b8e18c": [
+    "Identify all closed rectangular shapes (hollow rings where the perimeter is fully filled with the object color, or solid filled blocks) in the input. For each qualifying shape with bounding box rows r1..r2, cols c1..c2, place color 2 at exactly 8 positions: (r1-1, c1), (r1-1, c2), (r2+1, c1), (r2+1, c2) [above/below the corner columns], and (r1, c1-1), (r1, c2+1), (r2, c1-1), (r2, c2+1) [left/righ"
+  ],
+  "15113be4": [
+    "The 23\u00d723 grid is divided into 3\u00d73 data blocks by separator lines (value 4) at rows and cols 3,7,11,15,19, giving band_starts=[0,4,8,12,16,20]. One block area (spanning 2\u00d72 block positions) contains the 'key' using a special color. The key encodes a 3\u00d73 binary mask: each 2\u00d72 sub-block within the 6\u00d76 key area is '1' (mask-on) if it contains the special color, '0' otherwise. For every other (non-key"
+  ],
+  "15663ba9": [
+    "For each colored (non-zero, non-background) cell in the shape: (1) If the cell has exactly 2 colored orthogonal neighbors and those 2 neighbors are perpendicular (one horizontal, one vertical neighbor) \u2014 i.e., it's a convex corner/elbow tip \u2014 replace it with 4 (yellow). (2) If the cell has exactly 2 colored orthogonal neighbors that are perpendicular AND the cell is at a concave notch position (i."
+  ]
+}

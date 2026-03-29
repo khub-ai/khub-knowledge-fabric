@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+dist/
+build/
+knowledge.json
+rules.json
+tools.json
+results.json
+charts/
+*.png
