@@ -3,7 +3,7 @@
 
 ---
 
-> **Status**: Experiment design (not yet implemented)
+> **Status**: Experiment design (not yet implemented)  
 > **Theme**: KF as a knowledge authoring tool for domain experts with no AI expertise
 
 ---
@@ -152,15 +152,15 @@ The experiment should be designed to produce a specific before/after story:
 
 ---
 
-## 6. Open Questions for Implementation
+## 6. Implementation Decisions
 
-1. **Vision model choice**: The experiment requires a model that can accept both an image and NL classification rules at inference time. GPT-4V, Claude with vision, and open-source alternatives (LLaVA, Qwen-VL) are candidates. The model choice affects what "KF-taught" means mechanically — does KF inject rules into the system prompt, into a retrieval layer, or into a structured reasoning chain?
+1. **Vision model**: GPT-4V. KF injects extracted rules into the system prompt or structured reasoning chain at inference time; no fine-tuning occurs. API key stored at the standard location on P drive.
 
-2. **Teaching session format**: How does the expert communicate nuance that is hard to verbalize (e.g., "the tone of the grey is slightly warmer")? Does KF ask clarifying questions? Does it show the expert candidate images and ask for corrections?
+2. **Teaching session format**: Teaching input is sourced from textually documented expert opinion — field guides (Sibley, Kaufman), eBird/All About Birds species accounts, and ornithological literature. These sources contain precisely the discriminative NL reasoning needed ("bill length relative to head depth", "clean vs. spotted outer tail feathers"). Visual nuance that cannot be verbalized is out of scope for this experiment; the thesis is that documented textual expertise is sufficient.
 
-3. **Verification mechanism**: With few or no labeled training examples, how does KF verify that an extracted rule is correct? Options: (a) ask the expert to confirm the extracted rule is faithful, (b) use a small held-out validation set, (c) use the model itself to generate candidate images and ask the expert to validate.
+3. **Verification mechanism**: An expert is assumed available to converse with KF during the teaching and verification loop — the same SOLVER → SUPERVISOR → HUMAN escalation pattern used in the ARC-AGI-2 use case. When KF extracts a rule and is uncertain, it surfaces the rule to the expert for confirmation or correction before storing it. This makes the verification mechanism interactive rather than purely automated.
 
-4. **Benchmark framing**: Should the experiment report on the full CUB-200 test set (for direct leaderboard comparison) or on a curated confusable-pair subset (for a cleaner narrative)? Both, ideally — the full set for credibility, the confusable subset for the story.
+4. **Benchmark framing**: Report on both — the full CUB-200 test set for direct leaderboard comparison, and a curated confusable-pair subset for the narrative. The confusable-pair subset is the primary story; the full-set score provides credibility.
 
 ---
 
