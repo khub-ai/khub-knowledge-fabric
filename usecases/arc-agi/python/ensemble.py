@@ -68,6 +68,18 @@ from rules import RuleEngine, RuleMatch
 from tools import ToolRegistry
 import display as disp
 
+# ---------------------------------------------------------------------------
+# State and Goals (core framework) — optional; no-ops when not populated
+# ---------------------------------------------------------------------------
+import sys as _sys
+from pathlib import Path as _Path
+_KF_ROOT = _Path(__file__).resolve().parents[3]
+if str(_KF_ROOT) not in _sys.path:
+    _sys.path.insert(0, str(_KF_ROOT))
+
+from core.knowledge.state import StateManager
+from core.knowledge.goals import GoalManager
+
 MAX_REVISIONS = 5  # how many times MEDIATOR can revise pseudo-code after failure
 
 
@@ -261,6 +273,8 @@ async def run_ensemble(
     dataset: str = "",
     solver_ids: list[str] | None = None,
     test_mode: bool = False,
+    state_manager: Optional[StateManager] = None,
+    goal_manager: Optional[GoalManager] = None,
 ) -> TaskMetadata:
     """
     Run the full ensemble on a single ARC-AGI task.
@@ -271,6 +285,12 @@ async def run_ensemble(
         rule_engine = RuleEngine()
     if tool_registry is None:
         tool_registry = ToolRegistry()
+
+    # Initialize State and Goal managers (ephemeral, task-scoped)
+    if state_manager is None:
+        state_manager = StateManager(task_id=task_id, dataset_tag=dataset)
+    if goal_manager is None:
+        goal_manager = GoalManager(task_id=task_id, dataset_tag=dataset)
 
     # Tag task dict with its ID so _generate_and_register_tools can record it
     task["_task_id"] = task_id
@@ -357,10 +377,20 @@ async def run_ensemble(
     rule_section = rule_engine.build_mediator_rule_section(matched_rules, success=True)
     tool_section = tool_registry.build_tool_section_for_prompt()
 
+    # Build goal/state context section — empty when managers have no content
+    _goal_ctx  = goal_manager.format_for_prompt()
+    _state_ctx = state_manager.format_for_prompt()
+    _gs_section = ""
+    if _goal_ctx and _goal_ctx != "Goals: (none)":
+        _gs_section += f"\n\n{_goal_ctx}"
+    if _state_ctx and _state_ctx not in ("Current state: (empty)", ""):
+        _gs_section += f"\n\n{_state_ctx}"
+    _prior_with_gs = (rules_prompt_section + _gs_section).strip()
+
     mediator_text, pseudocode, mediator_ms = await run_mediator_synthesize(
         task=task,
         solver_entries=r1_entries,
-        prior_knowledge=rules_prompt_section,
+        prior_knowledge=_prior_with_gs,
         human_insight=human_r2_insight or human_hypothesis,
         rule_section=rule_section,
         tool_section=tool_section,
@@ -374,6 +404,17 @@ async def run_ensemble(
     ):
         if r["success"]:
             _tools_generated.append(r["name"])
+
+    # Parse goal/state updates from Round 2 MEDIATOR response
+    _updates_r2 = GoalManager.parse_agent_updates(mediator_text or "")
+    if _updates_r2:
+        if "goal_updates" in _updates_r2:
+            _glog = goal_manager.apply_updates(_updates_r2)
+            if _glog:
+                log(f"  [goals] {'; '.join(_glog)}", force=True)
+        if "state_updates" in _updates_r2:
+            state_manager.apply_agent_updates(_updates_r2["state_updates"])
+            log(f"  [state] updated: {list(_updates_r2['state_updates'].get('set', {}).keys())}", force=True)
 
     if human_in_loop:
         disp.show_pseudocode(pseudocode, mediator_text)
@@ -426,12 +467,22 @@ async def run_ensemble(
             if tname and tname not in failed_tool_names:
                 failed_tool_names.append(tname)
 
+        # Refresh goal/state context for revision prompt
+        _goal_ctx_rev  = goal_manager.format_for_prompt()
+        _state_ctx_rev = state_manager.format_for_prompt(include_history=2)
+        _gs_rev = ""
+        if _goal_ctx_rev and _goal_ctx_rev != "Goals: (none)":
+            _gs_rev += f"\n\n{_goal_ctx_rev}"
+        if _state_ctx_rev and _state_ctx_rev not in ("Current state: (empty)", ""):
+            _gs_rev += f"\n\n{_state_ctx_rev}"
+        _rev_insight = (human_revision_insight + _gs_rev).strip() if _gs_rev else human_revision_insight
+
         mediator_text, pseudocode, rev_ms = await run_mediator_revise(
             task=task,
             solver_entries=r1_entries,
             previous_pseudocode=pseudocode,
             execution_trace=trace_text,
-            human_insight=human_revision_insight,
+            human_insight=_rev_insight,
             failed_tools=failed_tool_names if attempt > 1 else None,
         )
         mediator_ms += rev_ms
@@ -465,6 +516,17 @@ async def run_ensemble(
                 _tools_generated.append(r["name"])
             elif not r.get("success") and r.get("error"):
                 log(f"  [tool_creator] {r['name']}: final error — {r['error'][:200]}", force=True)
+
+        # Parse goal/state updates from revision MEDIATOR response
+        _updates_rev = GoalManager.parse_agent_updates(mediator_text or "")
+        if _updates_rev:
+            if "goal_updates" in _updates_rev:
+                _glog = goal_manager.apply_updates(_updates_rev)
+                if _glog:
+                    log(f"  [goals] {'; '.join(_glog)}", force=True)
+            if "state_updates" in _updates_rev:
+                state_manager.apply_agent_updates(_updates_rev["state_updates"])
+                log(f"  [state] updated: {list(_updates_rev['state_updates'].get('set', {}).keys())}", force=True)
 
         if human_in_loop:
             disp.show_pseudocode(pseudocode, mediator_text, revision=attempt)
