@@ -67,11 +67,17 @@ You are a Knowledge Fabric rule extractor. Given a block of expert ornithologica
 text describing how to distinguish species A from species B, extract a list of
 discrete, independently applicable identification rules.
 
+IMPORTANT: This is a VISUAL classification task. Extract ALL visual features
+mentioned — size, shape, bill, eye, leg color, tail pattern, plumage, wingbars,
+rump, facial markings, etc. — even if they are described as secondary or subtle.
+Do NOT discard a rule just because it is not diagnostic on its own; supporting
+and weak visual rules are still valuable for image classification.
+
 For each rule output a JSON object with these fields:
   - rule        : one-sentence statement of the rule (e.g. "If the bill is as long as the head depth, it is a Hairy Woodpecker")
-  - feature     : the visual or acoustic feature referenced (e.g. "bill length", "eye color")
+  - feature     : the visual feature referenced (e.g. "bill length", "eye color")
   - favors      : which species the rule points toward (use the exact species name given)
-  - confidence  : "high" if the rule is diagnostic, "medium" if supporting, "low" if weak
+  - confidence  : "high" if the rule is diagnostic, "medium" if supporting, "low" if weak or subtle
 
 Return a JSON array of rule objects. Nothing else.
 """.strip()
@@ -99,10 +105,29 @@ def extract_rules(
     )
     raw = response.choices[0].message.content
     data = json.loads(raw)
-    # Handle both {"rules": [...]} and bare [...]
+
+    # Unwrap to a list regardless of wrapper structure
     if isinstance(data, list):
-        return data
-    return data.get("rules", list(data.values())[0])
+        candidates = data
+    else:
+        # Try common wrapper keys first, then fall back to first value
+        candidates = (
+            data.get("rules")
+            or data.get("items")
+            or data.get("identification_rules")
+            or next(iter(data.values()), [])
+        )
+        if not isinstance(candidates, list):
+            candidates = [candidates]
+
+    # Normalise: if GPT returned plain strings instead of dicts, wrap them
+    normalised = []
+    for item in candidates:
+        if isinstance(item, str):
+            normalised.append({"rule": item, "feature": "", "favors": "", "confidence": "medium"})
+        elif isinstance(item, dict):
+            normalised.append(item)
+    return normalised
 
 
 # ---------------------------------------------------------------------------
@@ -190,9 +215,9 @@ def kb_path(pair: ConfusablePair) -> Path:
 def save_rules(pair: ConfusablePair, rules: list[dict]) -> Path:
     path = kb_path(pair)
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w") as f:
-        json.dump({"pair": f"{pair.class_name_a} vs {pair.class_name_b}", "rules": rules}, f, indent=2)
-    print(f"Knowledge base saved → {path}")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump({"pair": f"{pair.class_name_a} vs {pair.class_name_b}", "rules": rules}, f, indent=2, ensure_ascii=False)
+    print(f"Knowledge base saved -> {path}")
     return path
 
 
@@ -200,7 +225,7 @@ def load_rules(pair: ConfusablePair) -> list[dict]:
     path = kb_path(pair)
     if not path.exists():
         return []
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         data = json.load(f)
     return data.get("rules", [])
 

@@ -27,7 +27,7 @@ RESULTS_DIR        = PROJECT_ROOT / "results"
 # --- API ---
 # Keys stored in P:/_access/Security/api_keys.env as KEY=VALUE pairs
 API_KEYS_ENV_PATH = Path("P:/_access/Security/api_keys.env")
-OPENAI_MODEL      = "gpt-4-vision-preview"
+OPENAI_MODEL      = "gpt-4o"
 OPENAI_MAX_TOKENS = 1024
 
 # --- Experiment settings ---
