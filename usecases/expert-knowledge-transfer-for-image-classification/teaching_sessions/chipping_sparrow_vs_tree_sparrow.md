@@ -1,59 +1,59 @@
-# Chipping Sparrow vs American Tree Sparrow: Identification Guide
+# Chipping Sparrow vs. Tree Sparrow: Identification Guide
 
-**Source**: All About Birds (Cornell Lab of Ornithology); Project FeederWatch; Sibley Guide to Birds
-**Feature group**: Breast spot, bill pattern, eye-line color, season/range
-**Attribute similarity (CUB-200-2011)**: ~0.76
+**Source**: All About Birds (Cornell Lab of Ornithology); Audubon Field Guide; Missouri Department of Conservation
+**Feature group**: face pattern + throat + crown + nape
+**Attribute similarity (CUB-200-2011)**: 0.9623
+**Note**: CUB-200-2011 class 130 "Tree_Sparrow" is the Tree Sparrow (*Passer montanus*), not the American Tree Sparrow (*Spizelloides arborea*).
 
 ## Overview
-Both species are small, clean-breasted sparrows with rufous caps that routinely appear at feeders, but they replace each other seasonally across much of North America: Chipping Sparrows are common in summer while American Tree Sparrows are winter visitors from the north. The key insight is that in any given season only one species is likely, but during the narrow overlap windows in migration, three features are immediately decisive: the central breast spot, the bill color pattern, and the eye-line color.
+
+Chipping Sparrow and Tree Sparrow are both small, rufous-capped sparrows, but their facial patterns are strikingly different once you know what to look for. The Tree Sparrow has a unique white cheek with a bold black spot — unmistakable in any image showing the face. Chipping Sparrow has the opposite pattern: a white eyebrow with a black eyeline and a plain gray cheek. These two species are not genuinely confusable to an experienced observer.
 
 ## Key Identification Features
 
-### 1. Central Breast Spot
-American Tree Sparrow has a single, isolated dark spot in the center of an otherwise plain gray breast — this "stickpin" spot is unique among sparrows in North America and is the single most diagnostic feature. Chipping Sparrow has a completely plain, unspotted gray breast with no central mark. However, the spot on Tree Sparrow can occasionally be faint or partially obscured by feather overlap, so it should be confirmed with other marks.
+### 1. Cheek pattern (most reliable — visible in almost every image)
+Tree Sparrow has a pure white cheek with a bold, kidney-shaped black ear patch set centrally within it. This black-spot-on-white-cheek is diagnostic and present year-round in all individuals, both sexes, all ages. Chipping Sparrow has a plain gray cheek with no spot or patch of any kind. If a black spot is visible on a white cheek, it is a Tree Sparrow.
 
-### 2. Bill Pattern (Two-Toned vs. Concolored)
-American Tree Sparrow has a distinctly bicolored bill: the upper mandible is dark (black or dark gray) while the lower mandible is bright yellow to yellowish-orange. This two-tone pattern is visible at reasonable range. Chipping Sparrow has a largely concolored bill — dark in breeding plumage, pinkish or grayish in winter and immature birds — but never showing the clean yellow lower mandible of Tree Sparrow. If the lower mandible is clearly yellow → American Tree Sparrow.
+### 2. Throat and bib
+Tree Sparrow has a black chin and throat forming a small, neat bib. Chipping Sparrow has a white or pale throat with no black bib whatsoever. If a black throat patch is visible, it is a Tree Sparrow.
 
-### 3. Eye-Line Color
-Chipping Sparrow has a bold, black or very dark brown eye line running through and past the eye to the lores — one of the most conspicuous features of breeding adults and retained (though somewhat duller) in winter. American Tree Sparrow has a rufous-brown or chestnut eye stripe — noticeably warmer and browner in tone, lacking the black intensity of Chipping Sparrow's. The darkness and color of the lateral eye stripe is a consistent separator in all plumages.
+### 3. Supercilium and eyeline
+Chipping Sparrow has a bold white supercilium (eyebrow stripe) above a black trans-ocular eyeline that runs through the eye and continues forward through the lores to the bill base. Tree Sparrow has no white supercilium — the chestnut crown wraps around the eye without a contrasting pale eyebrow. If a clear white eyebrow is present above a black eyeline, it is a Chipping Sparrow.
 
-### 4. Rufous Cap and Head Pattern
-Both species have a rufous (chestnut) cap, but they differ in detail. Chipping Sparrow's cap is bright, uniform rufous in breeding plumage with a clean white supercilium beneath it. In winter, the cap becomes streaked brownish and duller. American Tree Sparrow's cap is bright rufous year-round (cinnamon-chestnut), sometimes with a faint gray median stripe in winter; the face is predominantly gray below the cap, giving a gray-faced impression without a bold white supercilium. Tree Sparrow's gray face framing the rufous cap gives it a distinctive "gray-faced with a red hat" look, while Chipping Sparrow shows more facial contrast with the white supercilium.
+### 4. Nape
+Chipping Sparrow has a clear gray nape that contrasts with the rufous crown above and the streaked brown back below. Tree Sparrow has a chestnut nape continuous with the crown — no gray band. If the nape is gray and distinct from the crown, it is a Chipping Sparrow.
 
-### 5. Size
-American Tree Sparrow is measurably larger — approximately 6.0–6.5 inches in length with a heavier, rounder body. Chipping Sparrow is smaller and slimmer at approximately 5.0–5.5 inches. In a mixed flock, the size difference is detectable; Tree Sparrows look chunkier.
+### 5. Crown
+Both species have a rufous crown, but Tree Sparrow's crown is deep, saturated chestnut year-round. Chipping Sparrow's crown is bright rufous in breeding plumage but becomes dull brownish-tan with dark streaking in non-breeding plumage. The crown alone is not diagnostic but supports other features.
 
-### 6. Rusty Shoulder Patch
-American Tree Sparrow often shows a small rusty-chestnut patch on the lesser coverts (shoulder area), visible as a warm rufous spot near the bend of the wing on a perched bird. Chipping Sparrow does not show this shoulder patch; the wings appear more uniformly patterned with pale wing bars but no rufous shoulder spot.
+### 6. Bill shape
+Tree Sparrow has a short, stout, stubby bill typical of Passer sparrows. Chipping Sparrow has a thin, delicate, fine-tipped bill. This is a supporting feature visible in side or three-quarter views.
+
+### 7. Body shape
+Tree Sparrow is chunky and stocky, heavier-bodied than its size suggests. Chipping Sparrow is slim and small-headed with a more delicate build. Supporting feature only.
 
 ## In the Field: Decision Rules
-- Single dark spot in center of plain gray breast → American Tree Sparrow
-- Completely plain gray breast with no spot → Chipping Sparrow
-- Bright yellow lower mandible → American Tree Sparrow
-- Bill concolored (all dark or all pinkish) → Chipping Sparrow
-- Black eye line → Chipping Sparrow
-- Rufous-brown (warm chestnut) eye stripe → American Tree Sparrow
-- Bird at feeder in winter (December–February) in northern/central US → American Tree Sparrow likely
-- Bird at feeder in summer → Chipping Sparrow expected
-- Gray face with rufous cap, no strong white supercilium → American Tree Sparrow
-- Bold white supercilium with rufous cap → Chipping Sparrow (breeding)
-- Rusty shoulder patch visible → American Tree Sparrow
+- If a black spot is visible on a white cheek, it is a Tree Sparrow.
+- If a black throat bib is present, it is a Tree Sparrow.
+- If the cheek is plain gray with no spot, lean toward Chipping Sparrow.
+- If a bold white eyebrow is present above a black eyeline reaching the bill base, it is a Chipping Sparrow.
+- If no white supercilium is visible and the crown wraps unbroken around the eye, lean toward Tree Sparrow.
+- If the nape is clear gray contrasting with a rufous crown, it is a Chipping Sparrow.
+- If the nape is chestnut and continuous with the crown, it is a Tree Sparrow.
 
-## Female / Immature / Non-breeding
-Both sexes are identical within each species. Winter Chipping Sparrows are duller with a streaked, brownish cap and reduced facial contrast, making them look more superficially like Tree Sparrows. In winter Chipping Sparrows, focus on the eye-line color (still dark, not warm rufous) and the lack of a breast spot and yellow lower mandible. First-fall birds of both species can be slightly buffer and streakier but retain all key structural marks.
-
-## Voice
-Chipping Sparrow's song is a long, mechanical trill of identical chips on one pitch, often described as a sewing-machine trill — one of the most familiar sounds of suburban North America in spring. American Tree Sparrow gives a varied, melodic, descending series of sweet whistles, quite different from Chipping's monotone trill; their call note is a musical *teedle-eet*. Voice is distinctive but context is usually sufficient given the strong seasonal separation of the two species.
+## Seasonal and Age Notes
+Tree Sparrow shows minimal seasonal variation — the diagnostic face pattern is sharp year-round in all individuals. Sexes are identical. Chipping Sparrow shows strong seasonal dimorphism: breeding birds have a crisp rufous cap and bold facial pattern; non-breeding birds are dull with a streaked brownish cap and subdued face markings. The cheek and throat features of Tree Sparrow remain reliable regardless of season or age.
 
 ## Quick Reference
-| Feature | Chipping Sparrow | American Tree Sparrow |
+| Feature | Chipping Sparrow | Tree Sparrow |
 |---|---|---|
-| Breast spot | None | Single dark central spot |
-| Bill | Concolored (dark or pinkish) | Two-toned: dark upper, yellow lower |
-| Eye line color | Black or very dark brown | Rufous-chestnut (warm brown) |
-| Face pattern | White supercilium prominent | Gray face, less prominent supercilium |
-| Rufous cap | Bright in summer, streaked in winter | Bright rufous year-round |
-| Shoulder patch | Absent | Rusty patch on lesser coverts |
-| Size | 5.0–5.5 in | 6.0–6.5 in |
-| Season in temperate US | Spring–fall (breeder) | Fall–spring (winter visitor) |
+| Cheek | Plain gray, no markings | White with bold black kidney-shaped spot |
+| Throat | White, no bib | Black bib |
+| Supercilium | Bold white eyebrow | Absent |
+| Eyeline | Black, runs to bill base | No distinct eyeline |
+| Nape | Gray | Chestnut (continuous with crown) |
+| Crown (breeding) | Bright rufous | Deep chestnut |
+| Crown (non-breeding) | Dull, streaked brownish | Deep chestnut (unchanged) |
+| Bill | Thin, delicate | Short, stout |
+| Body | Slim, small-headed | Chunky, stocky |
+| Seasonal change | Strong | Minimal |
