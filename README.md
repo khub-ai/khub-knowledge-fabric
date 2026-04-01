@@ -287,6 +287,16 @@ Phases 1 and 4 are implemented. The passive learning pipeline (1a–1d) and the 
 
 Phases 1 and 4 implemented. Passive learning (Milestones 1a–1d) extracts knowledge from user messages, accumulates evidence across interactions, and injects consolidated rules into future prompts automatically. Phase 4 adds active expert elicitation via `/teach` in pil-chat — the agent asks targeted follow-up questions, synthesises a rule when all five consolidation gaps are closed, and promotes it to the knowledge store with full session provenance. 112 tests pass with no API key required.
 
+## License
+
+KHUB Knowledge Fabric is released under the **[PolyForm Noncommercial License 1.0.0](LICENSE)**.
+
+- Noncommercial use is permitted, including personal use, research, education, government, and other noncommercial organizational use.
+- The repo is **source-available**, not open-source.
+- Commercial use requires a separate commercial license.
+
+If you are evaluating KHUB Knowledge Fabric for a potential commercial deployment, keep that distinction in mind before redistributing, bundling, or offering it as part of a paid product or service.
+
 ## Contributing
 
 Contributions are welcome — especially around:
