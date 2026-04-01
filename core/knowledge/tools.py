@@ -1,16 +1,26 @@
 """
-tools.py — Persistent tool registry for the ARC-AGI ensemble.
+tools.py — Persistent tool registry for KF use cases.
 
-Generated Python tool code is stored in tools.json alongside rules.json.
-On startup the executor re-registers every verified tool so the system
-accumulates capabilities across puzzle runs without regenerating code.
+Stores two types of tools:
+  - "code"   (default) Python functions, e.g. ARC-AGI grid transforms.
+             Loaded into the executor at harness startup so they accumulate
+             across runs without regeneration.
+  - "schema" JSON feature-observation schemas, e.g. UC200 per-pair questionnaires
+             filled by the OBSERVER agent at inference time.
+             Not loaded into the executor; retrieved by name for prompt injection.
 
-Tool lifecycle:
+Tool lifecycle (code tools):
   1. MEDIATOR requests a new tool by name in its pseudo-code
   2. _generate_and_register_tools() checks this registry first
   3. Cache hit  → re-register from saved code, skip generation (free)
   4. Cache miss → generate, verify against demos, register, then persist here
   5. Tools with verified=False are kept for debugging but never auto-loaded
+
+Tool lifecycle (schema tools):
+  1. OBSERVER needs a feature form for a confusable pair
+  2. Registry checked by name; cache hit → return schema JSON
+  3. Cache miss → schema generator creates the form, stores here
+  4. Schema injected into OBSERVER prompt as a structured questionnaire
 """
 
 from __future__ import annotations
@@ -158,16 +168,30 @@ class ToolRegistry:
         description: str = "",
         fix_attempts: int = 0,
         scope: str = "dataset",
+        tool_type: str = "code",
     ) -> None:
         """Add or update a tool entry and persist to disk.
 
         Auto-tags with the current dataset_tag so namespace filtering works.
+
+        Args:
+            name:         Unique tool name.
+            code:         For tool_type="code": Python source string.
+                          For tool_type="schema": JSON string of the feature
+                          observation schema (dict of feature_name → null),
+                          e.g. '{"bill_length_vs_head": null, "bare_skin_extent": null}'.
+            verified:     True if the tool passed demo verification (code tools)
+                          or expert review (schema tools).
+            tool_type:    "code" (default) — Python function loaded into executor.
+                          "schema" — JSON feature form used by OBSERVER agent;
+                          never loaded into the executor.
         """
         # Auto-tag with current namespace
         tags = [self.dataset_tag] if self.dataset_tag and scope == "dataset" else []
         entry = {
             "name": name,
             "code": code,
+            "tool_type": tool_type,
             "verified": verified,
             "source_task": source_task,
             "description": description,
@@ -191,15 +215,35 @@ class ToolRegistry:
     # Executor integration
     # ------------------------------------------------------------------
 
+    def get_schema(self, name: str) -> Optional[dict]:
+        """Return a verified schema tool's feature form as a dict, or None.
+
+        Schema tools store their feature form as a JSON string in the 'code'
+        field.  This helper parses and returns it for prompt injection.
+        """
+        for t in self.tools:
+            if (t["name"] == name
+                    and t.get("tool_type") == "schema"
+                    and t.get("verified", False)
+                    and self._tool_in_ns(t)):
+                try:
+                    return json.loads(t["code"])
+                except (json.JSONDecodeError, TypeError):
+                    return None
+        return None
+
     def load_into_executor(self) -> list[str]:
         """
-        Re-register all verified tools into the executor's in-memory registry.
+        Re-register all verified code tools into the executor's in-memory registry.
         Called at harness startup to restore tools from previous sessions.
+        Schema tools are skipped — they are not executable Python functions.
         Returns list of tool names successfully loaded.
         """
         from executor import register_dynamic_tool
         loaded = []
         for tool in self.verified_tools():
+            if tool.get("tool_type", "code") != "code":
+                continue
             ok, err = register_dynamic_tool(tool["name"], tool["code"])
             if ok:
                 loaded.append(tool["name"])
@@ -211,10 +255,11 @@ class ToolRegistry:
 
     def build_tool_section_for_prompt(self) -> str:
         """
-        Returns a prompt section listing all verified tools for the MEDIATOR,
+        Returns a prompt section listing all verified code tools for the MEDIATOR,
         so it can request them by name without triggering re-generation.
+        Schema tools are excluded — they are retrieved separately by the OBSERVER.
         """
-        tools = self.verified_tools()
+        tools = [t for t in self.verified_tools() if t.get("tool_type", "code") == "code"]
         if not tools:
             return ""
         lines = [
@@ -226,4 +271,24 @@ class ToolRegistry:
             desc = t.get("description", "").strip()
             desc_str = f" — {desc}" if desc else ""
             lines.append(f"- `{t['name']}(grid, **kwargs)`{desc_str}  *(from task {t.get('source_task', '?')})*")
+        return "\n".join(lines)
+
+    def build_schema_section_for_prompt(self) -> str:
+        """
+        Returns a prompt section listing all verified schema tools for the OBSERVER,
+        so it can request them by name without triggering re-generation.
+        Only schema-type tools are included.
+        """
+        schemas = [t for t in self.verified_tools() if t.get("tool_type") == "schema"]
+        if not schemas:
+            return ""
+        lines = [
+            "## Available Feature Schemas",
+            "These observation schemas are already registered for known confusable pairs.",
+            "Prefer reusing an existing schema over requesting a new one if it fits.\n",
+        ]
+        for t in schemas:
+            desc = t.get("description", "").strip()
+            desc_str = f" — {desc}" if desc else ""
+            lines.append(f"- `{t['name']}`{desc_str}  *(from task {t.get('source_task', '?')})*")
         return "\n".join(lines)

@@ -29,6 +29,36 @@ from typing import Any, Optional
 
 
 # ---------------------------------------------------------------------------
+# Observability filter
+# ---------------------------------------------------------------------------
+
+# Keywords that indicate a rule references non-visual cues — evidence that
+# cannot be observed in a single static image or grid frame.  Used by
+# add_rule() when observability_filter=True to reject non-visual rules
+# before they enter the knowledge base.
+_NON_VISUAL_PATTERNS = re.compile(
+    r"\b(call|calls|song|songs|voice|voices|vocaliz\w*|sound|sounds"
+    r"|habitat|habitats|range|ranges|season|seasons|migration|migratory"
+    r"|size\s+(?:relative|compared|without|unless)|smell|touch"
+    r"|behavior|behaviour|flock|flocking|diet|feeding|nest|nesting)\b",
+    re.IGNORECASE,
+)
+
+
+def is_visually_observable(text: str) -> bool:
+    """Return True if the rule text contains no non-visual cues.
+
+    Checks the rule's condition and action text against a list of keywords
+    that indicate evidence not available in a single static image or frame
+    (vocalizations, habitat, range, size-relative-to-another-bird, etc.).
+
+    Use this via add_rule(observability_filter=True) to reject non-visual
+    rules at extraction time rather than letting them degrade classification.
+    """
+    return not bool(_NON_VISUAL_PATTERNS.search(text))
+
+
+# ---------------------------------------------------------------------------
 # File locking (cross-platform, no external deps)
 # ---------------------------------------------------------------------------
 
@@ -253,7 +283,8 @@ class RuleEngine:
         rule_type: str = "task",
         status: str = "active",
         scope: str = "dataset",
-    ) -> dict:
+        observability_filter: bool = False,
+    ) -> Optional[dict]:
         """
         Create a new rule and persist it.
 
@@ -281,10 +312,22 @@ class RuleEngine:
                            labeled as unconfirmed. Promoted to "active" on first independent
                            success. Deprecated after 1 failure on an unrelated task.
                          - "deprecated": excluded from all matching.
+            observability_filter: When True, reject rules whose condition or
+                         action text contains non-visual cues (vocalizations,
+                         habitat, range, season, etc.) that cannot be observed
+                         in a single static image or grid frame.  Returns None
+                         if the rule is rejected.  Intended for vision-based
+                         use cases such as image classification (UC200) where
+                         non-visual rules cause systematic misclassification.
 
         Returns:
-            The newly created rule dict.
+            The newly created rule dict, or None if rejected by the filter.
         """
+        # Observability filter: reject non-visual rules before storage
+        if observability_filter:
+            if not is_visually_observable(condition) or not is_visually_observable(action):
+                return None
+
         # Auto-tag with the current dataset namespace
         tags_list = list(tags or [])
         if self.dataset_tag and self.dataset_tag not in tags_list:
