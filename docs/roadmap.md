@@ -1,6 +1,6 @@
 # Roadmap
 
-This project is structured in six phases, progressing from a working personal knowledge store toward a portable, cross-agent knowledge ecosystem. Each phase produces something independently useful.
+This project is structured in six phases, progressing from a working personal knowledge store toward a portable, cross-agent [knowledge artifact](glossary.md#knowledge-artifact) ecosystem. Each phase produces something independently useful.
 
 **The near-term priority is practical utility.** Phase 1 is broken into incremental milestones so that something simple but functional is available soon, while the longer-term vision (phases 2–5) demonstrates that the architecture can support ambitious goals.
 

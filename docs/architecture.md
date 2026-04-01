@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the system architecture: how knowledge artifacts are structured, how they are stored and indexed, how the tiered trigger cascade retrieves them efficiently, and how the system integrates with OpenClaw's plugin SDK.
+This document describes the system architecture: how [knowledge artifacts](glossary.md#knowledge-artifact) are structured, how they are stored and indexed, how the tiered trigger cascade retrieves them efficiently, and how the system integrates with OpenClaw's plugin SDK.
 
 ## Design principles
 

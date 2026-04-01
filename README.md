@@ -2,7 +2,7 @@
 
 **A knowledge store that learns from your conversations, persists across sessions and agents, and stays on your machine — inspectable and portable by design.**
 
-This is a client-side code framework, called **PIL (Persistable Interactive Learning)**, that works with any local or cloud-based LLM to enable your agent to extract knowledge from user interaction, distil it into persistent memory artifacts or generalized knowledge, and make those artifacts available across sessions — or share them with others.
+This is a client-side code framework, called **[PIL (Persistable Interactive Learning)](docs/glossary.md#pil-persistable-interactive-learning)**, that works with any local or cloud-based LLM to enable your agent to extract knowledge from user interaction, distil it into persistent [knowledge artifacts](docs/glossary.md#knowledge-artifact) or generalized knowledge, and make those artifacts available across sessions — or share them with others.
 
 ## Who this is for
 

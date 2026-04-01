@@ -17,7 +17,7 @@ Most AI assistants in 2026 offer some form of persistent memory. Here is how thi
 | **Generalized** | No | Rarely | No — stores observations; no systematic distillation into rules | Yes — the pipeline explicitly generalizes observations into rules |
 | **Governable** | No | Platform-dependent | Partial — operator-controlled; no per-artifact governance | Yes — user owns the files, controls what persists |
 
-The key difference is not just *where* the knowledge is stored, but *what form* it takes. Platform memory features typically store brief statements extracted from conversation ("user prefers dark mode"). Letta provides a richer memory architecture for developers building agents, but memory remains server-side and in a framework-specific format. PIL produces structured, typed, confidence-scored, versioned artifacts that the user can reason about, edit, and share — and that outlive any particular platform or framework.
+The key difference is not just *where* the knowledge is stored, but *what form* it takes. Platform memory features typically store brief statements extracted from conversation ("user prefers dark mode"). Letta provides a richer memory architecture for developers building agents, but memory remains server-side and in a framework-specific format. PIL produces structured, typed, confidence-scored, versioned [knowledge artifacts](glossary.md#knowledge-artifact) that the user can reason about, edit, and share — and that outlive any particular platform or framework.
 
 ## PIL as a complement to fine-tuning
 
@@ -77,7 +77,7 @@ A Python port is architecturally straightforward: the LLM adapter is a plain cal
 
 ## Artifact format: free-form text, not rigid schemas
 
-Knowledge artifacts are primarily **free-form text with lightweight conventions** — not rigid database schemas. This is a deliberate choice with several motivations:
+[Knowledge artifacts](glossary.md#knowledge-artifact) are primarily **free-form text with lightweight conventions** — not rigid database schemas. This is a deliberate choice with several motivations:
 
 - **Human-readable**: A user can open an artifact file and understand it immediately without specialized tooling.
 - **Model-agnostic**: Any sufficiently capable LLM can consume the artifacts, regardless of vendor. There are no embeddings, token IDs, or model-specific representations.

@@ -25,5 +25,17 @@
   ],
   "15663ba9": [
     "For each colored (non-zero, non-background) cell in the shape: (1) If the cell has exactly 2 colored orthogonal neighbors and those 2 neighbors are perpendicular (one horizontal, one vertical neighbor) \u2014 i.e., it's a convex corner/elbow tip \u2014 replace it with 4 (yellow). (2) If the cell has exactly 2 colored orthogonal neighbors that are perpendicular AND the cell is at a concave notch position (i."
+  ],
+  "17b80ad2": [
+    "For each column containing at least one 5: collect all non-zero values in that column (including 5s) in top-to-bottom row order, giving a list of N values. Divide the full column height (rows 0 to grid_height-1) into N equal-sized bands (rounding as needed so bands cover all rows). Fill each band entirely with its corresponding color value. All cells in those columns that are not part of the origi"
+  ],
+  "182e5d0f": [
+    "Each connected arm of 3-cells forms an L-shape (a bend/elbow). One branch of the L has 0-markers flanking its outer end (the '0,3,0' pattern indicating the endpoint), and the other branch has a 5 at its tip. The transformation: (1) Remove all 3-cells that form the long arm (set to 7), keeping only the L-corner structure with 0-markers intact. (2) Move the 5 from the tip of the arm to the cell imme"
+  ],
+  "184a9768": [
+    "The grid contains: (1) large rectangular bordered frames (made of a uniform color like 1, 2, 4, 8) with rectangular 0-filled interior holes, (2) small floating colored objects scattered outside the frames, and (3) scattered 5-cells acting as noise. The transformation: (a) removes all 5-cells (set to 0); (b) for each floating colored object, find the interior hole of any bordered frame whose dimens"
+  ],
+  "1990f7a8": [
+    "The input contains exactly 4 disconnected shapes made of 2-cells (on a background of 0s). Extract each shape's minimal bounding box (always fits within 3\u00d73). Arrange them into a 7\u00d77 output grid as a 2\u00d72 arrangement with a blank separator row (row 3) and blank separator column (col 3). Place shapes in reading order by their position in the input: the shape nearest the top-left of the input goes to "
   ]
 }

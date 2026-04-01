@@ -1,6 +1,6 @@
 # Enterprise Vision
 
-This document is written for two audiences: **enterprise adopters** evaluating whether this project addresses a real organizational need, and **ecosystem builders and strategists** interested in the economic potential of portable knowledge artifacts.
+This document is written for two audiences: **enterprise adopters** evaluating whether this project addresses a real organizational need, and **ecosystem builders and strategists** interested in the economic potential of portable [knowledge artifacts](glossary.md#knowledge-artifact).
 
 ---
 
