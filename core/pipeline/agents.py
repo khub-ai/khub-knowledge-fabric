@@ -19,7 +19,7 @@ from __future__ import annotations
 import asyncio
 import os
 import time
-from typing import Optional
+from typing import Optional, Union
 
 import anthropic
 
@@ -124,7 +124,7 @@ def get_cost_tracker() -> CostTracker:
 
 async def call_agent(
     agent_id: str,
-    user_message: str,
+    user_message: Union[str, list],
     system_prompt: str = "",
     model: str = DEFAULT_MODEL,
     max_tokens: int = DEFAULT_MAX_TOKENS,
@@ -135,7 +135,17 @@ async def call_agent(
 
     Args:
         agent_id:      Label used for logging/display (e.g. "MEDIATOR").
-        user_message:  The user-turn message.
+        user_message:  The user-turn message.  Pass a string for text-only
+                       calls.  Pass a list of Anthropic content blocks for
+                       multimodal calls (e.g. image + text for vision tasks):
+                           [
+                             {"type": "image", "source": {
+                               "type": "base64",
+                               "media_type": "image/jpeg",
+                               "data": "<base64-string>",
+                             }},
+                             {"type": "text", "text": "What species is this?"},
+                           ]
         system_prompt: System prompt string.  Each use case loads its own
                        prompt files and passes the content here.
         model:         Anthropic model string.
@@ -186,15 +196,26 @@ async def call_agent(
                 raise
 
 
-def _print_prompt(agent_id: str, system: str, user: str, model: str) -> None:
+def _print_prompt(agent_id: str, system: str, user: Union[str, list], model: str) -> None:
     """Print agent prompt to terminal (used when SHOW_PROMPTS is True)."""
+    if isinstance(user, list):
+        # Summarize multimodal content blocks for display
+        parts = []
+        for block in user:
+            if isinstance(block, dict):
+                if block.get("type") == "image":
+                    parts.append("[image]")
+                elif block.get("type") == "text":
+                    parts.append(block.get("text", "")[:400])
+        usr_preview = " ".join(parts)
+    else:
+        usr_preview = user[:1200] + ("..." if len(user) > 1200 else "")
     try:
         from rich.console import Console
         from rich.panel import Panel
         from rich.text import Text
         c = Console()
         sys_preview = system[:600] + ("..." if len(system) > 600 else "")
-        usr_preview = user[:1200] + ("..." if len(user) > 1200 else "")
         c.print(Panel(
             Text(sys_preview, style="dim"),
             title=f"[bold magenta]{agent_id} -- system prompt[/bold magenta]  [dim]{model}[/dim]",
@@ -208,4 +229,4 @@ def _print_prompt(agent_id: str, system: str, user: str, model: str) -> None:
     except ImportError:
         print(f"\n=== {agent_id} ({model}) ===")
         print(f"SYSTEM: {system[:400]}")
-        print(f"USER:   {user[:800]}")
+        print(f"USER:   {usr_preview[:800]}")
