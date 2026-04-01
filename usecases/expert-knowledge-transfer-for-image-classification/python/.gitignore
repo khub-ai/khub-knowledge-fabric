@@ -1,0 +1,17 @@
+# KF knowledge base files — local workspace, not committed
+rules.json
+tools.json
+rules.json.tmp
+tools.json.tmp
+rules.json.lock
+tools.json.lock
+
+# Results — large JSON files
+results*.json
+results*.tmp
+failed*.json
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo

@@ -1,0 +1,25 @@
+"""
+rules.py (bird-uc200 shim) — re-exports RuleEngine from core/knowledge/rules.py
+and overrides DEFAULT_PATH to point at this use case's rules.json.
+"""
+import sys
+from pathlib import Path
+
+# Ensure KF repo root is on sys.path for core/ imports
+_KF_ROOT = Path(__file__).resolve().parents[3]
+if str(_KF_ROOT) not in sys.path:
+    sys.path.insert(0, str(_KF_ROOT))
+
+import core.knowledge.rules as _rules_mod  # noqa: E402
+
+# Point the default path at this use case's data directory, not core/knowledge/
+_rules_mod.DEFAULT_PATH = Path(__file__).parent / "rules.json"
+
+from core.knowledge.rules import (  # noqa: F401, E402
+    RuleEngine,
+    RuleMatch,
+    FiringResult,
+    is_visually_observable,
+)
+
+DEFAULT_PATH = _rules_mod.DEFAULT_PATH
