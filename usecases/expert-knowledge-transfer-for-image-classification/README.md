@@ -3,7 +3,7 @@
 
 ---
 
-> **Status**: Experiment complete — results in Section 8  
+> **Status**: Research prototype — experiments partially complete; bird case study in Section 3, dermatology upcoming  
 > **Theme**: [Knowledge Fabric (KF)](../../docs/glossary.md#knowledge-fabric-kf) as a local-first knowledge authoring tool for domain experts with no AI expertise  
 > **Last updated**: 2026.03.31  
 
