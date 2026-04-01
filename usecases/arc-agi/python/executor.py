@@ -602,7 +602,10 @@ def test_tool_code(name: str, code: str, task: dict, default_args: dict | None =
         return False, f"Compilation error: {err}"
 
     pseudocode = [{"step": 1, "tool": name, "args": default_args or {}}]
-    er = run_executor(pseudocode, task)
+    try:
+        er = run_executor(pseudocode, task)
+    except Exception as e:
+        return False, f"Executor crashed: {e}"
     if not er.all_pass:
         return False, format_execution_trace(er)
 

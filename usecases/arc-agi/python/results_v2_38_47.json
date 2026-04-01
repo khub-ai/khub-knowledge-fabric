@@ -1,0 +1,55 @@
+{
+  "summary": {
+    "correct": 0,
+    "total": 1,
+    "accuracy": 0.0,
+    "avg_ms": 276297.0,
+    "conv_rate": 1.0,
+    "total_cost_usd": 0.740673,
+    "avg_cost_usd": 0.740673,
+    "total_tokens": 168071,
+    "total_cache_creation": 0,
+    "total_cache_read": 0,
+    "hints_used": 0,
+    "model": "claude-sonnet-4-6",
+    "dataset": "v2-training",
+    "timestamp": "2026-04-01T03:53:16Z",
+    "rules": {
+      "total": 136,
+      "active": 109,
+      "candidates": 15,
+      "flagged": 0,
+      "deprecated": 12,
+      "archived": 0,
+      "total_fired": 143,
+      "total_succeeded": 112
+    }
+  },
+  "tasks": [
+    {
+      "task_id": "1990f7a8",
+      "correct": false,
+      "cell_accuracy": 0.8571428571428571,
+      "converged": true,
+      "rounds": 5,
+      "duration_ms": 276297,
+      "cost_usd": 0.740673,
+      "input_tokens": 148366,
+      "cache_creation_tokens": 0,
+      "cache_read_tokens": 0,
+      "output_tokens": 19705,
+      "api_calls": 15,
+      "human_hints": false,
+      "tools_generated": [
+        "assemble_four_shapes_v3",
+        "assemble_quadrant_shapes"
+      ],
+      "matched_rule_ids": [
+        "r_066",
+        "r_042"
+      ],
+      "model": "claude-sonnet-4-6",
+      "dataset": "v2-training"
+    }
+  ]
+}

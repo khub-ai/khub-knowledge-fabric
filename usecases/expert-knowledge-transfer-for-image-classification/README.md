@@ -1,13 +1,13 @@
-# Knowledge Fabric Use Case: Patching a Pre-Trained VLM with Expert Knowledge
-## The "Excel Moment" for AI — Letting Non-Experts Correct Model Mistakes in Natural Language
+# Knowledge Fabric Use Case: Runtime Knowledge Patching for Image Classification
+## The "Excel Moment" for AI — Letting Domain Experts Patch AI Models
 
 ---
 
-> **Status**: Experiment complete — results in Section 8
-> **Theme**: Knowledge Fabric (KF) as a local-first knowledge authoring tool for domain experts with no AI expertise
-> **Last updated**: 2026.03.31
+> **Status**: Experiment complete — results in Section 8  
+> **Theme**: [Knowledge Fabric (KF)](../../docs/glossary.md#knowledge-fabric-kf) as a local-first knowledge authoring tool for domain experts with no AI expertise  
+> **Last updated**: 2026.03.31  
 
-KF treats expert input as a reusable knowledge patch: a domain expert can incrementally correct a pre-trained vision-language model in plain language, without fine-tuning the model or running an ML workflow.
+[Knowledge Fabric (KF)](../../docs/glossary.md#knowledge-fabric-kf) treats expert input as a reusable [knowledge patch](../../docs/glossary.md#knowledge-patch): a domain expert can incrementally correct a pre-trained vision-language model in plain language, without fine-tuning the model or running an ML workflow. This README uses two reference domains to make the idea concrete: fine-grained bird identification and skin-lesion classification in dermatology.
 
 ---
 
@@ -29,7 +29,68 @@ This is the **Excel moment for AI**: just as Excel gave non-programmers direct a
 
 ---
 
-## 2. The Experiment Domain: Fine-Grained Bird Species Classification
+## 2. What Knowledge Fabric Is
+
+Knowledge Fabric (KF) is a **knowledge middleware layer** that wraps one or more LLMs or VLMs and gives the overall AI system capabilities that the underlying models do not natively provide on their own.
+
+In this README, KF is used in one specific way: helping a pre-trained vision-language model perform better on image-classification failure modes by applying expert-authored knowledge patches at inference time. That is important, but it is only one part of the overall KF story.
+
+### What KF provides
+
+- **Runtime learning**: the system can learn during use, from live interaction, without requiring model retraining.
+- **Dialogic learning with experts**: KF can work interactively with a human expert in natural language, asking clarifying questions, extracting useful knowledge, and helping verify what should be kept.
+- **A wide knowledge range**: the knowledge it captures can range from simple classification cues to richer structured knowledge such as concepts, heuristics, procedures, plans, goals, constraints, and evaluation criteria.
+- **Persistent knowledge outside the model**: learned knowledge is stored independently of the underlying LLM or VLM, so it can survive model upgrades, vendor changes, and deployment changes.
+- **Human-readable [knowledge artifacts](../../docs/glossary.md#knowledge-artifact)**: the knowledge remains explicit and inspectable rather than being buried in model weights, which makes review, governance, debugging, and revision much easier.
+- **Portability and reuse**: once captured, knowledge can be reused across sessions, tasks, users, and in many cases across different underlying models.
+- **Incremental improvement**: the system can be improved one correction, one clarification, and one verified patch at a time, instead of waiting for a large retraining cycle.
+- **Controlled application of knowledge**: KF is not only about storing knowledge, but also about deciding when it is relevant, when it should be applied, and when it should be revised or withheld.
+- **On-the-fly tool generation**: KF can generate task-specific tools dynamically when reliable execution is needed, especially for repetitive tasks that demand precision, consistency, and low error rates.
+- **Inner multi-agent support**: KF can use an internal multi-agent structure to improve learning, reasoning, verification, and planning, allowing specialized roles to work together rather than relying on a single monolithic model pass.
+
+### How KF differs from other AI middleware
+
+Many AI middlewares focus primarily on prompt orchestration, tool routing, workflow control, or memory retrieval. KF is different in that it is centered on **persistent, human-readable, revisable knowledge artifacts** that can be learned interactively, governed explicitly, and reused across sessions, tasks, and underlying models.
+
+For the broader repo-level positioning, see the main [README](../../README.md#why-this-exists) and the design note on [how this differs from existing agent memory](../../docs/design-decisions.md#how-this-differs-from-existing-agent-memory).
+
+### Other KF use cases and planned directions in this repo
+
+This image-classification README is not the only lens on KF. Elsewhere in the repo, some threads are ongoing use cases, while others are planned benchmarks and design targets that show the broader scope of the architecture:
+
+- **ARC-AGI (ongoing)**: structured knowledge accumulation and supervised correction in hard reasoning tasks
+- **Financial statements (planned)**: learning naming conventions, institution lists, and recurring procedures from repeated user behavior
+- **Compile procedure (planned)**: escalating a repeated human-readable recipe into an executable program
+- **LMP acronym benchmark (planned)**: semantic matching and consolidation of domain-specific terminology
+- **Retrieval, injection, and revision benchmarks (planned)**: showing that KF is about deciding when to apply knowledge, not just storing it
+
+Together, these threads show that KF is not just an image-classification aid. It is a broader runtime knowledge system for learning, applying, revising, and transferring explicit knowledge artifacts.
+
+### What This README Highlights
+
+This README focuses on a specific subset of KF capabilities:
+
+- extracting expert knowledge from natural language
+- turning it into explicit knowledge patches
+- applying those patches to a pre-trained VLM at runtime
+- improving targeted classification failure modes without fine-tuning
+
+It does not try to demonstrate every KF capability, such as long-term accumulation across many sessions, organization-wide governance, procedural compilation, publishing workflows, or the full benchmark suite elsewhere in the repo.
+
+**Jump links**
+
+- Jump to [Sub-Use-Case A: Birds](#3-sub-use-case-a-birds)
+- Jump to [Sub-Use-Case B: Dermatology (upcoming)](#4-sub-use-case-b-dermatology-upcoming)
+- Jump to [Cross-Use-Case Takeaways](#5-cross-use-case-takeaways)
+- Jump to [Why This Matters to VLM Vendors](#6-why-this-matters-to-vlm-vendors)
+
+---
+
+## 3. Sub-Use-Case A: Birds
+
+KF is meant to be a general tool for image classification, not a one-off birding demo. The bird domain is already implemented and evaluated in detail in this repo, which makes it the natural first worked example.
+
+### 3.1 Birds: fine-grained species classification
 
 ### Why birds
 
@@ -63,97 +124,205 @@ Fine-grained visual classification of bird species is an ideal proving ground fo
 - eBird species accounts at allaboutbirds.org — free, per-species, include identification tips and confusion species
 - 312 binary attribute annotations (already in dataset) — structured visual criteria per species
 
----
+### KF features highlighted in the bird sub-use-case
 
-## 3. Experiment Design
+This bird experiment does **not** attempt to showcase every KF capability from §2. It mainly highlights the following parts of KF:
 
-### The patch authoring session (simulated)
+- **Runtime learning / runtime patching**: the base VLM is left unchanged while the `model + KF` system is improved through external knowledge patches.
+- **Dialogic learning with experts**: in the intended workflow, an expert expresses discriminative field-mark knowledge in natural language and reviews extracted rules before they are stored.
+- **Human-readable knowledge artifacts**: the stored rules remain explicit and inspectable rather than disappearing into model weights.
+- **Verification and revision**: extracted rules can be confirmed, rejected, or corrected before they are relied on.
+- **Persistence and reuse**: once stored, a bird-identification patch can be reapplied to future images in the same confusion pair.
+- **Controlled application of knowledge**: the patch is applied only when the relevant confusable pair is under consideration rather than globally to every image task.
 
-For each of the ~30 most confusable species pairs identified in the literature, construct a KF patching session using language sourced from field guides and eBird accounts:
+The bird experiment touches only lightly, or not at all, on other KF capabilities such as long-term cross-session accumulation, organization-level governance workflows, procedural tool compilation, and the inner multi-agent structure. Those are part of KF more broadly, but they are not the main focus of this README.
 
-```
-EXPERT PATCH INPUT (example):
+### Representative bird pairs discussed below
 
-"A Hairy Woodpecker looks very similar to a Downy Woodpecker, but can be
-distinguished by the following features:
+The bird results later in this README discuss a small set of confusable pairs in detail. The images below are representative CUB-200-2011 examples copied into this repo to make those cases easier to follow while reading the analysis.
 
-1. Bill length: The Hairy's bill is approximately as long as its head is deep.
-   The Downy's bill is noticeably shorter — roughly half the head depth.
+**Pairs where KF helped**
 
-2. Body size: The Hairy is larger overall, roughly the size of a Robin.
-   The Downy is sparrow-sized.
-
-3. Outer tail feathers: The Hairy has clean white outer tail feathers with
-   no spots or bars. The Downy typically shows black spots on those feathers.
-
-4. When in doubt: If you cannot judge bill length, look for the clean tail
-   feathers on the Hairy."
-```
-
-KF's role: extract from this text the structured, verifiable rules that distinguish the two species; generate executable classification guidance; store both in the knowledge base with provenance linking back to the source.
-
-### Conditions
-
-| Condition | Description |
+| Red-faced Cormorant | Pelagic Cormorant |
 |---|---|
-| **Baseline: zero-shot** | Frontier vision-language model (e.g., GPT-4V or Claude with vision), no fine-tuning, no KF |
-| **Baseline: few-shot** | Same model with 3–5 labeled example images per species, no NL explanation |
-| **KF: NL patch only** | KF patching session using field-guide text, no additional labeled images |
-| **KF: NL patch + few-shot** | KF patching session + 3–5 labeled examples |
-| **Reference: supervised SOTA** | HERBS or equivalent — requires full labeled training set |
+| ![Red-faced Cormorant](assets/birds/red_faced_cormorant.jpg) | ![Pelagic Cormorant](assets/birds/pelagic_cormorant.jpg) |
 
-### Primary metric
+| Bronzed Cowbird | Shiny Cowbird |
+|---|---|
+| ![Bronzed Cowbird](assets/birds/bronzed_cowbird.jpg) | ![Shiny Cowbird](assets/birds/shiny_cowbird.jpg) |
 
-**Accuracy on confusable-pair test set**: Construct a held-out test set restricted to the ~30 most visually similar species pairs. Report per-pair and aggregate accuracy across conditions.
+| Black-billed Cuckoo | Yellow-billed Cuckoo |
+|---|---|
+| ![Black-billed Cuckoo](assets/birds/black_billed_cuckoo.jpg) | ![Yellow-billed Cuckoo](assets/birds/yellow_billed_cuckoo.jpg) |
 
-This metric is more diagnostic than overall accuracy because:
-- Overall accuracy is dominated by easy cases (eagle vs. hummingbird) where all conditions perform well
-- Confusable pairs expose what discriminative knowledge actually contributes
-- The improvement narrative is cleaner: "KF closes most of the gap between zero-shot and supervised SOTA on the hard cases, using only natural-language patching — no training data"
+**Pairs that exposed patch-quality or task-limit issues**
 
-**Secondary metrics**:
-- Accuracy on full CUB-200 test set
-- Number of patch authoring sessions required to reach each accuracy level
-- Knowledge base reuse rate: how many times is a given rule applied across different test images
+| American Crow | Fish Crow |
+|---|---|
+| ![American Crow](assets/birds/american_crow.jpg) | ![Fish Crow](assets/birds/fish_crow.jpg) |
+
+| Chipping Sparrow | Tree Sparrow |
+|---|---|
+| ![Chipping Sparrow](assets/birds/chipping_sparrow.jpg) | ![Tree Sparrow](assets/birds/tree_sparrow.jpg) |
+
+| Brewer Sparrow | Clay-colored Sparrow |
+|---|---|
+| ![Brewer Sparrow](assets/birds/brewer_sparrow.jpg) | ![Clay-colored Sparrow](assets/birds/clay_colored_sparrow.jpg) |
+
+### 3.2 Bird story in one view
+
+The implemented bird experiment is designed to produce a specific before/after story:
+
+**Before KF**: an ornithology professor wants a computer vision system to correctly distinguish a confusable pair of species. She knows nothing about machine learning. Her options appear to be more labeled data, a retraining cycle, or accepting the model's current mistakes.
+
+**With KF**: the professor opens a patching session and writes the same explanation she gives students. KF extracts her criteria, verifies them against examples, stores them as reusable rules, and applies them immediately to new cases.
+
+**What this shows**: the gap between "domain expert sees the mistake" and "the AI system stops making the mistake" can be narrowed with natural language, without ML expertise, without large-scale labeled retraining, and without changing model weights.
+
+The detailed protocol and full pair-by-pair analysis remain later in this README:
+
+- Bird implementation details: [Section 7.1](#71-bird-experiment-implementation-decisions)
+- Bird results and failure analysis: [Section 7.3](#73-bird-experiment-results)
+
+### 3.3 Bird experiment setup at a glance
+
+- **Model**: GPT-4o (vision)
+- **Dataset**: CUB-200-2011, standard train/test split
+- **Task focus**: 15 confusable species pairs selected from CUB attributes
+- **Test images**: 20 per class per condition (40 images per pair)
+- **Patch source**: field-guide text, eBird-style species guidance, and other documented ornithological expertise
+- **Comparison conditions**: zero-shot, few-shot, and KF-patched
+
+The key experimental question is narrow and practical: can a domain expert's natural-language field-mark knowledge improve classification on targeted hard cases without retraining the base model?
+
+### 3.4 Bird results summary
+
+Overall, the bird experiment shows both the promise and the boundary of KF:
+
+| Condition | Accuracy |
+|---|---|
+| **Zero-shot** | 78.0% |
+| **Few-shot** | 82.8% |
+| **KF-patched (first run)** | 72.5% |
+| **KF-patched (after patch correction)** | 75.5% |
+
+The aggregate number understates the real lesson. The pair-level results split into three different stories:
+
+- **KF clearly helped** on Red-faced vs Pelagic Cormorant, Bronzed vs Shiny Cowbird, and Black-billed vs Yellow-billed Cuckoo, where the injected rules pointed to visible, stable, discriminative features.
+- **KF failed in a fixable way** on Chipping vs Tree Sparrow because the patch source text described the wrong species. Once corrected, performance recovered from `42%` back to `88%`.
+- **KF exposed a deeper design opportunity** on Brewer vs Clay-colored Sparrow: the originally reported score was confounded by a small label-normalization mismatch, so this pair should be treated as a hard exploratory stress test rather than as a clean `-32pp` failure. Follow-up probing still suggests that prompt-only patching is not enough here, while a stronger KF pattern based on human-verifiable intermediate feature claims is more promising.
+
+For readers who want the detailed pair-level picture up front, the bird results by pair were:
+
+| Pair | Similarity | Zero-shot | Few-shot | KF-patched | KF delta |
+|---|---|---|---|---|---|
+| American Crow vs Fish Crow | 0.996 | 68% | 68% | 49% | −19pp |
+| Black-billed Cuckoo vs Yellow-billed Cuckoo | 0.967 | 78% | 88% | 85% | **+7pp** |
+| Brewer Sparrow vs Clay-colored Sparrow | 0.973 | 82% | 95% | see note* | — |
+| Bronzed Cowbird vs Shiny Cowbird | 0.961 | 88% | 95% | 98% | **+10pp** |
+| California Gull vs Herring Gull | — | 45% | 40% | 50% | +5pp |
+| Caspian Tern vs Elegant Tern | — | 85% | 92% | 88% | **+3pp** |
+| Chipping Sparrow vs Tree Sparrow | 0.962 | 88% | 90% | 88% | 0pp |
+| Common Raven vs White-necked Raven | 0.957 | 88% | 92% | 85% | −3pp |
+| Common Tern vs Forster's Tern | 0.968 | 42% | 68% | 38% | −5pp |
+| Herring Gull vs Ring-billed Gull | — | 87% | 93% | 87% | 0pp |
+| Indigo Bunting vs Blue Grosbeak | — | 90% | 95% | 88% | −3pp |
+| Least Flycatcher vs Western Wood-Pewee | — | 72% | 78% | 70% | −3pp |
+| Loggerhead Shrike vs Great Grey Shrike | 0.978 | 80% | 55% | 72% | −8pp |
+| Northern Waterthrush vs Louisiana Waterthrush | — | 75% | 72% | 75% | 0pp |
+| Red-faced Cormorant vs Pelagic Cormorant | 0.962 | 82% | 95% | 92% | **+10pp** |
+
+*\* The originally reported Brewer / Clay-colored KF score was confounded by a small label-normalization mismatch (`Brewer's Sparrow` vs `Brewer Sparrow`), so it should not be read as a clean `-32pp` regression.*
+
+So the bird use case is already useful even though it is not uniformly positive. It shows that runtime knowledge patching can help immediately on the right failure modes, that bad patches create systematic harm, and that difficult visual cases may require KF to externalize feature observations rather than only inject more expert text.
+
+For the full protocol, pair-by-pair breakdown, and failure analysis, see the detailed sections later in this README.
+
+Prefer to skip the upcoming dermatology section? Jump to [Cross-Use-Case Takeaways](#5-cross-use-case-takeaways).
 
 ---
 
-## 4. The KF Role in This Experiment
+## 4. Sub-Use-Case B: Dermatology (upcoming)
 
-This experiment is designed to stress-test three specific KF capabilities:
+> **Upcoming sub-use-case**
+> The dermatology track is planned but not yet implemented in this repo.
+> The dataset rationale and experiment design are outlined here, but the actual
+> patching session, example lesion cases, qualitative examples, and measured
+> results are still to come.
 
-### 4.1 Rule extraction from NL description
+Dermatology is the strongest medical analogue to the bird use case. Like bird identification, it depends on subtle visual distinctions that experts can often explain in words: pigment network, asymmetry, border irregularity, color variation, streaks, dots, globules, regression structures, ulceration, and other dermoscopic criteria. It is therefore a strong fit for KF's runtime patching model.
 
-The expert provides prose description of discriminative features. KF must:
-- Parse the description into discrete, independently applicable rules
-- Identify which rules are decisive vs. corroborating
-- Detect and flag contradictions or ambiguities that require clarification
-- Store rules in a form that is both human-readable and machine-applicable
+Just as important, the public ISIC ecosystem gives us both hard classification tasks and expert-defined visual attributes. That makes dermatology unusually well suited for a KF demonstration because we can show all three layers at once: the image, the expert annotation, and the natural-language rule derived from it.
 
-### 4.2 Verified tool generation
+| Resource | What it contributes | Why it matters to KF |
+|---|---|---|
+| **HAM10000** ([paper](https://pmc.ncbi.nlm.nih.gov/articles/PMC6091241/)) | 10,015 dermoscopic images across 7 diagnostic categories, with diagnoses supported by histopathology, confocal microscopy, follow-up, or expert consensus | A strong fine-grained lesion benchmark with clinically meaningful labels |
+| **ISIC 2018 Task 2: Lesion Attribute Detection** ([challenge page](https://challenge.isic-archive.com/landing/2018/46/), [challenge overview](https://challenge.isic-archive.com/landing/2018/)) | Pixel-level masks for clinically meaningful dermoscopic attributes such as pigment network, negative network, streaks, milia-like cysts, and globules | The closest dermatology analogue to CUB's attribute annotations; ideal for grounding patch rules in expert-defined visual features |
+| **ISIC 2019 Challenge** ([challenge page](https://challenge.isic-archive.com/landing/2019/), [validation paper](https://pmc.ncbi.nlm.nih.gov/articles/PMC8484270/)) | Multiclass lesion diagnosis with image-only and image-plus-metadata tracks | A practical benchmark for testing whether `model + KF` improves difficult lesion confusions without retraining |
+| **SIIM-ISIC Melanoma Classification (2020)** ([official summary](https://siim.org/research-journal/siim-machine-learning-challenges/melanoma-kaggle-challenge/), [official dataset](https://challenge2020.isic-archive.com/), [dataset paper](https://doi.org/10.1038/s41597-021-00815-z)) | Kaggle-hosted melanoma challenge with 33,126 training images and patient context; SIIM reports 3,314 teams, 4,120 competitors, and 102,544 submissions | Proof that the domain is commercially relevant, technically hard, and familiar to VLM vendors and evaluators |
 
-For each extracted rule, KF generates an executable tool — in this domain, a visual feature extraction prompt or scoring function — and verifies it against the few labeled examples provided (or held-out validation images). Rules that cannot be verified against evidence are flagged, not silently stored.
+Strictly speaking, **HAM10000 is the foundational dataset, not the Kaggle competition itself**. The Kaggle competition was **SIIM-ISIC Melanoma Classification (2020)**, which drew on the ISIC archive and patient-contextual lesion images.
 
-### 4.3 Cross-species knowledge accumulation
+**Planned dermatology story**:
 
-The knowledge base should compound: rules learned for the Downy/Hairy pair (bill length relative to head) may generalize to other woodpecker confusions. KF should:
-- Detect when a new rule is a specialization or extension of an existing rule
-- Propose generalizations to the expert for confirmation
-- Track which rules transfer and which are species-specific
+- **Before KF**: a dermatologist or skin-cancer screening product team sees that a VLM repeatedly confuses classes such as melanoma vs nevus, or benign keratosis vs basal cell carcinoma, on borderline lesions.
+- **With KF**: the expert opens a patching session and writes the same visual criteria they would use in teaching or supervision. KF turns those criteria into explicit reusable rules, verifies them, and applies them at inference time.
+- **What this adds**: if the bird use case shows that KF can capture field-guide expertise, the dermatology use case shows that the same mechanism can transfer clinically meaningful visual expertise into a deployable image-classification system.
+
+### 4.1 Planned dermatology experiment design
+
+The dermatology track should be deliberately parallel to the bird experiment rather than framed as a separate thesis.
+
+- **Primary dataset**: ISIC 2019 lesion classification, with HAM10000 as the conceptual bridge and source of diagnostically meaningful class structure.
+- **Attribute grounding**: ISIC 2018 lesion-attribute annotations, used as the medical analogue of CUB's bird attributes.
+- **Target confusions**: melanoma vs nevus, basal cell carcinoma vs benign keratosis, and actinic keratosis vs squamous cell carcinoma.
+- **Patch source material**: dermoscopy references, diagnostic atlases, teaching cases, and consensus-style visual criteria.
+- **Comparison conditions**: zero-shot, few-shot, retrieved reference text, KF-patched, and KF-patched plus few-shot.
+
+What would count as a strong result is also parallel to the bird story, but narrower than a medical leaderboard claim:
+
+- a dermatologist can express useful lesion-discrimination rules in natural language
+- KF can turn those rules into explicit, reviewable, reusable patches
+- the `model + KF` system improves targeted lesion confusions without retraining the base model
+- KF beats simpler post-deployment alternatives such as zero-shot prompting, few-shot prompting, and raw retrieved reference text on those targeted failure modes
+
+This should be framed as a demonstration of post-training behavior correction for image classification, not as a clinical deployment claim.
+
+The more detailed planned setup remains later in this README:
+
+- Planned dermatology implementation details: [Section 7.2](#72-dermatology-implementation-plan-upcoming)
 
 ---
 
-## 5. The Narrative for the Excel Moment
+## 5. Cross-Use-Case Takeaways
 
-The experiment should be designed to produce a specific before/after story:
+What the bird experiment already shows:
 
-**Before KF**: An ornithology professor wants a computer vision system to correctly distinguish Downy from Hairy Woodpeckers — a confusion that even intermediate birders make. She knows nothing about machine learning. Her options are: (a) collect 500 labeled photos and hire an ML team, or (b) use the AI as-is and accept ~65% accuracy on this pair.
+- **Correct, visually grounded rules can help immediately**. The cormorant, cowbird, and cuckoo pairs improved because the rules described features that were visible and consistently present.
+- **Wrong rules cause systematic harm**. The Tree Sparrow failure was not random noise; it was a patch-quality failure that biased every prediction in the pair.
+- **Verification is not optional**. The `auto_accept=True` setting let bad rules enter the knowledge base without expert review.
+- **Some tasks are outside the scope of still-image rule patching**. The crow failure was largely about voice, habitat, and range rather than visible evidence.
+- **Hard cases often need a stronger patch form**. After correcting a small label-normalization issue in the Brewer Sparrow evaluation, the pair still suggests that KF should sometimes externalize the model's feature claims into a structured, human-verifiable evidence layer.
 
-**With KF**: The professor opens a patching session. She types — or dictates — the same explanation she gives students in her ornithology course. Twenty minutes later, the system has extracted her criteria, verified them against a handful of examples, and stored them as reusable rules. The model now performs substantially better on Downy/Hairy images. She exports the knowledge base as a reusable patch and shares it with a colleague at another institution running a different model. It works there too.
+What the dermatology use case is meant to test next:
 
-**What KF claims**: The gap between "domain expert sees the mistake" and "the AI system stops making the mistake" can be closed with natural language, without ML expertise, without labeled training data at scale, and without model retraining.
+- whether the same mechanism transfers from field-guide knowledge to clinically meaningful visual expertise
+- whether explicit medical attributes can ground better patches than vague class descriptions
+- whether the `model + KF` system can beat zero-shot, few-shot, and raw retrieved reference text on targeted lesion confusions
+- whether the same patch can remain portable across more than one underlying VLM or deployment context
 
-### Why this matters to VLM vendors
+Summary of current evidence:
+
+| Category | What birds already shows | What dermatology is meant to test next |
+|---|---|---|
+| Runtime patching value | Yes, on targeted confusable pairs | Whether the same applies in a medical domain |
+| Need for expert verification | Yes, clearly | Whether medical patches need even stricter review and governance |
+| Benefit of structured intermediate evidence | Suggested strongly by Brewer vs Clay-colored | Whether feature-level verification is even more valuable in medicine |
+| Portability across domains | Promising in principle | Still upcoming |
+
+---
+
+## 6. Why This Matters to VLM Vendors
 
 For a VLM vendor, or for a product team wrapping a VLM, the core value is not just better benchmark accuracy. The value is a new post-deployment improvement loop. Instead of waiting for the next model release or running expensive customer-specific fine-tuning, the vendor can ship a system that improves through external knowledge patches authored and verified by domain experts.
 
@@ -164,8 +333,9 @@ This matters because it offers:
 - **A more auditable product surface**: patches are explicit, reviewable, and shareable in a way that model weights are not.
 - **Compounding product value over time**: every validated patch can improve the deployed system incrementally instead of being lost in ad hoc prompt edits or support tickets.
 - **Portability across underlying models**: if the vendor changes the base VLM, the knowledge layer can remain usable instead of being recreated from scratch.
+- **Better expert-labeled edge cases for future model improvement**: the same patching workflow also produces a growing library of expert-identified failures, explanations, and corrections. That material can improve the deployed `model + KF` system immediately, and it can later become a high-quality supervision set for targeted fine-tuning of future model versions.
 
-For vendors, the strategic claim is simple: **KF can turn model improvement from a slow model-release cycle into a fast knowledge-release cycle.**
+For vendors, the strategic claim is simple: **KF can turn model improvement from a slow model-release cycle into a fast knowledge-release cycle.** The point is not that KF will universally outperform fine-tuning on every benchmark. The point is that KF can outperform simpler post-deployment alternatives on the exact failure modes users report, while remaining faster, cheaper, and more controllable than retraining.
 
 ### Commercial paths that do not require deep embedding
 
@@ -192,7 +362,61 @@ KF should not be positioned only as a feature that a VLM vendor must deeply embe
 
 ---
 
-## 6. Implementation Decisions
+## 7. Detailed Evaluation Mechanics
+
+This section holds the more detailed protocol, implementation notes, and result breakdowns that support the shorter bird and dermatology case-study sections above.
+
+### The patch authoring session (simulated)
+
+For each hard or confusable classification problem, construct a KF patching session using language sourced from expert materials. In the bird sub-use-case this comes from field guides and eBird accounts; in dermatology it would come from dermoscopy references, atlases, and diagnostic teaching material:
+
+```
+EXPERT PATCH INPUT (example):
+
+"A Hairy Woodpecker looks very similar to a Downy Woodpecker, but can be
+distinguished by the following features:
+
+1. Bill length: The Hairy's bill is approximately as long as its head is deep.
+   The Downy's bill is noticeably shorter — roughly half the head depth.
+
+2. Body size: The Hairy is larger overall, roughly the size of a Robin.
+   The Downy is sparrow-sized.
+
+3. Outer tail feathers: The Hairy has clean white outer tail feathers with
+   no spots or bars. The Downy typically shows black spots on those feathers.
+
+4. When in doubt: If you cannot judge bill length, look for the clean tail
+   feathers on the Hairy."
+```
+
+KF's role: extract from this text the structured, verifiable rules that distinguish the candidate classes; generate executable classification guidance; store both in the knowledge base with provenance linking back to the source.
+
+### Conditions
+
+| Condition | Description |
+|---|---|
+| **Baseline: zero-shot** | Frontier vision-language model (e.g., GPT-4V or Claude with vision), no fine-tuning, no KF |
+| **Baseline: few-shot** | Same model with 3–5 labeled example images per species, no NL explanation |
+| **Baseline: retrieved reference text** | Same model with raw field-guide or medical reference passages inserted into the prompt, but without KF rule extraction or verification |
+| **KF: NL patch only** | KF patching session using field-guide text, no additional labeled images |
+| **KF: NL patch + few-shot** | KF patching session + 3–5 labeled examples |
+| **Reference: supervised SOTA** | HERBS or equivalent — requires full labeled training set |
+
+### Primary metric
+
+**Accuracy on confusable-pair test set**: Construct a held-out test set restricted to the ~30 most visually similar species pairs. Report per-pair and aggregate accuracy across conditions.
+
+This metric is more diagnostic than overall accuracy because:
+- Overall accuracy is dominated by easy cases (eagle vs. hummingbird) where all conditions perform well
+- Confusable pairs expose what discriminative knowledge actually contributes
+- The strongest claim is narrower and more realistic: **KF should beat simpler post-deployment alternatives on targeted hard cases**, while requiring much less time, cost, and retraining effort than a full supervised pipeline
+
+**Secondary metrics**:
+- Accuracy on full CUB-200 test set
+- Number of patch authoring sessions required to reach each accuracy level
+- Knowledge base reuse rate: how many times is a given rule applied across different test images
+
+### 7.1 Bird Experiment Implementation Decisions
 
 1. **Vision model**: GPT-4V. KF injects extracted rules into the system prompt or structured reasoning chain at inference time; no fine-tuning occurs. API key stored at the standard location on P drive.
 
@@ -204,9 +428,58 @@ KF should not be positioned only as a feature that a VLM vendor must deeply embe
 
 ---
 
-## 8. Experiment Results
+### 7.2 Dermatology Implementation Plan (upcoming)
 
-### 8.1 Setup
+> **Placeholder for the next implemented sub-use-case**
+> This section is intentionally included now so the README clearly shows that
+> dermatology is planned as the second worked example, but the experiment itself
+> is still upcoming.
+>
+> The completed version of this section should eventually include:
+> - the exact lesion confusions selected for testing
+> - representative lesion images and expert annotations
+> - the source material used to author patches
+> - the baseline, few-shot, retrieved-text, and KF-patched runs
+> - qualitative failure analysis and measured results
+
+The dermatology sub-use-case should be implemented as a deliberately parallel experiment rather than as a separate thesis. The point is to show that KF's mechanism transfers from natural-history expertise to clinically meaningful visual expertise.
+
+#### 7.2.1 Proposed benchmark setup
+
+- **Primary dataset**: ISIC 2019 lesion classification, with HAM10000-style class structure as the conceptual bridge.
+- **Attribute grounding**: ISIC 2018 lesion-attribute annotations, used as the medical equivalent of CUB's bird attributes.
+- **Target confusions**: melanoma vs nevus, basal cell carcinoma vs benign keratosis, actinic keratosis vs squamous cell carcinoma.
+- **Patch source material**: dermoscopy references, diagnostic atlases, teaching cases, and consensus-style visual criteria.
+
+#### 7.2.2 Experimental conditions
+
+Use the same comparison pattern as the bird experiment:
+
+- **Zero-shot**: frontier VLM, no KF patch.
+- **Few-shot**: same VLM with a small number of labeled lesion examples.
+- **Retrieved reference text**: same VLM with dermatology reference passages inserted directly into the prompt, but without KF extraction, validation, or patch structuring.
+- **KF-patched**: same VLM with runtime knowledge patches derived from dermatologist-authored criteria.
+- **KF-patched + few-shot**: combine explicit rules with a few labeled examples.
+
+#### 7.2.3 What would count as a strong result
+
+A convincing result would not require beating a fully supervised medical leaderboard. It would require showing that:
+
+- A dermatologist can express useful lesion-discrimination rules in natural language.
+- KF can turn those rules into explicit, reviewable, reusable patches.
+- The `model + KF` system improves on targeted lesion confusions without retraining the base model.
+- KF outperforms simpler post-deployment alternatives such as zero-shot prompting, few-shot prompting, and raw retrieved reference text on those targeted failure modes.
+- The same patch remains portable across more than one underlying VLM or deployment context.
+
+#### 7.2.4 Safety and scope boundary
+
+This should be framed as a demonstration of **post-training behavior correction for image classification**, not as a clinical deployment claim. The value of the medical example is to show that KF can absorb specialist visual knowledge in a high-stakes domain while keeping the knowledge layer explicit, auditable, and separable from model weights.
+
+---
+
+### 7.3 Bird Experiment Results
+
+#### 7.3.1 Setup
 
 **Model**: GPT-4o (vision)
 **Dataset**: CUB-200-2011, standard train/test split
@@ -223,11 +496,11 @@ KF should not be positioned only as a feature that a VLM vendor must deeply embe
 | **Few-shot** | Test image + 3 labeled training images per class (6 total). No rules. |
 | **KF-patched** | Test image + species names + verified expert rules injected as text into the system prompt. No training images. |
 
-The KF-patched condition is the core claim: *can natural-language rules provided by a domain expert improve classification without any labeled training data beyond what zero-shot already has?*
+The KF-patched condition is the core claim: *can natural-language rules provided by a domain expert improve classification on targeted hard cases, and do so more effectively than zero-shot, few-shot, or raw retrieved reference text, without retraining the base model?*
 
 ---
 
-### 8.2 How the rules are applied
+#### 7.3.2 How the rules are applied
 
 For each pair, the knowledge base holds rules like these (Red-faced Cormorant vs Pelagic Cormorant):
 
@@ -246,26 +519,26 @@ These rules are prepended to the system prompt for every test image in that pair
 
 ---
 
-### 8.3 Overall results
+#### 7.3.3 Overall results
 
 | Condition | Correct | Total | Accuracy | vs. Zero-shot |
 |---|---|---|---|---|
 | Zero-shot | 468 | 600 | **78.0%** | — |
 | Few-shot | 497 | 600 | **82.8%** | +4.8pp |
 | KF-patched (first run) | 434 | 599 | **72.5%** | −5.5pp |
-| KF-patched (after fix — see §8.6) | 452 | 599 | **75.5%** | −2.5pp |
+| KF-patched (after fix — see §7.3.6) | 452 | 599 | **75.5%** | −2.5pp |
 
-The first KF-patched run underperformed zero-shot. Investigation of per-pair results identified the cause — described in §8.5 and §8.6.
+The first KF-patched run underperformed zero-shot. Investigation of per-pair results identified the cause — described in §7.3.5 and §7.3.6.
 
 ---
 
-### 8.4 Per-pair breakdown
+#### 7.3.4 Per-pair breakdown
 
 | Pair | Similarity | Zero-shot | Few-shot | KF-patched | KF delta |
 |---|---|---|---|---|---|
 | American Crow vs Fish Crow | 0.996 | 68% | 68% | 49% | −19pp |
 | Black-billed Cuckoo vs Yellow-billed Cuckoo | 0.967 | 78% | 88% | 85% | **+7pp** |
-| Brewer Sparrow vs Clay-colored Sparrow | 0.973 | 82% | 95% | 50% | −32pp |
+| Brewer Sparrow vs Clay-colored Sparrow | 0.973 | 82% | 95% | see note* | — |
 | Bronzed Cowbird vs Shiny Cowbird | 0.961 | 88% | 95% | 98% | **+10pp** |
 | California Gull vs Herring Gull | — | 45% | 40% | 50% | +5pp |
 | Caspian Tern vs Elegant Tern | — | 85% | 92% | 88% | **+3pp** |
@@ -279,11 +552,12 @@ The first KF-patched run underperformed zero-shot. Investigation of per-pair res
 | Northern Waterthrush vs Louisiana Waterthrush | — | 75% | 72% | 75% | 0pp |
 | Red-faced Cormorant vs Pelagic Cormorant | 0.962 | 82% | 95% | 92% | **+10pp** |
 
-*\* 42% was caused by an incorrect patch source file — see §8.5 and §8.6.*
+*\* The originally reported Brewer / Clay-colored KF score was confounded by a small label-normalization mismatch (`Brewer's Sparrow` vs `Brewer Sparrow`), so it should not be read as a clean `-32pp` regression.*  
+*\** 42% was caused by an incorrect patch source file — see §7.3.5 and §7.3.6.*
 
 ---
 
-### 8.5 Where KF rules helped
+#### 7.3.5 Where KF rules helped
 
 Three pairs showed consistent gains from KF rules. In each case the rules describe visual features that are unambiguous, consistently present across images, and not already well-known to a frontier model.
 
@@ -305,9 +579,9 @@ Bill color and undertail spot pattern are both clearly visible features describe
 
 ---
 
-### 8.6 Where KF rules failed — and what it revealed
+#### 7.3.6 Where KF rules failed — and what it revealed
 
-Three pairs showed significant drops. All three trace to rules that either described the wrong species or referenced features not visible in a still photograph.
+Two pairs showed clear drops, and one additional pair became a useful exploratory hard case. Together they show that KF can fail when the patch source is wrong, when the relevant evidence is not visible in a still image, or when a hard case needs a stronger intermediate representation than plain prompt injection.
 
 #### Failure 1: Chipping Sparrow vs Tree Sparrow (88% → 42%, −45pp)
 
@@ -355,13 +629,52 @@ The extracted rules reflected the source text faithfully:
 
 Injecting non-visual criteria into a vision model's prompt does not help it see features that are not present in the image. It may actively confuse the model by introducing contradictory or inapplicable reasoning. An expert running the interactive patching session would reject voice and range rules as inapplicable to photograph-based classification.
 
-#### Failure 3: Brewer Sparrow vs Clay-colored Sparrow (82% → 50%, −32pp)
+#### Exploratory hard case: Brewer Sparrow vs Clay-colored Sparrow
 
-This pair involves fine-grained sparrow differences — subtle face pattern contrasts, malar stripe definition, supercilium contrast — that are genuinely difficult to assess in CUB photographs taken at variable angles, distances, and lighting. The rules describe real features, but those features are often not clearly visible or measurable in the available images. When rules point at features the model cannot reliably see, injected guidance creates noise rather than signal.
+This pair involves fine-grained sparrow differences — subtle face pattern contrasts, malar stripe definition, supercilium contrast — that are genuinely difficult to assess in CUB photographs taken at variable angles, distances, and lighting. The pair was originally reported as a severe KF regression, but part of that score came from a small label-normalization mismatch between `Brewer's Sparrow` and `Brewer Sparrow`. After correcting for that issue in the interpretation, this should be read as a difficult and informative stress test, not as a clean headline failure.
+
+Even after setting aside the label-normalization issue, the pair is still useful because the rules describe real features that are often not clearly visible or measurable in the available images. When rules point at features the model cannot reliably see, injected guidance creates noise rather than signal.
+
+In follow-up probing, this turned out to be a particularly informative stress test for KF rather than just a negative result. GPT-4o remained stubbornly wrong on some Brewer Sparrow images even after being given shorter, cleaner expert annotations. A plain prompt patch was not enough. But a more structured patching strategy helped: first crop the bird more tightly, then require the model to emit an explicit feature record, then make the final decision from those feature claims rather than from a single end-to-end classification pass.
+
+That observation suggests an important refinement to the KF story. In hard visual cases, the most useful patch is often **not** "more expert text in the prompt." The more useful patch is an explicit intermediate artifact that says what the model believes it can actually see:
+
+```json
+{
+  "bold_dark_malar": "no",
+  "pale_submoustachial": "uncertain",
+  "clean_gray_nape_collar": "no",
+  "pale_median_crown_stripe": "yes",
+  "thin_white_eyering": "yes",
+  "face_contrast": "low",
+  "overall_impression": "plain_drab",
+  "notes": "Plain gray-brown face, no bold dark malar, no clean gray collar, thin eyering visible."
+}
+```
+
+Once the problem is represented this way, an expert can inspect the failure at the level of observable evidence rather than only at the final label. If the model claims there is a clean gray nape collar when none is visible, that claim can be corrected directly. The final decision can then be made from the corrected feature set using explicit rules. In internal follow-up tests, this human-verifiable feature layer produced the correct Brewer Sparrow decision on stubborn failure cases while also preserving the correct Clay-colored Sparrow decision on a control image.
+
+This is important for KF because it shows a stronger form of runtime patching. KF does not have to rely only on "tell the model the right answer in better words." It can externalize the decision into:
+
+- a **feature-observation layer** that is human-readable and reviewable
+- a **decision layer** that maps those observations to the class label
+
+That design is closely related to the motivation behind concept bottleneck models, but adapted to a runtime, natural-language, non-fine-tuned setting: the expert can patch the system by correcting explicit feature claims, not by retraining the model weights.
+
+#### What this pair suggests about the next KF iteration
+
+The Brewer / Clay-colored case points toward a stronger next version of KF for image classification:
+
+- use KF to generate **structured observation forms**, not just final classification rules
+- require the model to state which diagnostic visual features are actually visible
+- let the human expert verify or revise those feature claims when the case is important
+- make the final class decision from the verified feature layer
+
+This is a more compelling form of post-training correction because the expert is no longer patching only the final verdict. The expert is patching the system's explicit representation of visual evidence. That makes the correction more inspectable, more reusable, and potentially more stable across different underlying VLMs.
 
 ---
 
-### 8.7 What this experiment demonstrates
+#### 7.3.7 What this experiment demonstrates
 
 **1. Correct, visually-grounded KF rules reliably improve accuracy.**
 
@@ -375,6 +688,8 @@ The Tree Sparrow failure was not noise — it was a consistent directional error
 
 The experiment used `auto_accept=True` — every extracted rule was stored without human review. This is equivalent to a domain expert handing over a document and walking away before checking whether the AI extracted the right patch. In the intended workflow, the expert reviews each extracted rule and rejects anything that is wrong, non-visual, or inapplicable. The Tree Sparrow error would have been caught in under a minute of review.
 
+The Brewer Sparrow case suggests that verification should happen at more than one layer. It is not enough to verify the extracted rule text once. In difficult image tasks, KF should also make the model's intermediate feature claims explicit and verifiable. That lets the expert inspect whether the model actually saw the claimed malar stripe, eyering, or nape collar, rather than only judging the final label after the fact.
+
 **4. The Excel moment thesis holds where it should.**
 
 The pairs that gained from KF patching (Cormorants, Cowbirds, Cuckoos) represent exactly the scenario KF is designed for: an expert knows a diagnostic criterion that a general-purpose model does not reliably apply, states it in plain language, and the model immediately uses it to classify better. No training data. No model retraining. No ML expertise required from the expert.
@@ -383,7 +698,7 @@ The pairs that failed represent either an error in the patch material (fixable) 
 
 ---
 
-### 8.8 Summary table
+#### 7.3.8 Summary table
 
 | Category | Pairs | KF-patched result | Explanation |
 |---|---|---|---|
@@ -394,13 +709,22 @@ The pairs that failed represent either an error in the patch material (fixable) 
 
 ---
 
-## 7. References
+## 8. References
 
 - CUB-200-2011 dataset: [Caltech Perona Lab](https://www.vision.caltech.edu/datasets/cub_200_2011/)
 - Papers with Code leaderboard: [Fine-Grained Classification on CUB-200](https://paperswithcode.com/sota/fine-grained-image-classification-on-cub-200)
 - HERBS (SOTA, 2023): [arXiv 2303.06442](https://arxiv.org/abs/2303.06442)
 - Reed et al. NL descriptions: [GitHub icml2016](https://github.com/reedscot/icml2016)
 - Concept Bottleneck Models (related work): [NeurIPS 2020](https://proceedings.mlr.press/v119/koh20a.html)
-- Beyond CBMs (NeurIPS 2024): [proceedings](https://proceedings.neurips.cc/paper_files/paper/2024/file/9a439efaa34fe37177eba00737624824-Paper-Conference.pdf)
+- Beyond CBMs (related work on explicit intermediate concepts): [NeurIPS 2024](https://proceedings.neurips.cc/paper_files/paper/2024/file/9a439efaa34fe37177eba00737624824-Paper-Conference.pdf)
 - CLIP zero-shot on CUB: [GWU study 2024](https://blogs.gwu.edu/pless/2024/06/10/comparative-study-of-clips-zero-shot-accuracy-on-cub-dataset/)
 - eBird species accounts: [allaboutbirds.org](https://www.allaboutbirds.org)
+- HAM10000 paper: [Scientific Data 2018](https://pmc.ncbi.nlm.nih.gov/articles/PMC6091241/)
+- ISIC 2018 challenge overview: [official challenge page](https://challenge.isic-archive.com/landing/2018/)
+- ISIC 2018 lesion attribute task: [Task 2 page](https://challenge.isic-archive.com/landing/2018/46/)
+- ISIC 2019 Challenge: [official challenge page](https://challenge.isic-archive.com/landing/2019/)
+- ISIC 2019 validation paper: [Lancet Digital Health 2022](https://pmc.ncbi.nlm.nih.gov/articles/PMC8484270/)
+- ISIC 2020 dataset: [official dataset page](https://challenge2020.isic-archive.com/)
+- SIIM-ISIC Melanoma Classification Kaggle challenge: [SIIM challenge summary](https://siim.org/research-journal/siim-machine-learning-challenges/melanoma-kaggle-challenge/)
+- SIIM-ISIC 2020 dataset curation repo: [ISIC-Research/2020-Challenge-Curation](https://github.com/ISIC-Research/2020-Challenge-Curation)
+- SIIM-ISIC 2020 dataset paper: [Scientific Data 2021](https://doi.org/10.1038/s41597-021-00815-z)
