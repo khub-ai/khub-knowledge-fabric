@@ -5,6 +5,9 @@ This is the canonical terminology page for the repository. When a term such as
 `knowledge artifact`, `knowledge patch`, or `Knowledge Fabric` appears elsewhere
 in the docs, this page is the intended reference point.
 
+If you want a quick first explanation rather than term definitions, start with
+[what-is-kf.md](what-is-kf.md).
+
 ## PIL (Persistable Interactive Learning)
 
 PIL is the core learning pattern behind this repository: an agent learns from
@@ -17,6 +20,10 @@ Knowledge Fabric, or KF, is the broader runtime knowledge layer built around
 PIL. In plain terms, it is the mechanism by which knowledge is elicited,
 generalized, stored, revised, retrieved, and reused across sessions, tasks, or
 agents.
+
+KF is typically used alongside one or more LLMs, VLMs, or multimodal models.
+It is not itself the base model; it is the explicit knowledge layer around
+those models.
 
 ## Knowledge Artifact
 

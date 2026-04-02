@@ -7,7 +7,7 @@
 > **Theme**: Knowledge Fabric (KF) as a personalization and adaptation layer for AI assistants  
 > **Last updated**: 2026.04.01  
 
-[Knowledge Fabric (KF)](../../docs/glossary.md#knowledge-fabric-kf) is well suited to personal and work assistants because the biggest gap in current assistants is not generic intelligence, but **stable adaptation**: remembering how a specific user works, what they prefer, what they care about, what patterns they follow, and how those patterns should influence future behavior. YAJ is a KF use case that makes that adaptation explicit, portable, reviewable, and user-owned.
+[Knowledge Fabric (KF)](../../docs/what-is-kf.md) is well suited to personal and work assistants because the biggest gap in current assistants is not generic intelligence, but **stable adaptation**: remembering how a specific user works, what they prefer, what they care about, what patterns they follow, and how those patterns should influence future behavior. YAJ is a KF use case that makes that adaptation explicit, portable, reviewable, and user-owned.
 
 ---
 

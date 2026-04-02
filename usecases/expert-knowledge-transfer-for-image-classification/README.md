@@ -4,10 +4,10 @@
 ---
 
 > **Status**: Research prototype — bird case study active; dermatology case study implemented and first-pass tested (2026-04-02)
-> **Theme**: [Knowledge Fabric (KF)](../../docs/glossary.md#knowledge-fabric-kf) as a local-first knowledge authoring tool for domain experts with no AI expertise
+> **Theme**: [Knowledge Fabric (KF)](../../docs/what-is-kf.md) as a local-first knowledge authoring tool for domain experts with no AI expertise
 > **Last updated**: 2026.04.02
 
-[Knowledge Fabric (KF)](../../docs/glossary.md#knowledge-fabric-kf) treats expert input as a reusable [knowledge patch](../../docs/glossary.md#knowledge-patch): a domain expert can incrementally correct a pre-trained vision-language model in plain language, without fine-tuning the model or running an ML workflow. This README uses two reference domains to make the idea concrete: fine-grained bird identification and skin-lesion classification in dermatology.
+[Knowledge Fabric (KF)](../../docs/what-is-kf.md) treats expert input as a reusable [knowledge patch](../../docs/glossary.md#knowledge-patch): a domain expert can incrementally correct a pre-trained vision-language model in plain language, without fine-tuning the model or running an ML workflow. This README uses two reference domains to make the idea concrete: fine-grained bird identification and skin-lesion classification in dermatology.
 
 ---
 

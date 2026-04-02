@@ -2,7 +2,19 @@
 
 **A knowledge store that learns from your conversations, persists across sessions and agents, and stays on your machine — inspectable and portable by design.**
 
-This is a client-side code framework, called **[PIL (Persistable Interactive Learning)](docs/glossary.md#pil-persistable-interactive-learning)**, that works with any local or cloud-based LLM to enable your agent to extract knowledge from user interaction, distil it into persistent [knowledge artifacts](docs/glossary.md#knowledge-artifact) or generalized knowledge, and make those artifacts available across sessions — or share them with others.
+**[Knowledge Fabric (KF)](docs/what-is-kf.md)** is the broader runtime knowledge layer in this repository. It wraps one or more LLMs, VLMs, or multimodal models and gives the overall system capabilities the base models do not natively provide on their own: runtime learning, persistent reusable knowledge, explicit revision, and portable human-readable artifacts.
+
+The core learning pattern inside KF is **[PIL (Persistable Interactive Learning)](docs/glossary.md#pil-persistable-interactive-learning)**. PIL is the mechanism by which the system learns from interaction, distils what it learns into persistent [knowledge artifacts](docs/glossary.md#knowledge-artifact), and makes those artifacts available across sessions, tasks, and agents.
+
+## What KF Is In 60 Seconds
+
+- **KF is not a standalone model.** It is a runtime knowledge layer that works with one or more underlying models.
+- **KF learns outside the model.** Useful knowledge is captured as persistent artifacts rather than buried in model weights.
+- **KF improves systems incrementally.** A correction, rule, procedure, or judgment can change behavior immediately without fine-tuning.
+- **KF keeps knowledge governable.** What the system has learned remains inspectable, editable, portable, and auditable.
+- **KF goes beyond memory retrieval.** It is about capturing, structuring, applying, revising, and sometimes compiling knowledge into more reliable tools.
+
+If you are new to the project, start with **[What Knowledge Fabric Is](docs/what-is-kf.md)**.
 
 ## Who this is for
 
@@ -34,6 +46,7 @@ Think of it as the Excel moment for expert knowledge. Analysts did not build fin
 
 | Document | What it covers |
 |---|---|
+| [docs/what-is-kf.md](docs/what-is-kf.md) | **Start here if you are new to the repo.** Quick explanation of what KF is, how it works with LLMs/VLMs, and how it differs from adjacent approaches |
 | [docs/ensemble-pipeline.md](docs/ensemble-pipeline.md) | **Start here for development.** 4-round ensemble pipeline, core class APIs (RuleEngine, ToolRegistry, StateManager, GoalManager, call_agent), domain specializations (ARC-AGI-2, ARC-AGI-3, UC200 image classification), extension guide |
 | [docs/architecture.md](docs/architecture.md) | Knowledge artifact schema, storage, tiered retrieval, and OpenClaw plugin integration |
 | [docs/design-decisions.md](docs/design-decisions.md) | How KF differs from other agent memory systems (Letta, platform memory, fine-tuning) |

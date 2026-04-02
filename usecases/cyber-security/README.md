@@ -7,7 +7,7 @@
 > **Theme**: Knowledge Fabric (KF) as a runtime knowledge layer for cybersecurity detection, triage, and investigation  
 > **Last updated**: 2026.04.01  
 
-[Knowledge Fabric (KF)](../../docs/glossary.md#knowledge-fabric-kf) is a strong fit for cybersecurity because the domain already has abundant public expert knowledge, high commercial urgency, and a large gap between what analysts know and what deployed AI systems apply reliably. This use case proposes a cybersecurity specialization in which KF captures expert detection and investigation knowledge in human-readable [knowledge artifacts](../../docs/glossary.md#knowledge-artifact), applies them immediately at runtime, and revises them incrementally as new threats and failure modes appear.
+[Knowledge Fabric (KF)](../../docs/what-is-kf.md) is a strong fit for cybersecurity because the domain already has abundant public expert knowledge, high commercial urgency, and a large gap between what analysts know and what deployed AI systems apply reliably. This use case proposes a cybersecurity specialization in which KF captures expert detection and investigation knowledge in human-readable [knowledge artifacts](../../docs/glossary.md#knowledge-artifact), applies them immediately at runtime, and revises them incrementally as new threats and failure modes appear.
 
 ---
 

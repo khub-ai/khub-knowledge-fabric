@@ -7,7 +7,7 @@
 > **Theme**: Knowledge Fabric (KF) as a high-level learning, planning, and adaptation layer for robotics  
 > **Last updated**: 2026.04.02  
 
-[Knowledge Fabric (KF)](../../docs/glossary.md#knowledge-fabric-kf) is a strong fit for robotics because many of the hardest remaining problems in robotics are not low-level motor control problems, but higher-level behavior problems: learning a new environment, remembering local conventions, planning over many steps, adapting after failure, and improving from human correction without retraining the whole system.
+[Knowledge Fabric (KF)](../../docs/what-is-kf.md) is a strong fit for robotics because many of the hardest remaining problems in robotics are not low-level motor control problems, but higher-level behavior problems: learning a new environment, remembering local conventions, planning over many steps, adapting after failure, and improving from human correction without retraining the whole system.
 
 This use case proposes KF as a runtime knowledge layer that sits **above** perception and control. A base robotics stack or multimodal model can still handle low-level actions; KF adds the missing layer for explicit task knowledge, state tracking, goal management, procedure reuse, and human-teachable correction.
 
