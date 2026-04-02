@@ -553,11 +553,14 @@ class RuleEngine:
         return False
 
     def auto_deprecate(self, min_fired: int = 10,
-                       stale_flag: int = 50, stale_deprecate: int = 100) -> list[str]:
+                       stale_flag: int = 50, stale_deprecate: int = 100,
+                       min_candidate_fired: int = 1) -> list[str]:
         """Flag or deprecate rules based on namespace performance and staleness.
 
         Performance pruning (per-namespace stats):
-          - Candidates: deprecated after 1 failure (unconfirmed generalization).
+          - Candidates: deprecated after min_candidate_fired failures with 0 successes.
+            Default is 1 (original behavior). Set higher (e.g. 5) for exploratory
+            domains where rules need multiple episodes to be confirmed or refuted.
           - Active: deprecated if fires >= min_fired and 0 successes.
           - Active: flagged  if fires >= 5 and success_rate < 20%.
 
@@ -576,7 +579,7 @@ class RuleEngine:
             is_candidate = r.get("status") == "candidate"
 
             if is_candidate:
-                if fires >= 1 and successes == 0:
+                if fires >= min_candidate_fired and successes == 0:
                     self.deprecate_rule(
                         r["id"],
                         reason=f"auto: candidate fired {fires}x, 0 successes",
