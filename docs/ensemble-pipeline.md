@@ -9,7 +9,7 @@ This document describes the Knowledge Fabric ensemble pipeline: its domain-agnos
 - [Roadmap](roadmap.md) — planned benchmarks and future use cases
 
 **Use case READMEs:**
-- [ARC-AGI use case](../usecases/arc-agi/python/../../../usecases/arc-agi/README.md) — if present
+- [ARC-AGI-2 use case](../usecases/arc-agi-2/python/../../../usecases/arc-agi-2/README.md) — if present
 - [Image classification UC200](../usecases/expert-knowledge-transfer-for-image-classification/README.md) — bird and dermatology sub-cases
 
 ---
@@ -39,7 +39,7 @@ See [design-decisions.md](design-decisions.md#how-this-differs-from-existing-age
 
 | Use Case | Status | Dataset tag | Entry point |
 |---|---|---|---|
-| ARC-AGI-2 (static puzzles) | Active — 43/48 correct (89.6%) | `arc-agi-legacy` | `usecases/arc-agi/python/harness.py` |
+| ARC-AGI-2 (static puzzles) | Active — 43/48 correct (89.6%) | `arc-agi-legacy` | `usecases/arc-agi-2/python/harness.py` |
 | ARC-AGI-3 (interactive environments) | Design phase | `arc-agi-3` | TBD — new harness needed |
 | Image classification UC200 (birds) | Design phase | `bird-uc200` | TBD — new harness needed |
 
@@ -283,12 +283,12 @@ Each use case has thin shim files `rules.py` and `tools.py` that:
 
 | File | Purpose |
 |---|---|
-| `usecases/arc-agi/python/harness.py` | CLI — task selection, batching, results output |
-| `usecases/arc-agi/python/ensemble.py` | `run_ensemble()` — main per-task orchestrator |
-| `usecases/arc-agi/python/executor.py` | `run_executor()`, `test_tool_code()` |
-| `usecases/arc-agi/python/agents.py` | `run_solvers_round1()`, `run_mediator()`, `run_tool_generator()`, `run_tool_generator_fix()` |
-| `usecases/arc-agi/python/v2_progress.json` | Single source of truth for all processed v2 tasks |
-| `usecases/arc-agi/python/failed.json` | Failure subset — 5 remaining tasks |
+| `usecases/arc-agi-2/python/harness.py` | CLI — task selection, batching, results output |
+| `usecases/arc-agi-2/python/ensemble.py` | `run_ensemble()` — main per-task orchestrator |
+| `usecases/arc-agi-2/python/executor.py` | `run_executor()`, `test_tool_code()` |
+| `usecases/arc-agi-2/python/agents.py` | `run_solvers_round1()`, `run_mediator()`, `run_tool_generator()`, `run_tool_generator_fix()` |
+| `usecases/arc-agi-2/python/v2_progress.json` | Single source of truth for all processed v2 tasks |
+| `usecases/arc-agi-2/python/failed.json` | Failure subset — 5 remaining tasks |
 
 **v2 task sequencing:**
 - v2 tasks = all tasks NOT in `v1_ids.json`
