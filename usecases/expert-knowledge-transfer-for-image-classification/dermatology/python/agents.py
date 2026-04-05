@@ -267,11 +267,17 @@ image) and a set of expert visual discrimination rules.
 
 Classification procedure:
 1. Review each feature in the observation record.
-2. Skip any feature with confidence < 0.5 — it is unreliable.
+2. Skip any feature with confidence < 0.35 — it is too unreliable to use.
+   Features with confidence 0.35–0.5 may be used with reduced weight.
 3. Apply the expert rules to the high-confidence features.
-4. Weigh the evidence and choose the more likely lesion type.
-5. If evidence is genuinely insufficient (all high-confidence features are neutral), \
-   return "uncertain" as the label.
+4. Weigh the evidence and commit to the more likely lesion type.
+
+IMPORTANT — you must choose one of the two class labels. This is a binary classification \
+task: the ground truth is always one of the two classes, never "uncertain". \
+Return "uncertain" ONLY if you observe strong positive evidence for BOTH classes \
+simultaneously (a genuine contradiction). Weak, absent, or ambiguous evidence is \
+normal in dermoscopy — when evidence is weak, lean toward the class with even \
+slightly more support. Do not abstain.
 
 Output ONLY a JSON object:
 {
@@ -360,17 +366,18 @@ async def run_mediator_classify(
 
 _MEDIATOR_REVISE_SYSTEM = """\
 You are an expert dermatologist revising a dermoscopic lesion classification after a \
-consistency check revealed a problem with the initial decision.
+consistency check revealed a hard contradiction with the initial decision.
 
 You will receive:
 - The original dermoscopic feature observation record
 - The initial classification decision
-- Feedback from the consistency checker explaining why the decision may be wrong
+- Feedback from the consistency checker naming the specific contradicting feature
 - Expert visual rules
 
-Reconsider the classification in light of the feedback. You may:
-- Change the label if the feedback reveals a better-supported interpretation
-- Return "uncertain" if the evidence is genuinely ambiguous
+Reconsider the classification in light of the feedback. You MUST commit to one of the \
+two class labels — do not return "uncertain" unless you see strong positive evidence \
+for BOTH classes at the same time. If the feedback reveals the other class is better \
+supported, switch to it. If the feedback is inconclusive, keep the original label.
 
 Output ONLY a JSON object with the same structure as before:
 {
@@ -436,22 +443,30 @@ You will be shown:
 2. A proposed label and dermoscopic feature observation record
 3. A set of labeled reference images (few-shot examples of each lesion type)
 
-Your task is to check whether the proposed label is visually consistent with the \
-reference images — NOT to reclassify from scratch.
+Your task is to catch HARD CONTRADICTIONS only — NOT to second-guess uncertain evidence.
 
-Specifically, check:
-- Does the test lesion share key dermoscopic features with the reference images of the proposed label?
-- Does it clearly LACK dermoscopic features that distinguish the other lesion type?
+Dermoscopy is inherently ambiguous. Overlapping features, subtle structures, and low-confidence \
+observations are NORMAL and are NOT grounds for marking a decision inconsistent. Only set \
+consistent=false if you see a clear factual contradiction, such as:
+- A pathognomonic feature of the OTHER class is unmistakably present (e.g., arborizing vessels \
+  in a lesion labeled Benign Keratosis, or milia-like cysts in a lesion labeled Basal Cell Carcinoma)
+- The test image is clearly not a dermoscopic skin lesion image at all
+
+Do NOT set consistent=false merely because:
+- The image is ambiguous or low-quality
+- Features are subtle or partially visible
+- You personally would have chosen differently
+- The decision confidence is low
 
 Output ONLY a JSON object:
 {
   "consistent": true | false,
   "confidence": 0.0,
-  "revision_signal": "Explain what specific dermoscopic feature makes the label seem wrong, if inconsistent.",
+  "revision_signal": "Name the specific pathognomonic feature of the OTHER class that is unmistakably present, if inconsistent.",
   "notes": "Any additional dermoscopic observations."
 }
 
-If you are unsure, set consistent=true and note the uncertainty.
+When in doubt, set consistent=true.
 """
 
 
@@ -598,3 +613,97 @@ async def run_rule_extractor(
     )
 
     return text, ms
+
+
+# ---------------------------------------------------------------------------
+# Baseline — zero-shot and few-shot (no rules, no schema)
+# ---------------------------------------------------------------------------
+
+_BASELINE_ZERO_SHOT_SYSTEM = """\
+You are an expert dermatologist. You will be shown a dermoscopic image.
+Classify it as one of the two specified lesion types based solely on the image.
+
+Output ONLY a JSON object:
+{
+  "label": "<class_a_name>" | "<class_b_name>",
+  "confidence": 0.0,
+  "reasoning": "Brief dermoscopic rationale."
+}
+"""
+
+_BASELINE_FEW_SHOT_SYSTEM = """\
+You are an expert dermatologist. You will be shown a dermoscopic test image \
+followed by labeled reference images of each lesion type.
+Classify the TEST IMAGE as one of the two specified lesion types.
+
+Output ONLY a JSON object:
+{
+  "label": "<class_a_name>" | "<class_b_name>",
+  "confidence": 0.0,
+  "reasoning": "Brief dermoscopic rationale."
+}
+"""
+
+
+async def run_baseline(
+    task: dict,
+    mode: str = "zero_shot",
+) -> tuple[dict, int]:
+    """Run a zero-shot or few-shot baseline (no rules, no schema).
+
+    Args:
+        task: task dict with class_a, class_b, test_image_path, few_shot_a/b
+        mode: "zero_shot" or "few_shot"
+
+    Returns:
+        (decision_dict, duration_ms)
+    """
+    class_a = task["class_a"]
+    class_b = task["class_b"]
+
+    if mode == "zero_shot":
+        content = [
+            _image_block(task["test_image_path"]),
+            {
+                "type": "text",
+                "text": (
+                    f"Classify this dermoscopic image as either '{class_a}' or '{class_b}'.\n"
+                    "Return the JSON object specified in the system prompt."
+                ),
+            },
+        ]
+        system = _BASELINE_ZERO_SHOT_SYSTEM
+    else:  # few_shot
+        content: list[dict] = [
+            {"type": "text", "text": f"TEST IMAGE — classify as '{class_a}' or '{class_b}':"},
+            _image_block(task["test_image_path"]),
+        ]
+        for p in task.get("few_shot_a", [])[:3]:
+            content.append({"type": "text", "text": f"\nREFERENCE — {class_a}:"})
+            content.append(_image_block(p))
+        for p in task.get("few_shot_b", [])[:3]:
+            content.append({"type": "text", "text": f"\nREFERENCE — {class_b}:"})
+            content.append(_image_block(p))
+        content.append({
+            "type": "text",
+            "text": "Classify the TEST IMAGE. Return the JSON object specified in the system prompt.",
+        })
+        system = _BASELINE_FEW_SHOT_SYSTEM
+
+    text, ms = await call_agent(
+        f"BASELINE_{mode.upper()}",
+        content,
+        system_prompt=system,
+        max_tokens=512,
+    )
+
+    result = _parse_json_block(text)
+    if result and "label" in result:
+        return result, ms
+
+    label = "uncertain"
+    for cls in (class_a, class_b):
+        if cls.lower() in text.lower():
+            label = cls
+            break
+    return {"label": label, "confidence": 0.0, "reasoning": text}, ms

@@ -130,6 +130,36 @@
       "source": "dermatology/knowledge_base/dermoscopy_criteria.md",
       "verified_by": "auto",
       "created_at": "2026-04-01T00:00:00+00:00"
+    },
+    {
+      "pair": "Melanoma vs Melanocytic Nevus",
+      "rule": "If no blue-white veil, no regression structures, no atypical network, no irregular dots at periphery, and no milky-red areas are visible, and the lesion has a symmetric shape with gradual color transition, the absence of all melanoma-specific structures argues for Melanocytic Nevus.",
+      "feature": "composite_absence_melanoma",
+      "favors": "Melanocytic Nevus",
+      "confidence": "medium",
+      "source": "dermatology/knowledge_base/dermoscopy_criteria.md",
+      "verified_by": "auto",
+      "created_at": "2026-04-02T00:00:00+00:00"
+    },
+    {
+      "pair": "Melanoma vs Melanocytic Nevus",
+      "rule": "If no typical/regular pigment network is visible, the color distribution is not uniform, and the lesion lacks the symmetric fading at the periphery typical of a melanocytic nevus, the absence of nevus-typical organization argues for Melanoma.",
+      "feature": "composite_absence_nevus",
+      "favors": "Melanoma",
+      "confidence": "medium",
+      "source": "dermatology/knowledge_base/dermoscopy_criteria.md",
+      "verified_by": "auto",
+      "created_at": "2026-04-02T00:00:00+00:00"
+    },
+    {
+      "pair": "Melanoma vs Melanocytic Nevus",
+      "rule": "If the overall dermoscopic pattern is organized and predictable — central darker area fading evenly to periphery, or peripheral network fading smoothly — even in the absence of a clearly typical pigment network, the overall organized pattern argues for a Melanocytic Nevus rather than Melanoma.",
+      "feature": "overall_organization",
+      "favors": "Melanocytic Nevus",
+      "confidence": "medium",
+      "source": "dermatology/knowledge_base/dermoscopy_criteria.md",
+      "verified_by": "auto",
+      "created_at": "2026-04-02T00:00:00+00:00"
     }
   ]
 }

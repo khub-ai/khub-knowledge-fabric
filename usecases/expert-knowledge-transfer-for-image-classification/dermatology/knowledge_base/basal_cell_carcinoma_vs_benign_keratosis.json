@@ -120,6 +120,46 @@
       "source": "dermatology/knowledge_base/dermoscopy_criteria.md",
       "verified_by": "auto",
       "created_at": "2026-04-01T00:00:00+00:00"
+    },
+    {
+      "pair": "Basal Cell Carcinoma vs Benign Keratosis",
+      "rule": "If none of the BCC-specific structures are visible — no arborizing vessels, no blue-gray ovoid nests, no leaf-like areas, no spoke-wheel structures, no pearly or translucent surface — and the lesion has a rough or irregular surface texture, the absence of all BCC markers argues for Benign Keratosis.",
+      "feature": "composite_absence_bcc",
+      "favors": "Benign Keratosis",
+      "confidence": "medium",
+      "source": "dermatology/knowledge_base/dermoscopy_criteria.md",
+      "verified_by": "auto",
+      "created_at": "2026-04-02T00:00:00+00:00"
+    },
+    {
+      "pair": "Basal Cell Carcinoma vs Benign Keratosis",
+      "rule": "If none of the keratosis-specific structures are visible — no milia-like cysts, no comedo-like openings, no cerebriform or brain-like pattern, no fissures and ridges — and the lesion surface appears smooth or shiny rather than warty, the absence of all BK markers argues for Basal Cell Carcinoma.",
+      "feature": "composite_absence_bkl",
+      "favors": "Basal Cell Carcinoma",
+      "confidence": "medium",
+      "source": "dermatology/knowledge_base/dermoscopy_criteria.md",
+      "verified_by": "auto",
+      "created_at": "2026-04-02T00:00:00+00:00"
+    },
+    {
+      "pair": "Basal Cell Carcinoma vs Benign Keratosis",
+      "rule": "If the lesion surface appears rough, warty, or keratinized with a brownish-tan color and no translucency or sheen, and no arborizing vessels are visible, it argues for Benign Keratosis over Basal Cell Carcinoma.",
+      "feature": "surface_texture_exclusion",
+      "favors": "Benign Keratosis",
+      "confidence": "medium",
+      "source": "dermatology/knowledge_base/dermoscopy_criteria.md",
+      "verified_by": "auto",
+      "created_at": "2026-04-02T00:00:00+00:00"
+    },
+    {
+      "pair": "Basal Cell Carcinoma vs Benign Keratosis",
+      "rule": "If the lesion shows central erosion or ulceration with a clean punched-out appearance and no surrounding SK-specific structures, the morphology argues for Basal Cell Carcinoma.",
+      "feature": "ulceration_exclusion",
+      "favors": "Basal Cell Carcinoma",
+      "confidence": "low",
+      "source": "dermatology/knowledge_base/dermoscopy_criteria.md",
+      "verified_by": "auto",
+      "created_at": "2026-04-02T00:00:00+00:00"
     }
   ]
 }

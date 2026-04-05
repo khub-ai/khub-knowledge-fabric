@@ -59,7 +59,7 @@ from agents import (
 
 DATASET_TAG   = "derm-ham10000"
 MAX_REVISIONS = 1           # verifier can trigger at most this many revisions
-TWO_STAGE_THRESHOLD = 30    # same as ARC-AGI ensemble
+TWO_STAGE_THRESHOLD = 999   # derm-ham10000 is small (<100 rules); always single-stage
 
 
 # ---------------------------------------------------------------------------
@@ -205,7 +205,7 @@ async def run_ensemble(
         f"{len(feature_record.get('features', {}))} features recorded")
 
     high_conf = {k: v for k, v in feature_record.get("features", {}).items()
-                 if v.get("confidence", 0) >= 0.5}
+                 if v.get("confidence", 0) >= 0.35}
     _hc_parts = [f"{k}={v['value']!r}" for k, v in list(high_conf.items())[:5]]
     log(f"  High-confidence features ({len(high_conf)}): {', '.join(_hc_parts)}")
 

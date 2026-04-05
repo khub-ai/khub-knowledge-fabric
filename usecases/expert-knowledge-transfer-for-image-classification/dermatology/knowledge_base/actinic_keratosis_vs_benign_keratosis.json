@@ -110,6 +110,56 @@
       "source": "dermatology/knowledge_base/dermoscopy_criteria.md",
       "verified_by": "auto",
       "created_at": "2026-04-01T00:00:00+00:00"
+    },
+    {
+      "pair": "Actinic Keratosis vs Benign Keratosis",
+      "rule": "If no strawberry pattern, no rosette structures, no follicular openings with white halos, and no dotted or coiled vessels on a pink background are visible, the absence of all AK-specific patterns argues for Benign Keratosis.",
+      "feature": "composite_absence_ak",
+      "favors": "Benign Keratosis",
+      "confidence": "medium",
+      "source": "dermatology/knowledge_base/dermoscopy_criteria.md",
+      "verified_by": "auto",
+      "created_at": "2026-04-02T00:00:00+00:00"
+    },
+    {
+      "pair": "Actinic Keratosis vs Benign Keratosis",
+      "rule": "If no milia-like cysts, no comedo-like openings, no cerebriform pattern, and no fissures or ridges are visible, and the lesion appears flat with a pink or erythematous background, the absence of all SK-specific structures argues for Actinic Keratosis.",
+      "feature": "composite_absence_bkl",
+      "favors": "Actinic Keratosis",
+      "confidence": "medium",
+      "source": "dermatology/knowledge_base/dermoscopy_criteria.md",
+      "verified_by": "auto",
+      "created_at": "2026-04-02T00:00:00+00:00"
+    },
+    {
+      "pair": "Actinic Keratosis vs Benign Keratosis",
+      "rule": "If the background color is brownish-yellow or tan rather than pink or erythematous, and the surface appears keratinized or warty, the coloring argues against Actinic Keratosis and in favor of Benign Keratosis.",
+      "feature": "background_color_exclusion",
+      "favors": "Benign Keratosis",
+      "confidence": "medium",
+      "source": "dermatology/knowledge_base/dermoscopy_criteria.md",
+      "verified_by": "auto",
+      "created_at": "2026-04-02T00:00:00+00:00"
+    },
+    {
+      "pair": "Actinic Keratosis vs Benign Keratosis",
+      "rule": "If the lesion background is clearly pink or erythematous with a scaly or rough surface and no SK-specific structures are visible, the pink inflammatory background argues for Actinic Keratosis.",
+      "feature": "erythematous_background",
+      "favors": "Actinic Keratosis",
+      "confidence": "medium",
+      "source": "dermatology/knowledge_base/dermoscopy_criteria.md",
+      "verified_by": "auto",
+      "created_at": "2026-04-02T00:00:00+00:00"
+    },
+    {
+      "pair": "Actinic Keratosis vs Benign Keratosis",
+      "rule": "If regression structures or blue-gray peppering are visible but no follicular openings with halos are present and the surface is flat without scale, consider lichenoid keratosis (a benign keratosis variant) rather than actinic keratosis — regression-like structures in the absence of actinic markers may indicate a regressing seborrheic keratosis.",
+      "feature": "lplk_exclusion",
+      "favors": "Benign Keratosis",
+      "confidence": "low",
+      "source": "dermatology/knowledge_base/dermoscopy_criteria.md",
+      "verified_by": "auto",
+      "created_at": "2026-04-02T00:00:00+00:00"
     }
   ]
 }

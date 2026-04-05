@@ -67,6 +67,7 @@ class DermImage:
     lesion_id: str       # e.g. "HAM_0002761"
     dx:        str       # e.g. "mel", "nv", "bkl", "bcc", "akiec"
     file_path: Path      # absolute path to JPEG
+    dx_type:   str       # e.g. "histo", "follow_up", "consensus", "confocal"
 
 
 @dataclass
@@ -82,6 +83,14 @@ class HAM10000Dataset:
     def images_for_class(self, dx: str, split: str = "test") -> List[DermImage]:
         """Return all images for a diagnosis code in the given split."""
         return self._split_index.get(dx, {}).get(split, [])
+
+    def images_for_class_sk_only(self, dx: str, split: str = "test") -> List[DermImage]:
+        """Like images_for_class but for bkl, only return histo-confirmed images
+        (proxy for seborrheic keratosis; excludes lichenoid keratosis variants)."""
+        imgs = self.images_for_class(dx, split=split)
+        if dx == "bkl":
+            return [img for img in imgs if img.dx_type == "histo"]
+        return imgs
 
     def sample_images(
         self,
@@ -142,13 +151,14 @@ def load(data_dir: Optional[str | Path] = None) -> HAM10000Dataset:
     # ------------------------------------------------------------------
     # 2. Build per-dx groups of (lesion_id, image_id) pairs
     # ------------------------------------------------------------------
-    # dx -> lesion_id -> list[image_id]
-    dx_lesion_images: Dict[str, Dict[str, List[str]]] = {}
+    # dx -> lesion_id -> list[(image_id, dx_type)]
+    dx_lesion_images: Dict[str, Dict[str, List[tuple]]] = {}
     for row in rows:
         dx = row["dx"].strip()
         lesion_id = row["lesion_id"].strip()
         image_id = row["image_id"].strip()
-        dx_lesion_images.setdefault(dx, {}).setdefault(lesion_id, []).append(image_id)
+        dx_type = row.get("dx_type", "").strip()
+        dx_lesion_images.setdefault(dx, {}).setdefault(lesion_id, []).append((image_id, dx_type))
 
     # ------------------------------------------------------------------
     # 3. Split lesion_ids: sort, 80% train / 20% test
@@ -167,11 +177,11 @@ def load(data_dir: Optional[str | Path] = None) -> HAM10000Dataset:
         train_imgs: List[DermImage] = []
         test_imgs:  List[DermImage] = []
 
-        for lesion_id, image_ids in lesion_map.items():
-            sorted_image_ids = sorted(image_ids)
+        for lesion_id, image_entries in lesion_map.items():
+            sorted_entries = sorted(image_entries, key=lambda e: e[0])
             if lesion_id in train_lesions:
                 # All images from train lesion
-                for iid in sorted_image_ids:
+                for iid, dxt in sorted_entries:
                     fp = _find_image_path(root, iid)
                     if fp is None:
                         fp = root / "HAM10000_images_part_1" / f"{iid}.jpg"
@@ -180,12 +190,13 @@ def load(data_dir: Optional[str | Path] = None) -> HAM10000Dataset:
                         lesion_id=lesion_id,
                         dx=dx,
                         file_path=fp,
+                        dx_type=dxt,
                     )
                     train_imgs.append(img)
                     all_images.append(img)
             elif lesion_id in test_lesions:
                 # One image per test lesion (first alphabetically)
-                iid = sorted_image_ids[0]
+                iid, dxt = sorted_entries[0]
                 fp = _find_image_path(root, iid)
                 if fp is None:
                     fp = root / "HAM10000_images_part_1" / f"{iid}.jpg"
@@ -194,6 +205,7 @@ def load(data_dir: Optional[str | Path] = None) -> HAM10000Dataset:
                     lesion_id=lesion_id,
                     dx=dx,
                     file_path=fp,
+                    dx_type=dxt,
                 )
                 test_imgs.append(img)
                 all_images.append(img)

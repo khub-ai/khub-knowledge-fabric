@@ -73,6 +73,7 @@ def build_tasks(
     pairs: list[dict],
     n_few_shot: int = 3,
     max_per_class: int | None = None,
+    sk_only: bool = False,
 ) -> list[dict]:
     """Build task dicts for all test images in the given confusable pairs."""
     tasks = []
@@ -84,8 +85,14 @@ def build_tasks(
         few_shot_a = [str(img.file_path) for img in ds.sample_images(dx_a, n=n_few_shot, split="train")]
         few_shot_b = [str(img.file_path) for img in ds.sample_images(dx_b, n=n_few_shot, split="train")]
 
-        test_a = ds.images_for_class(dx_a, split="test")
-        test_b = ds.images_for_class(dx_b, split="test")
+        if sk_only and dx_a == "bkl":
+            test_a = ds.images_for_class_sk_only(dx_a, split="test")
+        else:
+            test_a = ds.images_for_class(dx_a, split="test")
+        if sk_only and dx_b == "bkl":
+            test_b = ds.images_for_class_sk_only(dx_b, split="test")
+        else:
+            test_b = ds.images_for_class(dx_b, split="test")
 
         if max_per_class is not None:
             test_a = test_a[:max_per_class]
@@ -238,6 +245,9 @@ def parse_args() -> argparse.Namespace:
                    help="Max test images per class per pair (default: all)")
     p.add_argument("--n-few-shot",  dest="n_few_shot", type=int, default=3,
                    help="Few-shot images per class for verifier (default: 3)")
+    p.add_argument("--sk-only", dest="sk_only", action="store_true",
+               help="For bkl class: restrict to histology-confirmed images only "
+                    "(proxy for seborrheic keratosis, excludes lichenoid keratosis variants)")
     p.add_argument("--output",      default="results.json")
     p.add_argument("--failed-output", dest="failed_output", default="",
                    help="Write failed task_ids to this JSON file")
@@ -245,6 +255,8 @@ def parse_args() -> argparse.Namespace:
                    help="Skip task_ids already in --output")
     p.add_argument("--mode",        choices=["train", "test"], default="train",
                    help="train: learn and persist rules. test: read-only.")
+    p.add_argument("--baseline",     choices=["zero_shot", "few_shot"], default="",
+               help="Run a baseline instead of the full pipeline (zero_shot or few_shot)")
     p.add_argument("--max-revisions", dest="max_revisions", type=int, default=None,
                    help="Override MAX_REVISIONS (default: 1)")
     p.add_argument("--dataset",     default="derm-ham10000")
@@ -273,6 +285,7 @@ async def main() -> None:
     args = parse_args()
     verbose = not args.quiet
     test_mode = args.mode == "test"
+    baseline_mode = args.baseline  # "" | "zero_shot" | "few_shot"
     agents.SHOW_PROMPTS = args.prompts
 
     if args.max_revisions is not None:
@@ -339,6 +352,7 @@ async def main() -> None:
         selected_pairs,
         n_few_shot=args.n_few_shot,
         max_per_class=args.max_per_class,
+        sk_only=args.sk_only,
     )
 
     # --task-id: single image
@@ -384,7 +398,7 @@ async def main() -> None:
         console.print("[yellow]No tasks to run.[/yellow]")
         return
 
-    from agents import DEFAULT_MODEL
+    from agents import DEFAULT_MODEL, get_cost_tracker
     _pair_label = "all" if args.all else (args.pair or selected_pairs[0]["pair_id"])
     _mode_label = "[red]test[/red] (read-only)" if test_mode else "[green]train[/green] (learning)"
     console.print(Panel(
@@ -392,7 +406,8 @@ async def main() -> None:
         f"Model:     [cyan]{DEFAULT_MODEL}[/cyan]\n"
         f"Tasks:     {total_tasks}  (pair={_pair_label})\n"
         f"Mode:      {_mode_label}\n"
-        f"Few-shot:  {args.n_few_shot} images/class\n"
+        + (f"Baseline:  {baseline_mode}\n" if baseline_mode else "")
+        + f"Few-shot:  {args.n_few_shot} images/class\n"
         f"NS tag:    [cyan]{args.dataset_tag}[/cyan]\n"
         f"Rules:     {rules.path}  {rules.stats_summary()}\n"
         f"Output:    {args.output}",
@@ -405,19 +420,41 @@ async def main() -> None:
         tid = task_id_for(task)
         console.rule(f"[{i}/{total_tasks}] {tid}")
 
-        meta = await run_ensemble(
-            task=task,
-            task_id=tid,
-            rule_engine=rules,
-            tool_registry=tool_reg,
-            verbose=verbose,
-            dataset=args.dataset,
-            dataset_tag=args.dataset_tag,
-            max_revisions=_ensemble_mod.MAX_REVISIONS,
-            test_mode=test_mode,
-        )
+        if baseline_mode:
+            bl_decision, bl_ms = await agents.run_baseline(task, mode=baseline_mode)
+            bl_label = bl_decision.get("label", "uncertain")
+            bl_correct_label = task["test_label"]
+            bl_correct = bl_label == bl_correct_label
+            if bl_correct:
+                correct_count += 1
+            meta = {
+                "task_id":        tid,
+                "pair_id":        task["pair_id"],
+                "predicted_label": bl_label,
+                "correct_label":   bl_correct_label,
+                "correct":         bl_correct,
+                "confidence":      bl_decision.get("confidence", 0.0),
+                "reasoning":       bl_decision.get("reasoning", ""),
+                "duration_ms":     bl_ms,
+                "cost_usd":        get_cost_tracker().total_cost_usd - sum(r.get("cost_usd", 0) for r in all_results + run_results),
+                "api_calls":       1,
+                "model":           DEFAULT_MODEL,
+                "baseline_mode":   baseline_mode,
+            }
+        else:
+            meta = await run_ensemble(
+                task=task,
+                task_id=tid,
+                rule_engine=rules,
+                tool_registry=tool_reg,
+                verbose=verbose,
+                dataset=args.dataset,
+                dataset_tag=args.dataset_tag,
+                max_revisions=_ensemble_mod.MAX_REVISIONS,
+                test_mode=test_mode,
+            )
 
-        if meta.get("correct"):
+        if meta.get("correct") and not baseline_mode:
             correct_count += 1
 
         all_results.append(meta)
