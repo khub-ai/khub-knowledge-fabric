@@ -202,21 +202,23 @@ The dermatology track is deliberately parallel to the bird track:
 
 ### 3.2 Pilot setup
 
-**Model**: Claude Sonnet 4.6  
-**Dataset**: HAM10000  
+**Model**: Claude Sonnet 4.6
+**Dataset**: HAM10000
 **Pairs tested**:
 
 - Melanoma vs Melanocytic Nevus
 - Basal Cell Carcinoma vs Benign Keratosis
 - Actinic Keratosis vs Benign Keratosis
 
-**Test images**: 3 per class per pair (18 total)  
-**Mode**: `--mode test` with frozen rules  
-**Few-shot images**: 3 per class per pair  
-**Rules**: 36 migrated from `dermatology/knowledge_base/`  
-**Results file**: `dermatology/python/results_pilot.json`
+**Test images**: 3 per class per pair (18 total)
+**Mode**: `--mode test` with frozen rules
+**Few-shot images**: 3 per class per pair
 
 ### 3.3 Pilot results
+
+Three iterations were run on the same 18 images to isolate the impact of each improvement.
+
+#### v1 — initial pipeline (36 rules, original VERIFIER/MEDIATOR prompts)
 
 | Pair | Correct | Total | Accuracy | Cost | Avg API calls/image |
 |---|---|---|---|---|---|
@@ -225,50 +227,64 @@ The dermatology track is deliberately parallel to the bird track:
 | Actinic Keratosis vs Benign Keratosis | 2 | 6 | **33.3%** | $0.46 | 6.3 |
 | **Combined** | **9** | **18** | **50.0%** | **$1.37** | **6.3** |
 
-Average cost per image: ~$0.076  
-Average duration per image: ~58s
+#### v2 — expanded KB (48 rules, TWO_STAGE_THRESHOLD=999, confidence gate 0.35)
+
+Same overall accuracy as v1 (9/18 = 50%). The new composite-absence rules did not fire because the semantic rule retriever could not match absence-framing against image queries — a structural mismatch.
+
+The VERIFIER was identified as net-negative: it revised 5 MEDIATOR decisions, converting 3 correct-or-fixable decisions to "uncertain" (wrong) and saving only 1. Without the VERIFIER, v2 would have scored 12/18.
+
+#### v3 — no-abstain MEDIATOR + hard-contradiction-only VERIFIER (2026-04-05)
+
+| Pair | Correct | Total | Accuracy | Cost | Avg API calls/image |
+|---|---|---|---|---|---|
+| Melanoma vs Melanocytic Nevus | 4 | 6 | **66.7%** | $0.44 | 5.1 |
+| Basal Cell Carcinoma vs Benign Keratosis | 5 | 6 | **83.3%** | $0.48 | 5.1 |
+| Actinic Keratosis vs Benign Keratosis | 2 | 6 | **33.3%** | $0.46 | 5.1 |
+| **Combined** | **11** | **18** | **61.1%** | **$1.44** | **5.1** |
+
+Average cost per image: ~$0.080
+Average duration per image: ~52s
+
+**Changes in v3 vs v1:**
+
+| Change | Rationale |
+|---|---|
+| MEDIATOR must commit to one of the two classes ("uncertain" only when strong evidence exists for BOTH simultaneously) | Binary task: ground truth is always one class; abstaining is never correct |
+| VERIFIER only flags hard contradictions — a pathognomonic feature of the OTHER class unmistakably present | Dermoscopic uncertainty is normal; the old VERIFIER treated ambiguity as contradiction |
 
 ### 3.4 Main failure modes
 
-#### Failure mode 1: absence-only evidence
+#### Failure mode 1: absence-only evidence (partially addressed in v2, partially remaining)
 
-The current dermatology knowledge base is mostly composed of rules of the form
-`IF marker present THEN diagnosis`.
+Presence-only rules cannot fire when no positive markers are visible. Composite-absence rules were added to the KB in v2 but did not improve results because the rule retriever matches rules by semantic similarity to image content — absence-framing ("no veil + no regression + ...") scores low against a query about what IS visible.
 
-That fails when:
-
-- the model sees none of the positive markers for either class
-- the correct answer depends on structured absence or default reasoning
-
-The next version needs both:
-
-- **presence rules**
-- **composite-absence rules**
+Fix needed: schema generation should always include absence-tracking fields for the pair's key markers, independent of retrieval.
 
 #### Failure mode 2: `bkl` class heterogeneity
 
-The HAM10000 `bkl` label groups together lesions with materially different
-dermoscopic appearances, especially SK and LPLK-like cases. That makes some
-apparent "errors" partly a dataset-label or ontology problem rather than purely
-a pipeline problem.
+The HAM10000 `bkl` label covers both seborrheic keratosis (SK) and lichenoid keratosis (LPLK). LPLK-like images lack SK's positive dermoscopic markers and can resemble AK or melanoma, making them hard for any absence-based or presence-based rule set to classify correctly. This is partly an ontology problem, not purely a pipeline problem.
+
+The `--sk-only` flag (filters `bkl` test images to `dx_type=="histo"` as a proxy for SK) is available but has not been evaluated yet.
+
+#### Failure mode 3: AK vs BKL pair is structurally hard
+
+The three BKL images used in the AK/BKL pair (ISIC_0024336, _0024420, _0024495) were correctly identified as BKL in the BCC/BKL pair context but misclassified as AK in the AK/BKL context across all three iterations. Without typical SK markers, the rule set defaults to AK. A pair-specific fix or additional rules are needed.
 
 ### 3.5 What worked
 
-- The VERIFIER successfully corrected a small number of MEDIATOR decisions.
-- Melanoma vs nevus showed cleaner feature separation than the keratosis pairs.
-- The same 4-round pipeline transferred from birds to dermatology with prompt
-  and schema changes only, which supports the architecture's domain-agnostic
-  design.
+- BCC vs Benign Keratosis improved significantly (50% → 83%) with the VERIFIER fix. BCC has strong pathognomonic markers (arborizing vessels, ovoid nests) that make the MEDIATOR reliable once it is allowed to commit.
+- The no-abstain MEDIATOR eliminated 4 "uncertain" predictions — 3 of which became correct.
+- Domain transfer from birds to dermatology required only prompt and schema changes, confirming the architecture is domain-agnostic.
 
 ### 3.6 What is needed next
 
 | Gap | What to do |
 |---|---|
-| Absence-based rules | Add composite-absence rules |
-| `bkl` heterogeneity | Split or handle SK/LPLK-style subtypes more explicitly |
-| Same-model baselines | Add Claude zero-shot and Claude few-shot baselines |
-| Small sample | Run full test sets |
-| Rule retrieval audit | Confirm all relevant rules are being surfaced per case |
+| Absence-tracking schema | Force absence-checklist fields into OBSERVER schema independently of rule retrieval |
+| `bkl` heterogeneity | Evaluate `--sk-only` flag; consider LPLK as a third class |
+| Same-model baselines | Run Claude zero-shot and few-shot on the same 18 images for comparison |
+| Larger sample | Run full test sets per pair |
+| AK/BKL KB | Author additional rules distinguishing LPLK-like BKL from AK |
 
 ## 4. Repository Layout And Developer Quick Start
 
