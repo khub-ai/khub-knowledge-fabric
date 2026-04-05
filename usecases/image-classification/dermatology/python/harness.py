@@ -263,6 +263,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--dataset-tag", dest="dataset_tag", default=DATASET_TAG)
     p.add_argument("--rules",       default="",
                    help="Path to rules.json (default: auto)")
+    p.add_argument("--model",        default="claude-sonnet-4-6",
+                   help="LLM/VLM model to use. Claude: 'claude-sonnet-4-6'. "
+                        "OpenAI: 'gpt-4o'. (default: claude-sonnet-4-6)")
     p.add_argument("--quiet",       action="store_true")
     p.add_argument("--prompts",     action="store_true",
                    help="Print full prompts sent to each agent")
@@ -288,20 +291,32 @@ async def main() -> None:
     baseline_mode = args.baseline  # "" | "zero_shot" | "few_shot"
     agents.SHOW_PROMPTS = args.prompts
 
+    # Set active model for all agent calls
+    agents.ACTIVE_MODEL = args.model
+    agents.DEFAULT_MODEL = args.model  # for panel display
+
     if args.max_revisions is not None:
         _ensemble_mod.MAX_REVISIONS = args.max_revisions
 
-    # API key
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        key_file = Path("P:/_access/Security/api_keys.env")
-        if key_file.exists():
-            for line in key_file.read_text().splitlines():
-                if line.startswith("ANTHROPIC_API_KEY="):
-                    os.environ["ANTHROPIC_API_KEY"] = line.split("=", 1)[1].strip()
-                    break
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        console.print("[red]ANTHROPIC_API_KEY not set[/red]")
-        sys.exit(1)
+    # Load API keys from env file if not already set
+    key_file = Path("P:/_access/Security/api_keys.env")
+    if key_file.exists():
+        for line in key_file.read_text().splitlines():
+            if "=" in line:
+                k, v = line.split("=", 1)
+                k = k.strip(); v = v.strip()
+                if k in ("ANTHROPIC_API_KEY", "OPENAI_API_KEY") and not os.environ.get(k):
+                    os.environ[k] = v
+
+    is_openai = agents._is_openai_model(args.model)
+    if is_openai:
+        if not os.environ.get("OPENAI_API_KEY"):
+            console.print("[red]OPENAI_API_KEY not set[/red]")
+            sys.exit(1)
+    else:
+        if not os.environ.get("ANTHROPIC_API_KEY"):
+            console.print("[red]ANTHROPIC_API_KEY not set[/red]")
+            sys.exit(1)
 
     # Rule engine
     rules_path = args.rules or None
@@ -398,7 +413,7 @@ async def main() -> None:
         console.print("[yellow]No tasks to run.[/yellow]")
         return
 
-    from agents import DEFAULT_MODEL, get_cost_tracker
+    from agents import DEFAULT_MODEL, get_cost_tracker, _is_openai_model
     _pair_label = "all" if args.all else (args.pair or selected_pairs[0]["pair_id"])
     _mode_label = "[red]test[/red] (read-only)" if test_mode else "[green]train[/green] (learning)"
     console.print(Panel(

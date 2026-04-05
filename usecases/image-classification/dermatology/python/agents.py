@@ -18,15 +18,23 @@ Agents in this use case:
 
 Re-exported from core (used by ensemble.py and harness.py):
   call_agent, DEFAULT_MODEL, reset_cost_tracker, get_cost_tracker
+
+Multi-backend:
+  Set ACTIVE_MODEL to switch between Anthropic and OpenAI backends.
+  Anthropic: "claude-sonnet-4-6" (default)
+  OpenAI:    "gpt-4o"
 """
 
 from __future__ import annotations
+import asyncio
 import base64
 import json
+import os
 import re
 import sys
+import time
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 # ---------------------------------------------------------------------------
 # KF core imports
@@ -35,16 +43,174 @@ _KF_ROOT = Path(__file__).resolve().parents[4]
 if str(_KF_ROOT) not in sys.path:
     sys.path.insert(0, str(_KF_ROOT))
 
+import core.pipeline.agents as _core_agents
 from core.pipeline.agents import (  # noqa: F401
-    call_agent,
-    DEFAULT_MODEL,
-    reset_cost_tracker,
     get_cost_tracker,
-    SHOW_PROMPTS,
+    CostTracker,
 )
-import core.pipeline.agents as _agents_mod  # for SHOW_PROMPTS write access
+
+
+def reset_cost_tracker() -> None:
+    """Reset cost tracker and clear any OpenAI-specific cost accumulator."""
+    _core_agents.reset_cost_tracker()
+    tracker = _core_agents.get_cost_tracker()
+    tracker._openai_cost = 0.0
+    # Patch cost_usd() to return OpenAI cost when running against OpenAI
+    def _cost_usd_patched(self=tracker) -> float:
+        oc = getattr(self, "_openai_cost", 0.0)
+        if oc > 0.0:
+            return oc
+        return (
+            self.input_tokens          * _core_agents._PRICE_INPUT_PER_TOKEN +
+            self.cache_creation_tokens * _core_agents._PRICE_CACHE_CREATION_PER_TOKEN +
+            self.cache_read_tokens     * _core_agents._PRICE_CACHE_READ_PER_TOKEN +
+            self.output_tokens         * _core_agents._PRICE_OUTPUT_PER_TOKEN
+        )
+    import types
+    tracker.cost_usd = types.MethodType(lambda self: _cost_usd_patched(), tracker)
 
 SHOW_PROMPTS = False  # harness sets this to True via agents.SHOW_PROMPTS = True
+
+# Active model — harness sets this before running tasks.
+# Supported values: any claude-* model, or "gpt-4o" / "gpt-4-turbo"
+ACTIVE_MODEL: str = "claude-sonnet-4-6"
+DEFAULT_MODEL: str = "claude-sonnet-4-6"  # kept for harness display compatibility
+
+# ---------------------------------------------------------------------------
+# OpenAI pricing (gpt-4o, USD per token — verify at platform.openai.com)
+# ---------------------------------------------------------------------------
+_GPT4O_PRICE_INPUT_PER_TOKEN  = 2.50  / 1_000_000
+_GPT4O_PRICE_OUTPUT_PER_TOKEN = 10.00 / 1_000_000
+
+_openai_client = None
+
+
+def _get_openai_client():
+    global _openai_client
+    if _openai_client is None:
+        import openai as _openai
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            raise RuntimeError("OPENAI_API_KEY environment variable not set")
+        _openai_client = _openai.AsyncOpenAI(api_key=api_key)
+    return _openai_client
+
+
+def _anthropic_blocks_to_openai(blocks: list) -> list:
+    """Convert Anthropic content blocks to OpenAI message content format."""
+    result = []
+    for block in blocks:
+        if not isinstance(block, dict):
+            result.append({"type": "text", "text": str(block)})
+            continue
+        if block.get("type") == "text":
+            result.append({"type": "text", "text": block.get("text", "")})
+        elif block.get("type") == "image":
+            src = block.get("source", {})
+            media_type = src.get("media_type", "image/jpeg")
+            data = src.get("data", "")
+            result.append({
+                "type": "image_url",
+                "image_url": {"url": f"data:{media_type};base64,{data}"},
+            })
+    return result
+
+
+async def _call_agent_openai(
+    agent_id: str,
+    user_message: Union[str, list],
+    system_prompt: str = "",
+    model: str = "gpt-4o",
+    max_tokens: int = 4096,
+    max_retries: int = 5,
+) -> tuple[str, int]:
+    """OpenAI-backed call_agent with the same signature as the Anthropic version."""
+    import openai as _openai
+
+    client = _get_openai_client()
+
+    if isinstance(user_message, list):
+        content = _anthropic_blocks_to_openai(user_message)
+    else:
+        content = user_message  # plain string accepted by OpenAI
+
+    messages = []
+    if system_prompt:
+        messages.append({"role": "system", "content": system_prompt})
+    messages.append({"role": "user", "content": content})
+
+    if SHOW_PROMPTS:
+        print(f"\n=== {agent_id} ({model}) ===")
+        print(f"SYSTEM: {system_prompt[:400]}")
+        if isinstance(content, str):
+            print(f"USER: {content[:800]}")
+        else:
+            parts = [b.get("text", "[image]") if b.get("type") == "text" else "[image]" for b in content]
+            print(f"USER: {' '.join(parts)[:800]}")
+
+    t0 = time.time()
+    for attempt in range(max_retries):
+        try:
+            response = await client.chat.completions.create(
+                model=model,
+                max_tokens=max_tokens,
+                messages=messages,
+            )
+            duration_ms = int((time.time() - t0) * 1000)
+            text = response.choices[0].message.content or ""
+            if response.usage:
+                u = response.usage
+                tracker = get_cost_tracker()
+                # Map to Anthropic tracker — no cache tokens for OpenAI
+                tracker.input_tokens  += u.prompt_tokens
+                tracker.output_tokens += u.completion_tokens
+                tracker.api_calls     += 1
+                # Override cost_usd calculation for openai pricing
+                tracker._openai_cost = getattr(tracker, "_openai_cost", 0.0)
+                tracker._openai_cost += (
+                    u.prompt_tokens     * _GPT4O_PRICE_INPUT_PER_TOKEN +
+                    u.completion_tokens * _GPT4O_PRICE_OUTPUT_PER_TOKEN
+                )
+            return text, duration_ms
+        except _openai.RateLimitError:
+            if attempt < max_retries - 1:
+                wait = 60 * (attempt + 1)
+                print(f"  [rate-limit] {agent_id} retry {attempt+1}/{max_retries-1} in {wait}s...")
+                await asyncio.sleep(wait)
+            else:
+                raise
+        except _openai.APIStatusError as e:
+            if e.status_code in (429, 503) and attempt < max_retries - 1:
+                wait = 2 ** attempt
+                print(f"  [overloaded] {agent_id} retry {attempt+1}/{max_retries-1} in {wait}s...")
+                await asyncio.sleep(wait)
+            else:
+                raise
+
+
+def _is_openai_model(model: str) -> bool:
+    return model.startswith("gpt-") or model.startswith("o1") or model.startswith("o3")
+
+
+async def call_agent(
+    agent_id: str,
+    user_message: Union[str, list],
+    system_prompt: str = "",
+    model: str = "",
+    max_tokens: int = 4096,
+    max_retries: int = 5,
+) -> tuple[str, int]:
+    """Route call to Anthropic or OpenAI backend based on ACTIVE_MODEL."""
+    active = model or ACTIVE_MODEL
+    if _is_openai_model(active):
+        return await _call_agent_openai(
+            agent_id, user_message, system_prompt,
+            model=active, max_tokens=max_tokens, max_retries=max_retries,
+        )
+    return await _core_agents.call_agent(
+        agent_id, user_message, system_prompt,
+        model=active, max_tokens=max_tokens, max_retries=max_retries,
+    )
 
 
 # ---------------------------------------------------------------------------
