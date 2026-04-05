@@ -1,7 +1,7 @@
 # Design Spec: Expert Knowledge Transfer For Image Classification
 
 This document is the developer-facing companion to
-[README.md](C:\_backup\github\khub-knowledge-fabric\usecases\expert-knowledge-transfer-for-image-classification\README.md).
+[README.md](C:\_backup\github\khub-knowledge-fabric\usecases\image-classification\README.md).
 
 The README is intentionally user-facing. This document holds the more technical
 material:
@@ -330,7 +330,7 @@ dermatology/
 ### 4.3 Bird quick-start
 
 ```bash
-cd usecases/expert-knowledge-transfer-for-image-classification/python
+cd usecases/image-classification/python
 
 python migrate_rules.py
 python migrate_rules.py --dry-run
@@ -343,7 +343,7 @@ python harness.py --prune
 ### 4.4 Dermatology quick-start
 
 ```bash
-cd usecases/expert-knowledge-transfer-for-image-classification/dermatology/python
+cd usecases/image-classification/dermatology/python
 
 python migrate_rules.py
 python harness.py --pair melanoma_vs_melanocytic_nevus --mode test

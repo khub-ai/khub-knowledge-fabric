@@ -10,7 +10,7 @@ This document describes the Knowledge Fabric ensemble pipeline: its domain-agnos
 
 **Use case READMEs:**
 - [ARC-AGI-2 use case](../usecases/arc-agi-2/python/../../../usecases/arc-agi-2/README.md) — if present
-- [Image classification UC200](../usecases/expert-knowledge-transfer-for-image-classification/README.md) — bird and dermatology sub-cases
+- [Image classification UC200](../usecases/image-classification/README.md) — bird and dermatology sub-cases
 
 ---
 
@@ -69,7 +69,7 @@ khub-knowledge-fabric/
         tools.py        ← Thin shim: re-exports core ToolRegistry, sets DEFAULT_PATH
         rules.json      ← Persisted rule knowledge base (gitignored)
         tools.json      ← Persisted verified tool code (gitignored)
-    expert-knowledge-transfer-for-image-classification/
+    image-classification/
                         ← UC200 specialization (under active development)
       README.md         ← Full experiment design, results, and UC200 architecture
       python/           ← To be built — see Section 7
@@ -359,7 +359,7 @@ Each use case has thin shim files `rules.py` and `tools.py` that:
 
 ## 7. Specialization 3 — Image classification UC200 (birds)
 
-For the full experiment background, dataset details, baseline results, and failure analysis, see the [UC200 README](../usecases/expert-knowledge-transfer-for-image-classification/README.md).
+For the full experiment background, dataset details, baseline results, and failure analysis, see the [UC200 README](../usecases/image-classification/README.md).
 
 **Task definition:** Classify a test image into one of two confusable species, using expert-authored rules and optionally a few labeled examples. The challenge is fine-grained visual discrimination where zero-shot VLMs fail on targeted pairs.
 
@@ -443,9 +443,9 @@ user_message = [
 
 **Existing assets to reuse:**
 - 118 expert rules already extracted for all 15 pairs (as of 2026-03-29) — need migration into RuleEngine with `dataset_tag = "bird-uc200"` and observability filtering
-- Baseline results: `usecases/expert-knowledge-transfer-for-image-classification/results/results_20260329T104850.json`
+- Baseline results: `usecases/image-classification/results/results_20260329T104850.json`
 - CUB-200-2011 dataset: confirm local path with user (default harness data dir is `C:/_backup/arctest2025/data/training` but CUB images are elsewhere)
-- 15 confusable pairs and per-pair results: [README Section 7.3](../usecases/expert-knowledge-transfer-for-image-classification/README.md#73-bird-experiment-results)
+- 15 confusable pairs and per-pair results: [README Section 7.3](../usecases/image-classification/README.md#73-bird-experiment-results)
 
 ---
 
@@ -496,6 +496,6 @@ python harness.py
 
 - `tools.json` and `rules.json` are gitignored in each use case directory — they are local workspace files that accumulate across runs. Document significant tool fixes or rule schema changes in commit messages.
 - Always run harness commands in the foreground so token consumption can be monitored and interrupted with Ctrl+C.
-- `usecases/expert-knowledge-transfer-for-image-classification/` is under active development by a separate developer as of 2026-04-01 — coordinate before editing files in that directory.
+- `usecases/image-classification/` is under active development by a separate developer as of 2026-04-01 — coordinate before editing files in that directory.
 - ARC-AGI-3 requires the `arc` conda environment — the default Python venv does not have the `arc_agi` SDK.
 - For ARC-AGI-2 v2 task sequencing: last processed is v2 index 47 (`1990f7a8`); 5 failures remain; next batch starts at index 48. Use `--task-list` not `--all --offset`.

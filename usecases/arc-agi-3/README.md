@@ -118,7 +118,7 @@ observation-driven action and knowledge accumulation, such as:
 - robotics (`usecases/robotics/DESIGN.md`),
 - cybersecurity and attack defense (`usecases/cyber-security/README.md`),
 - expert knowledge transfer and clinical workflows
-  (`usecases/expert-knowledge-transfer-for-image-classification/README.md`).
+  (`usecases/image-classification/README.md`).
 
 The same KF primitives used for ARC-AGI-3 also underlie these other use
 cases:
@@ -151,4 +151,4 @@ cases:
 - [ARC-AGI-3 Test Material](../../tests/arc-agi-3/README.md)
 - [KF Session Viewer](../../tools/kf-session-viewer/README.md)
 - [Robotics Use Case](../robotics/README.md)
-- [Image Classification UC200](../expert-knowledge-transfer-for-image-classification/README.md)
+- [Image Classification UC200](../image-classification/README.md)
