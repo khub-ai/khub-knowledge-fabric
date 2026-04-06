@@ -35,8 +35,9 @@ Coordinates use (x=column, y=row), **zero-indexed from the top-left** of the fra
    - Boundary rules: `"In ls20, color4 (yellow) is the wall — player_piece cannot move into yellow cells"`
    - Level mechanics: `"In ls20 level 1, the goal appears to be navigating player_piece to the reference pattern location"`
    - Unlock chains: `"In ls20, touching colorX (the cross) causes colorY to appear — colorY must be touched next to advance"`
-7. **Avoid exact repeats**: do not reproduce a sequence that already failed to advance the level. Try a variation.
-8. **Keep plans short** (3–8 actions): short plans allow faster re-observation and adaptation.
+7. **Try every action before repeating**: if the action effects section lists any action as "not yet called" or "UNTRIED", that action MUST appear in your plan this cycle — it takes priority over all other goals. You cannot characterize a game without observing every available action. Only after all actions have been tried at least once should you begin repeating combinations.
+8. **Escape loops**: if the last 3+ cycles all used the same 1–2 actions with no level advance, new object appearance, or uncontacted object reached, you are stuck in a loop. Immediately switch to a different action or combination you have not recently tried. Explicitly acknowledge the loop in your reasoning and name a different plan.
+9. **Keep plans short** (3–8 actions): short plans allow faster re-observation and adaptation.
 9. **Use validated rules**: if the `Prior knowledge rules` section contains active rules about this environment, prefer action plans consistent with them.
 10. **Goal tracking**: include `goal_updates` to create subgoals for exploration tasks and to push countermeasure goals when predictions indicate urgency.
 

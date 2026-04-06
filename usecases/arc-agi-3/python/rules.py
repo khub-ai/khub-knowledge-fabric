@@ -11,7 +11,7 @@ if str(_KF_ROOT) not in sys.path:
 
 import core.knowledge.rules as _rules_mod  # noqa: E402
 
-_rules_mod.DEFAULT_PATH = Path(__file__).parent / "rules.json"
+_rules_mod.DEFAULT_PATH = Path(__file__).parent.parent / ".tmp" / "rules.json"
 
 from core.knowledge.rules import (  # noqa: F401, E402
     RuleEngine,
@@ -20,3 +20,4 @@ from core.knowledge.rules import (  # noqa: F401, E402
 )
 
 DEFAULT_PATH = _rules_mod.DEFAULT_PATH
+

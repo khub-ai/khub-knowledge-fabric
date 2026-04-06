@@ -11,7 +11,7 @@ if str(_KF_ROOT) not in sys.path:
 
 import core.knowledge.tools as _tools_mod  # noqa: E402
 
-_tools_mod.DEFAULT_PATH = Path(__file__).parent / "tools.json"
+_tools_mod.DEFAULT_PATH = Path(__file__).parent.parent / ".tmp" / "tools.json"
 
 from core.knowledge.tools import (  # noqa: F401, E402
     ToolRegistry,

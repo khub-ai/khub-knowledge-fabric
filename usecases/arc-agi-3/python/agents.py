@@ -306,6 +306,20 @@ async def run_observer(
     actions_str = format_action_space(available_actions)
     history_str = format_action_history(action_history)
     effects_str = _format_action_effects(action_effects or {})
+
+    # Flag any available simple actions that have never been tried
+    tried_actions = set((action_effects or {}).keys())
+    untried = [
+        a.name for a in available_actions
+        if not getattr(a, "is_complex", lambda: False)()
+        and a.name not in tried_actions
+    ]
+    if untried:
+        effects_str += (
+            "\n\n  **UNTRIED ACTIONS (zero observations — must characterize before repeating known actions):**\n"
+            + "\n".join(f"  - {a}: unknown — not yet called" for a in untried)
+        )
+
     objects_str = summarize_current_objects(frame, concept_bindings)
     structural_str = format_structural_context(
         frame,

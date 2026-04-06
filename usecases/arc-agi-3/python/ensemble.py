@@ -60,6 +60,40 @@ from core.knowledge.co_occurrence import CoOccurrenceRegistry, events_from_step
 
 
 # ---------------------------------------------------------------------------
+# Frame export helper
+# ---------------------------------------------------------------------------
+
+def save_level_frame(
+    frame: list,
+    env_id: str,
+    level: int,
+    out_dir: Path,
+    scale: int = 8,
+) -> None:
+    """Save a 64×64 game frame as a PNG in out_dir.
+
+    Filename: {env_id}_level{level+1}.png  (level is 0-indexed internally,
+    so level 0 = displayed "level 1").
+    Silently skipped if Pillow is not installed.
+    """
+    try:
+        from render_replay import frame_to_image, add_label
+        from PIL import Image  # noqa: F401 — confirm PIL available
+    except ImportError:
+        return
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    img = frame_to_image(frame, scale=scale)
+    label = (
+        f"{env_id} — level {level + 1}  "
+        f"({len(frame[0])}x{len(frame)} grid)"
+    )
+    img = add_label(img, label)
+    fname = out_dir / f"{env_id}_level{level + 1}.png"
+    img.save(fname)
+
+
+# ---------------------------------------------------------------------------
 # Tunable limits (overridable by harness)
 # ---------------------------------------------------------------------------
 
@@ -406,7 +440,7 @@ class EpisodeLogger:
                 self._write(f"    {line.strip()}")
 
     def concept_update(self, color: int, role: str, note: str) -> None:
-        self._write(f"  [CONCEPTS] color{color} → {role}  {note}")
+        self._write(f"  [CONCEPTS] color{color} -> {role}  {note}")
 
     def level_advance(self, from_level: int, to_level: int) -> None:
         self._write(f"  [LEVEL ADVANCE] {from_level} -> {to_level}")
@@ -885,6 +919,12 @@ async def run_episode(
         ts=datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
     )
 
+    # Export initial frame image for this level
+    _initial_level = obs_levels_completed(obs)
+    if playlog_root is not None:
+        save_level_frame(obs_frame(obs), env_id, _initial_level, playlog_root)
+        log(f"  [FRAME] Saved frame image for level {_initial_level + 1}")
+
     while step_count < max_steps and cycle_count < max_cycles:
         state_name = obs_state_name(obs)
         levels_now  = obs_levels_completed(obs)
@@ -1260,12 +1300,12 @@ async def run_episode(
                             parts = [p for p in [appeared_desc, disappeared_desc, changed_desc] if p]
                             ep_log._write(
                                 f"  [CONTACT] color{touched_color} touched at step {step_num}"
-                                f" → world changed: {'; '.join(parts)}"
+                                f" -> world changed: {'; '.join(parts)}"
                             )
                         else:
                             ep_log._write(
                                 f"  [CONTACT] color{touched_color} touched at step {step_num}"
-                                f" → no world change detected"
+                                f" -> no world change detected"
                             )
                     explored_colors.update(newly_touched)
 
@@ -1289,7 +1329,7 @@ async def run_episode(
                             cb_merged[color] = {**existing, **suggestion}
                             ep_log.concept_update(
                                 color, suggestion["role"],
-                                f"[GUESS] auto-detected (conf {prev_conf:.2f}→{suggestion['confidence']:.2f},"
+                                f"[GUESS] auto-detected (conf {prev_conf:.2f}->{suggestion['confidence']:.2f},"
                                 f" n={suggestion['observations']})",
                             )
                     else:
@@ -1423,6 +1463,9 @@ async def run_episode(
             if levels_after > levels_before:
                 log(f"  [ACTOR] Level advanced: {levels_before} -> {levels_after}")
                 ep_log.level_advance(levels_before, levels_after)
+                if playlog_root is not None:
+                    save_level_frame(obs_frame(obs), env_id, levels_after, playlog_root)
+                    log(f"  [FRAME] Saved frame image for level {levels_after + 1}")
                 # Reset per-level observation counts in concept bindings so
                 # short-term (level) and long-term (lifetime) stats stay distinct
                 bindings_now = state_manager._data.get("concept_bindings") or {}
@@ -1530,13 +1573,13 @@ async def run_episode(
     ):
         if isinstance(v, dict):
             conf_lines.append(
-                f"    color{k} → {v.get('role','?')} "
+                f"    color{k} -> {v.get('role','?')} "
                 f"(confidence={v.get('confidence',0):.0%}  "
                 f"this-level={v.get('level_obs', v.get('observations',0))}obs  "
                 f"lifetime={v.get('total_obs', v.get('observations',0))}obs)"
             )
         else:
-            conf_lines.append(f"    color{k} → {v} (confidence=unknown)")
+            conf_lines.append(f"    color{k} -> {v} (confidence=unknown)")
     if conf_lines:
         log("  [CONCEPTS] bindings at episode end:")
         for line in conf_lines:

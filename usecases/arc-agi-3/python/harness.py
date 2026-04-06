@@ -54,7 +54,8 @@ from agents import DEFAULT_MODEL
 
 console = Console()
 
-DEFAULT_OUTPUT = "results.json"
+_TMP = Path(__file__).parent.parent / ".tmp"
+DEFAULT_OUTPUT = str(_TMP / "results.json")
 
 
 # ---------------------------------------------------------------------------
@@ -122,8 +123,8 @@ def parse_args() -> argparse.Namespace:
                    help="Path to rules.json (default: auto-resolve to python/rules.json)")
     p.add_argument("--dataset-tag", dest="dataset_tag", default="arc-agi-3",
                    help="Namespace tag for rule/tool filtering (default: arc-agi-3)")
-    p.add_argument("--playlog", dest="playlog", default="playlogs",
-                   help="Directory for per-step playlog JSON files (default: playlogs). "
+    p.add_argument("--playlog", dest="playlog", default=str(_TMP / "playlogs"),
+                   help="Directory for per-step playlog JSON files (default: .tmp/playlogs). "
                         "Pass empty string to disable.")
     p.add_argument("--start-level", dest="start_level", type=int, default=1,
                    help="Level to start playing from (default: 1). "
@@ -144,22 +145,22 @@ async def main() -> None:
         import core.pipeline.agents as _ca
         _ca.SHOW_PROMPTS = True
 
-    # Load API key
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
-        key_file = Path("P:/_access/Security/api_keys.env")
-        if key_file.exists():
-            for line in key_file.read_text().splitlines():
-                if line.startswith("ANTHROPIC_API_KEY="):
-                    os.environ["ANTHROPIC_API_KEY"] = line.split("=", 1)[1].strip()
-                    break
-        if not os.environ.get("ANTHROPIC_API_KEY"):
-            console.print("[red]ANTHROPIC_API_KEY not set[/red]")
-            sys.exit(1)
+    # Load API keys
+    _key_file = Path("P:/_access/Security/api_keys.env")
+    if _key_file.exists():
+        for _line in _key_file.read_text().splitlines():
+            for _prefix in ("ANTHROPIC_API_KEY=", "arc_api_key=", "TOGETHER_API_KEY="):
+                if _line.startswith(_prefix):
+                    _var = _prefix.rstrip("=").upper()
+                    if not os.environ.get(_var):
+                        os.environ[_var] = _line.split("=", 1)[1].strip()
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        console.print("[red]ANTHROPIC_API_KEY not set[/red]")
+        sys.exit(1)
 
     # Build environment
     render_mode = None if args.render == "none" else args.render
-    arc = arc_agi.Arcade()
+    arc = arc_agi.Arcade(arc_api_key=os.environ.get("ARC_API_KEY", ""))
     env = arc.make(args.env, render_mode=render_mode)
     if env is None:
         console.print(f"[red]Failed to create environment: {args.env}[/red]")

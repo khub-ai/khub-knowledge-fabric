@@ -86,6 +86,33 @@ Post-episode:
 
 ---
 
+## Core principle: observation-only learning
+
+**The agent must learn entirely from what it can observe through the standard API.**
+
+Legitimate inputs:
+- `obs.frame` — the 64×64 pixel grid
+- `obs.levels_completed` — level advance signal
+- `obs.state` — NOT_FINISHED / GAME_OVER / WIN
+- The action space (names, simple vs complex)
+
+Prohibited shortcuts:
+- Reading game source files (`.py`)
+- Introspecting `env._game`, `env._game.current_level`, sprite tags, or internal positions
+- Any knowledge of win conditions, object roles, or mechanics not derived from observation
+
+**Why this matters:** ARC-AGI-3 has 25 games. Source-inspection BFS solvers are
+single-game hacks — they cannot generalize and they actively prevent building the
+observation-based learning mechanisms that are the actual challenge. The ensemble
+(OBSERVER → rules → MEDIATOR → action) is the right architecture; improving it is the
+right unit of progress.
+
+**Implication for LS20:** The `_KNOWN_SUBPLANS` and BFS scripts were useful for
+infrastructure testing, but represent a shortcut that would not exist in competition.
+Future games must be approached purely through the ensemble.
+
+---
+
 ## Design decisions
 
 ### D1 — Rule lifecycle differs from ARC-AGI-2
