@@ -254,9 +254,10 @@ async def run_patch_loop(
             console.print(f"    Pre-condition: {pc}")
 
         # --- Step 1b: Rule completion — fill in implicit background conditions ---
-        # Experts write diagnostic rules (what was distinctive) and omit background
-        # conditions (what's obviously expected for the class). Complete the rule
-        # before semantic validation so the semantic check sees the full picture.
+        # Save the pre-completion rule as a fallback: if the completer over-tightens
+        # (fires_on_trigger=False on the completed rule), it becomes Level 0 in the
+        # spectrum — the loosest possible baseline.
+        pre_completion_rule = {**candidate_rule, "label": "pre_completion"}
         console.print(f"  Completing rule (filling implicit background conditions)...")
         candidate_rule, _ = await agents.run_rule_completer(
             candidate_rule=candidate_rule,
@@ -396,7 +397,103 @@ async def run_patch_loop(
         if accepted:
             best_level = {"level": 3, "label": "original", **candidate_rule}
         elif not fires_on_trigger:
-            console.print("  [red]REJECTED[/red] — rule did not fire on trigger image")
+            # Check whether the completer caused the rejection: if the pre-completion
+            # rule fires on the trigger, the completer over-tightened.  In that case,
+            # run the spectrum with the pre-completion rule as Level 0 (loosest).
+            console.print(
+                "  [yellow]fires_on_trigger=False[/yellow] — "
+                "checking whether rule completion over-tightened..."
+            )
+            pre_val = await agents.validate_candidate_rule(
+                candidate_rule=pre_completion_rule,
+                validation_images=held_out_images,
+                trigger_image_path=task["test_image_path"],
+                trigger_correct_label=correct,
+                model=expert_model,
+            )
+            if pre_val["fires_on_trigger"]:
+                console.print(
+                    "  Pre-completion rule fires on trigger "
+                    f"(TP={pre_val['tp']} FP={pre_val['fp']} "
+                    f"precision={pre_val['precision']:.2f}) — "
+                    "completion over-tightened. Running spectrum from pre-completion base..."
+                )
+                # Re-run spectrum search with pre-completion rule as the anchor.
+                # tp_cases/fp_cases from authoring pool (already computed above).
+                tp_cases = auth_tp_cases
+                fp_cases = auth_fp_cases
+                contrastive, _ = await agents.run_contrastive_feature_analysis(
+                    tp_cases=tp_cases,
+                    fp_cases=fp_cases,
+                    candidate_rule=pre_completion_rule,
+                    pair_info=pair_info,
+                    model=expert_model,
+                )
+                disc_feature = contrastive.get("discriminating_feature")
+                console.print(
+                    f"  Discriminating feature: "
+                    f"[italic]{contrastive['description'][:100]}[/italic] "
+                    f"(confidence={contrastive.get('confidence','?')})"
+                )
+                spectrum_levels, _ = await agents.run_rule_spectrum_generator(
+                    candidate_rule=pre_completion_rule,
+                    tp_cases=tp_cases,
+                    fp_cases=fp_cases,
+                    contrastive_result=contrastive,
+                    pair_info=pair_info,
+                    model=expert_model,
+                )
+                # Prepend the bare pre-completion rule as Level 0
+                level_0 = {**pre_completion_rule, "level": 0, "label": "pre_completion"}
+                spectrum_levels = [level_0] + spectrum_levels
+
+                validations = await agents.validate_candidate_rules_batch(
+                    rules=spectrum_levels,
+                    validation_images=held_out_images,
+                    trigger_image_path=task["test_image_path"],
+                    trigger_correct_label=correct,
+                    model=expert_model,
+                )
+                for lv, vr in zip(spectrum_levels, validations):
+                    lv_accepted = vr["accepted"] and vr["precision"] >= min_precision
+                    n_pc = len(lv.get("preconditions", []))
+                    console.print(
+                        f"    Level {lv['level']} ({lv.get('label','?')}, {n_pc} pre-cond): "
+                        f"TP={vr['tp']} FP={vr['fp']} "
+                        f"precision={vr['precision']:.2f} "
+                        f"fires={vr['fires_on_trigger']} "
+                        f"→ {'[green]PASS[/green]' if lv_accepted else '[red]FAIL[/red]'}"
+                    )
+                    spectrum_history.append({
+                        "level": lv["level"], "label": lv.get("label", ""),
+                        "n_preconditions": n_pc,
+                        "rule": {k: v for k, v in lv.items() if k != "raw_response"},
+                        "validation": {k: v for k, v in vr.items()
+                                       if k not in ("tp_cases", "fp_cases")},
+                        "accepted": lv_accepted,
+                    })
+                    if lv_accepted and best_level is None:
+                        best_level = lv
+                        active_rule = lv
+                        validation  = vr
+                        accepted    = True
+
+                if best_level is None:
+                    console.print("  [red]No level passed[/red] — escalating to expert.")
+                    best_vr = max(zip(spectrum_levels, validations),
+                                  key=lambda x: x[1]["precision"])
+                    _surface_to_expert(best_vr[0], best_vr[1], pair_info, task_id)
+                else:
+                    console.print(
+                        f"  [green]ACCEPTED[/green] level {best_level['level']} "
+                        f"({best_level.get('label','?')}) — "
+                        f"{len(best_level.get('preconditions',[]))} pre-condition(s)"
+                    )
+            else:
+                console.print(
+                    "  Pre-completion rule also fails on trigger — "
+                    "not a completion artifact. [red]REJECTED[/red]."
+                )
         elif fp == 0:
             console.print(f"  [red]REJECTED[/red] — precision {precision:.2f} < {min_precision:.2f} (no FP to analyze)")
         else:
