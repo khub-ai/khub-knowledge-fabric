@@ -265,131 +265,143 @@ async def run_patch_loop(
                       f"({len(val_imgs_a)} {pair_info['class_a']}, "
                       f"{len(val_imgs_b)} {pair_info['class_b']})...")
 
-        # --- Step 3: Validate + revise loop (max 2 revision attempts) ---
-        MAX_REVISIONS = 2
-        active_rule = candidate_rule
-        revision_history: list[dict] = []
+        # --- Step 3: Initial validation ---
+        validation = await agents.validate_candidate_rule(
+            candidate_rule=candidate_rule,
+            validation_images=validation_images,
+            trigger_image_path=task["test_image_path"],
+            trigger_correct_label=correct,
+            model=expert_model,
+        )
 
-        for attempt in range(MAX_REVISIONS + 1):
-            validation = await agents.validate_candidate_rule(
-                candidate_rule=active_rule,
-                validation_images=validation_images,
-                trigger_image_path=task["test_image_path"],
-                trigger_correct_label=correct,
-                model=expert_model,
-            )
+        fires_on_trigger = validation["fires_on_trigger"]
+        precision        = validation["precision"]
+        fp               = validation["fp"]
+        accepted         = validation["accepted"] and precision >= min_precision
 
-            fires_on_trigger = validation["fires_on_trigger"]
-            precision        = validation["precision"]
-            accepted         = validation["accepted"] and precision >= min_precision
-            fp               = validation["fp"]
+        console.print(
+            f"  Validation (initial): "
+            f"TP={validation['tp']} FP={fp} "
+            f"TN={validation['tn']} FN={validation['fn']} | "
+            f"precision={precision:.2f} recall={validation['recall']:.2f} | "
+            f"fires_on_trigger={fires_on_trigger}"
+        )
 
-            attempt_label = f"attempt {attempt+1}" if attempt > 0 else "initial"
-            console.print(
-                f"  Validation ({attempt_label}): "
-                f"TP={validation['tp']} FP={fp} "
-                f"TN={validation['tn']} FN={validation['fn']} | "
-                f"precision={precision:.2f} recall={validation['recall']:.2f} | "
-                f"fires_on_trigger={fires_on_trigger}"
-            )
+        spectrum_history: list[dict] = []
+        active_rule  = candidate_rule
+        best_level   = None   # winning level dict, if any
 
-            revision_history.append({
-                "attempt": attempt,
-                "rule": {k: v for k, v in active_rule.items() if k != "raw_response"},
-                "validation": {k: v for k, v in validation.items()
-                               if k not in ("tp_cases", "fp_cases")},
-                "accepted": accepted,
-            })
-
-            if accepted:
-                break
-
-            # Rejection — decide whether to attempt revision
-            if not fires_on_trigger:
-                console.print("  [red]REJECTED[/red] — rule did not fire on trigger image")
-                break
-
-            if attempt == MAX_REVISIONS:
-                # Exhausted revisions — surface to expert
-                _surface_to_expert(
-                    active_rule=active_rule,
-                    validation=validation,
-                    pair_info=pair_info,
-                    task_id=task_id,
-                )
-                break
-
-            if fp == 0:
-                # Precision failure without FP — unusual; give up
-                console.print(f"  [red]REJECTED[/red] — precision {precision:.2f} < {min_precision:.2f} (no FP cases to analyze)")
-                break
-
-            # --- Contrastive revision ---
+        if accepted:
+            best_level = {"level": 3, "label": "original", **candidate_rule}
+        elif not fires_on_trigger:
+            console.print("  [red]REJECTED[/red] — rule did not fire on trigger image")
+        elif fp == 0:
+            console.print(f"  [red]REJECTED[/red] — precision {precision:.2f} < {min_precision:.2f} (no FP to analyze)")
+        else:
+            # --- Step 3b: Spectrum search ---
             tp_cases = validation.get("tp_cases", [])
             fp_cases = validation.get("fp_cases", [])
 
             console.print(
                 f"  [yellow]REJECTED[/yellow] — FP={fp}, precision={precision:.2f}. "
-                f"Running contrastive analysis..."
+                f"Running contrastive analysis + spectrum..."
             )
 
+            # Contrastive analysis to find discriminating feature
             contrastive, _ = await agents.run_contrastive_feature_analysis(
                 tp_cases=tp_cases,
                 fp_cases=fp_cases,
-                candidate_rule=active_rule,
+                candidate_rule=candidate_rule,
                 pair_info=pair_info,
                 model=expert_model,
             )
-
             disc_feature = contrastive.get("discriminating_feature")
-            disc_conf    = contrastive.get("confidence", "low")
+            console.print(
+                f"  Discriminating feature: "
+                f"[italic]{contrastive['description'][:100]}[/italic] "
+                f"(present in {contrastive.get('present_in','?')} cases, "
+                f"confidence={contrastive.get('confidence','?')})"
+            )
 
             if not disc_feature:
-                console.print(
-                    "  [red]REJECTED[/red] — contrastive analysis found no discriminating feature; "
-                    "cannot revise automatically."
-                )
-                _surface_to_expert(
-                    active_rule=active_rule,
-                    validation=validation,
+                console.print("  Cannot identify discriminating feature — escalating to expert.")
+                _surface_to_expert(candidate_rule, validation, pair_info, task_id)
+            else:
+                # Generate 4-level spectrum in one call
+                console.print("  Generating 4-level specificity spectrum...")
+                spectrum_levels, _ = await agents.run_rule_spectrum_generator(
+                    candidate_rule=candidate_rule,
+                    tp_cases=tp_cases,
+                    fp_cases=fp_cases,
+                    contrastive_result=contrastive,
                     pair_info=pair_info,
-                    task_id=task_id,
+                    model=expert_model,
                 )
-                break
+                console.print(f"  Spectrum: {len(spectrum_levels)} level(s) generated")
 
-            console.print(
-                f"  Discriminating feature: [italic]{contrastive['description'][:100]}[/italic] "
-                f"(present in {contrastive.get('present_in','?')} cases, confidence={disc_conf})"
-            )
+                # Validate all levels in parallel
+                validations = await agents.validate_candidate_rules_batch(
+                    rules=spectrum_levels,
+                    validation_images=validation_images,
+                    trigger_image_path=task["test_image_path"],
+                    trigger_correct_label=correct,
+                    model=expert_model,
+                )
 
-            # Ask expert to add one targeted pre-condition
-            console.print(f"  Calling expert VLM to revise rule (attempt {attempt+1}/{MAX_REVISIONS})...")
-            revised_rule, _ = await agents.run_rule_reviser(
-                candidate_rule=active_rule,
-                contrastive_result=contrastive,
-                tp_cases=tp_cases,
-                fp_cases=fp_cases,
-                pair_info=pair_info,
-                model=expert_model,
-            )
+                # Report and find the most general passing level
+                for lv, vr in zip(spectrum_levels, validations):
+                    lv_accepted = vr["accepted"] and vr["precision"] >= min_precision
+                    n_pc = len(lv.get("preconditions", []))
+                    console.print(
+                        f"    Level {lv['level']} ({lv.get('label','?')}, {n_pc} pre-cond): "
+                        f"TP={vr['tp']} FP={vr['fp']} "
+                        f"precision={vr['precision']:.2f} "
+                        f"fires={vr['fires_on_trigger']} "
+                        f"→ {'[green]PASS[/green]' if lv_accepted else '[red]FAIL[/red]'}"
+                    )
+                    spectrum_history.append({
+                        "level":      lv["level"],
+                        "label":      lv.get("label", ""),
+                        "n_preconditions": n_pc,
+                        "rule":       {k: v for k, v in lv.items()
+                                       if k not in ("raw_response",)},
+                        "validation": {k: v for k, v in vr.items()
+                                       if k not in ("tp_cases", "fp_cases")},
+                        "accepted":   lv_accepted,
+                    })
+                    # Pick the most general (first in list, ordered 1→4) that passes
+                    if lv_accepted and best_level is None:
+                        best_level = lv
+                        active_rule = lv
+                        validation  = vr
+                        accepted    = True
 
-            note = revised_rule.get("revision_note", "")
-            new_pc_count = len(revised_rule.get("preconditions", [])) - len(active_rule.get("preconditions", []))
-            console.print(f"  Revision: {note[:120]}")
-            console.print(f"  Pre-conditions: {len(active_rule.get('preconditions', []))} → "
-                          f"{len(revised_rule.get('preconditions', []))} (+{new_pc_count})")
-
-            active_rule = revised_rule
+                if best_level is None:
+                    console.print(
+                        f"  [red]No level passed[/red] — "
+                        f"escalating to expert."
+                    )
+                    # Use the best-precision level for the expert surface
+                    best_vr = max(zip(spectrum_levels, validations),
+                                  key=lambda x: x[1]["precision"])
+                    _surface_to_expert(best_vr[0], best_vr[1], pair_info, task_id)
+                else:
+                    console.print(
+                        f"  [green]ACCEPTED[/green] level {best_level['level']} "
+                        f"({best_level.get('label','?')}) — "
+                        f"{len(best_level.get('preconditions',[]))} pre-condition(s)"
+                    )
 
         record = {
             "task_id":          task_id,
             "pair_id":          pair_id,
             "wrong_prediction": wrong,
             "correct_label":    correct,
-            "candidate_rule":   {k: v for k, v in active_rule.items() if k != "raw_response"},
+            "candidate_rule":   {k: v for k, v in active_rule.items()
+                                 if k != "raw_response"},
             "validation":       {k: v for k, v in validation.items()
                                  if k not in ("tp_cases", "fp_cases")},
-            "revision_history": revision_history,
+            "spectrum_history": spectrum_history,
             "accepted":         accepted,
             "registered":       False,
         }
@@ -407,14 +419,14 @@ async def run_patch_loop(
             )
             record["registered"] = ok
             if ok:
-                console.print("  [green]ACCEPTED[/green] — rule registered in patch rules file.")
+                console.print("  Rule registered in patch rules file.")
             else:
                 console.print("  [yellow]Registration failed (observability filter?)[/yellow]")
         elif not accepted:
-            n_attempts = len(revision_history)
             console.print(
-                f"  [red]REJECTED[/red] after {n_attempts} attempt(s) — "
-                f"precision={validation['precision']:.2f} FP={validation['fp']}"
+                f"  [red]REJECTED[/red] — "
+                f"precision={validation['precision']:.2f} FP={validation['fp']} "
+                f"({'spectrum tried' if spectrum_history else 'no spectrum'})"
             )
 
         patch_records.append(record)

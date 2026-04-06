@@ -1466,3 +1466,157 @@ async def run_rule_reviser(
     # Fall back: return original rule unchanged
     candidate_rule["raw_response"] = text
     return candidate_rule, ms
+
+
+# ---------------------------------------------------------------------------
+# Specificity spectrum
+# ---------------------------------------------------------------------------
+
+_SPECTRUM_SYSTEM = """\
+You are a senior dermoscopy expert and knowledge engineer.
+
+You are given a candidate rule and evidence about where it works (TRUE POSITIVES)
+and where it misfires (FALSE POSITIVES). Your task is to produce FOUR versions of
+the rule at different levels of specificity — from most general to most specific —
+so that the tightest version that still passes a precision gate can be selected.
+
+The four levels must all favor the same class and describe the same underlying
+visual phenomenon, varying only in how many pre-conditions are required:
+
+  Level 1 — MOST GENERAL: single essential pre-condition. The one feature that
+    is most diagnostic of the favored class and most absent from FP cases.
+    This should fire broadly — accept some FP risk.
+
+  Level 2 — MODERATE: core pre-condition PLUS one supporting condition that
+    begins to exclude FP cases.
+
+  Level 3 — SPECIFIC: the original expert rule as-is (copy it unchanged).
+
+  Level 4 — MOST SPECIFIC: the original rule PLUS one additional pre-condition
+    derived from the contrastive analysis that should eliminate the observed FPs.
+    This may over-tighten (low recall) but should have highest precision.
+
+Output ONLY a JSON object with a "levels" array of exactly 4 rule objects:
+{
+  "levels": [
+    {
+      "level": 1,
+      "label": "most_general",
+      "rule": "When [single essential condition], classify as [class].",
+      "feature": "snake_case_feature_name",
+      "favors": "<exact class name>",
+      "confidence": "high" | "medium" | "low",
+      "preconditions": ["Single essential pre-condition"],
+      "rationale": "Why this is the core diagnostic signal."
+    },
+    {
+      "level": 2,
+      "label": "moderate",
+      ...
+    },
+    {
+      "level": 3,
+      "label": "original",
+      ...  (copy the original rule exactly)
+    },
+    {
+      "level": 4,
+      "label": "most_specific",
+      ...  (original + one tightening condition from contrastive analysis)
+    }
+  ]
+}
+"""
+
+
+async def run_rule_spectrum_generator(
+    candidate_rule: dict,
+    tp_cases: list[dict],
+    fp_cases: list[dict],
+    contrastive_result: dict,
+    pair_info: dict,
+    model: str = "",
+) -> tuple[list[dict], int]:
+    """Generate four specificity variants of a candidate rule.
+
+    Returns (list_of_rule_dicts ordered level 1→4, duration_ms).
+    The list is ordered from most general to most specific so the caller
+    can pick the first passing entry.
+    """
+    rule_text     = candidate_rule.get("rule", "")
+    preconditions = candidate_rule.get("preconditions", [])
+    favors        = candidate_rule.get("favors", "")
+    class_a       = pair_info.get("class_a", "")
+    class_b       = pair_info.get("class_b", "")
+    disc_desc     = contrastive_result.get("description", "(not yet analyzed)")
+    disc_present  = contrastive_result.get("present_in", "?")
+    disc_rationale = contrastive_result.get("rationale", "")
+
+    precond_text = "\n".join(f"  {i+1}. {p}" for i, p in enumerate(preconditions))
+
+    def _fmt(cases, label):
+        lines = []
+        for i, c in enumerate(cases[:4], 1):  # cap at 4 to keep prompt short
+            obs = c.get("observations", "")
+            lines.append(f"  [{label} {i}] {c['ground_truth']}: {obs[:120]}")
+        return "\n".join(lines) if lines else "  (none)"
+
+    user_msg = (
+        f"Pair: {class_a} vs {class_b}\n"
+        f"Rule favors: {favors}\n\n"
+        f"Original rule: {rule_text}\n\n"
+        f"Original pre-conditions:\n{precond_text}\n\n"
+        f"Contrastive analysis — discriminating feature:\n"
+        f"  {disc_desc} (present in {disc_present} cases)\n"
+        f"  Rationale: {disc_rationale}\n\n"
+        f"TRUE POSITIVE observations (rule fired correctly):\n{_fmt(tp_cases, 'TP')}\n\n"
+        f"FALSE POSITIVE observations (rule misfired):\n{_fmt(fp_cases, 'FP')}\n\n"
+        "Please produce the four-level specificity spectrum as described."
+    )
+
+    text, ms = await call_agent(
+        "EXPERT_RULE_AUTHOR",
+        user_msg,
+        system_prompt=_SPECTRUM_SYSTEM,
+        model=model or ACTIVE_MODEL,
+        max_tokens=4096,
+    )
+
+    result = _parse_json_block(text)
+    if result and "levels" in result:
+        levels = result["levels"]
+        # Ensure each level inherits favors from the original if missing
+        for lv in levels:
+            lv.setdefault("favors", favors)
+            lv["raw_response"] = text  # shared; useful for debugging
+        return levels, ms
+
+    # Fallback: return just the original as level 3
+    return [candidate_rule], ms
+
+
+async def validate_candidate_rules_batch(
+    rules: list[dict],
+    validation_images: list,
+    trigger_image_path: str,
+    trigger_correct_label: str,
+    model: str = "",
+) -> list[dict]:
+    """Validate a list of rules in parallel against the same image pool.
+
+    Returns a list of validation result dicts (same schema as
+    validate_candidate_rule), one per input rule, in the same order.
+    """
+    coros = [
+        validate_candidate_rule(
+            candidate_rule=rule,
+            validation_images=validation_images,
+            trigger_image_path=trigger_image_path,
+            trigger_correct_label=trigger_correct_label,
+            model=model,
+        )
+        for rule in rules
+    ]
+    results = await asyncio.gather(*coros)
+    # validate_candidate_rule returns a plain dict (not a tuple)
+    return list(results)
