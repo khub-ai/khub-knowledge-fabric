@@ -11,6 +11,8 @@
 
 This use case proposes KF as a runtime knowledge layer that sits **above** perception and control. A base robotics stack or multimodal model can still handle low-level actions; KF adds the missing layer for explicit task knowledge, state tracking, goal management, procedure reuse, and human-teachable correction.
 
+**Where KF fits in the modern embodied-agent stack.** Current embodied systems increasingly look like *VLM/LLM planner → skill library → low-level controller*. The bottom two layers are crowded with strong work (RT-2, OpenVLA, π0, MoveIt, behavior trees). The top layer — **persistent, correctable, auditable task knowledge** — is comparatively underserved. Teams deploying household, warehouse, and lab robots hit this layer the moment they leave the lab: "remember the Tuesday delivery goes to the back dock," "never put the blue bin on the top shelf," "in this room, the sterile tray is always on the left." Today these are handled with ad-hoc prompt stuffing, RAG, or retraining — none of which scale to safe, governed, correctable behavior across sessions. KF targets exactly this slot.
+
 ---
 
 ## 1. Why This Matters
@@ -93,24 +95,28 @@ This can be stronger than relying on the multimodal model alone for high-level b
 
 ## 5. What A Strong First Demonstration Looks Like
 
-A convincing first robotics demonstration does **not** need a physical robot.
+A convincing first robotics demonstration does **not** need a physical robot. The contribution lives *above* perception and control, where a well-chosen simulator is a reasonable proxy — provided the simulator is one the robotics community already trusts.
 
-What it needs is a credible interactive environment where success depends on:
+**Plug into an established simulator, do not build one.** The single biggest credibility lever is using an environment that peer reviewers already recognize:
 
-- learning the environment
-- planning over multiple steps
-- recovering from failure
-- adapting after human correction
+- **AI2-THOR / ProcTHOR** — partial observability, object state, 10k+ procedurally generated layouts (ideal for held-out generalization tests)
+- **ALFWorld / ALFRED** — well-known embodied benchmark with existing baselines to compare against
+- **Habitat 3.0** or **BEHAVIOR-1K** as alternatives
 
-A strong first demo could show:
+KF slots into the planner layer of one of these benchmarks. This removes the "toy environment" critique for free and makes results directly comparable to published baselines (SayCan, ReAct, Voyager-style agents).
 
-1. the agent explores a workspace and completes a task
-2. the environment changes or a failure occurs
-3. a human gives a correction or new rule in natural language
-4. KF stores that correction as an explicit artifact
-5. the next episode improves immediately without retraining
+**Headline result: correction governance.** The unique contribution — and the part no hardware is needed to demonstrate — is that KF treats an operator correction as a *scoped, expirable, auditable* constraint rather than a prompt-engineering hack. A strong first study runs an agent over a batch of tasks in ProcTHOR, injects corrections of varying scope ("never X", "in this room Y", "when Z is present, W"), and measures against a long-context ReAct baseline and a RAG baseline on:
 
-That is the core story.
+- correction adherence over time (does it forget?)
+- over-generalization rate (does the rule fire where it shouldn't?)
+- conflict resolution when rules contradict
+- audit trail completeness (can every action be traced to the rules that shaped it?)
+- hazard-constraint violation rate when corrections try to weaken safety
+- adaptation sample efficiency (corrections needed to reach threshold)
+
+**Optional sim-to-real sanity check.** To puncture the "but it's all in sim" objection cheaply, a tabletop demo with a real webcam feeding a VLM for perception (actuation can be scripted or Wizard-of-Oz) shows the knowledge layer survives contact with real perceptual noise. For a *planning* layer — as opposed to a control layer — this is the actual sim-to-real risk, and it is within reach without a robot.
+
+Venue-wise, workshops like **CoRL LangRob** and **RSS Lifelong Learning** are receptive to exactly this framing and are a realistic first step.
 
 ---
 
@@ -185,21 +191,24 @@ That is commercially valuable because it can reduce the cost and friction of dep
 
 ## 9. Current Scope Boundary
 
+The honest framing of this work is **task-level knowledge adaptation for embodied agents with symbolic action interfaces** — not robotics writ large, and explicitly not a control or perception contribution.
+
 This use case is intended to demonstrate:
 
 - high-level task learning
-- environment adaptation
-- goal-oriented planning
-- procedure reuse
-- human-teachable corrections
+- environment adaptation under partial observability and noisy perception
+- goal-oriented planning with interruptible, event-driven replanning
+- procedure reuse across episodes and layouts
+- **governed** human-teachable corrections (scoped, expirable, auditable, conflict-checked)
 
 It is **not** intended to claim:
 
 - physics-level control breakthroughs
 - novel locomotion or manipulation algorithms
 - end-to-end replacement of robotic control systems
+- any result about real perception pipelines or sim-to-real control transfer
 
-KF is the cognitive/runtime layer above those systems.
+**What is expected to transfer** to a real robot stack: the correction-governance model, the belief-state memory structure, the constraint-propagation patterns, and the evaluation harness for adaptation. **What is not**: anything touching contact dynamics, continuous control, or the perception stack itself. A real-robot integration would replace the simulator behind the same planner-layer API — KF would sit above something like a behavior-tree executor or a skill library (e.g., MoveIt-style primitives).
 
 ---
 
