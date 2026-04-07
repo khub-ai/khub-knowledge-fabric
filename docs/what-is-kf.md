@@ -98,7 +98,7 @@ KF is most valuable when:
 - accumulated knowledge should survive model upgrades or vendor changes
 
 That is why the repository explores domains such as assistant personalization,
-image classification, cybersecurity, robotics, and long-horizon reasoning.
+image classification, robotics, and long-horizon reasoning.
 
 ## Where To Go Next
 

@@ -116,7 +116,6 @@ The ARC-AGI-3 pattern is relevant to many other domains that require
 observation-driven action and knowledge accumulation, such as:
 
 - robotics (`usecases/robotics/DESIGN.md`),
-- cybersecurity and attack defense (`usecases/cyber-security/README.md`),
 - expert knowledge transfer and clinical workflows
   (`usecases/image-classification/README.md`).
 
