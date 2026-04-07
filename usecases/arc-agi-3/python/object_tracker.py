@@ -1337,6 +1337,13 @@ def format_structural_context(
 
     lines: list[str] = []
 
+    # --- Slot strip puzzle detection (TR87-type) ---
+    # Runs before group detection; if slot strips are found, prepend their
+    # context and skip the generic exploration/navigation sections.
+    _slot_data = detect_slot_strips(frame)
+    if _slot_data:
+        lines.append(format_slot_strip_context(_slot_data))
+
     # Pre-compute groups to detect puzzle levels (groups are reused at the end).
     _groups = detect_groups(frame, objects, containment) if objects and containment else []
     _is_puzzle = len(_groups) >= 6  # puzzle levels have many grouped slots
@@ -2676,3 +2683,876 @@ def find_transformation(
         "per_pair": per_pair,
         "candidate_transforms": [TRANSFORM_NAMES[i] for i in sorted(candidate_set)],
     }
+
+
+# ---------------------------------------------------------------------------
+# Slot strip detection (TR87-type slot puzzles)
+# ---------------------------------------------------------------------------
+#
+# A "slot strip puzzle" has:
+#   - A reference strip: a horizontal row of N bordered 7×7 slots (cyan or
+#     yellow frame), each containing a 5×5 inner pattern (fixed).
+#   - An editable strip: same layout with a different frame color (pink),
+#     where the inner pattern cycles via ACTION1/ACTION2.
+#   - A rule area: pairs of (LHS-frame, RHS-frame) slots connected by a
+#     horizontal dark-grey bar — each pair is one rewrite rule.
+#   - A cursor: a 5×2 white band above/below the active editable slot.
+#
+# This section provides detect_slot_strips(frame) which reads all of the
+# above from raw pixel data and returns a structured summary including the
+# computed action plan.
+#
+# Sprite patterns are from TR87's nxkictbbvzt sprite family (A1–A7, B1–B7,
+# C1–C7).  All 4 rotations of each are pre-computed so rotated sprites are
+# matched correctly.
+
+# Canonical normalized 5×5 patterns (1=black pixel, 0=transparent/frame).
+# Row-major order: index i*5+j = row i, col j.
+_SLOT_CANONICAL: dict[tuple, str] = {
+    # A series
+    (0,0,1,0,0, 0,0,1,0,0, 0,1,1,1,0, 0,0,1,0,0, 1,1,1,1,1): "A1",
+    (0,0,0,0,1, 0,0,1,0,1, 1,1,1,1,1, 1,0,1,0,0, 1,0,0,0,0): "A2",
+    (1,1,1,1,1, 1,0,1,0,0, 1,0,0,0,0, 1,0,1,0,0, 1,1,1,1,1): "A3",
+    (0,0,1,0,0, 1,1,1,1,1, 1,0,1,0,1, 1,0,1,0,1, 0,0,1,0,0): "A4",
+    (1,0,0,0,1, 1,1,1,1,1, 0,0,1,0,0, 1,1,1,1,1, 1,0,0,0,1): "A5",
+    (1,1,1,1,1, 0,0,1,0,0, 1,1,1,0,0, 1,0,0,0,0, 1,1,1,1,1): "A6",
+    (1,0,0,0,1, 1,1,1,1,1, 1,0,0,0,1, 1,0,0,0,1, 1,1,0,1,1): "A7",
+    # B series
+    (1,0,0,0,0, 1,1,1,1,0, 1,0,0,1,0, 1,0,0,1,0, 1,1,1,1,1): "B1",
+    (1,1,1,1,1, 1,0,0,0,1, 1,1,1,0,1, 1,0,1,0,1, 1,1,1,1,1): "B2",
+    (0,0,1,1,1, 0,0,1,0,1, 1,1,1,1,1, 1,0,1,0,0, 1,1,1,0,0): "B3",
+    (0,1,1,1,0, 0,1,0,1,0, 1,1,1,1,1, 1,0,0,0,1, 1,1,1,1,1): "B4",
+    (1,1,1,1,1, 1,0,0,0,1, 1,0,0,0,1, 1,1,1,1,1, 0,0,1,0,0): "B5",
+    (1,1,1,1,0, 1,0,0,1,1, 1,0,0,0,1, 1,1,0,0,1, 0,1,1,1,1): "B6",
+    (0,0,1,0,0, 1,1,1,1,1, 1,0,1,0,1, 1,1,1,1,1, 0,0,1,0,0): "B7",
+    # C series
+    (1,0,1,0,1, 1,0,0,0,0, 1,0,1,0,1, 1,0,0,0,0, 1,1,1,1,1): "C1",
+    (1,1,1,0,1, 1,0,0,0,0, 0,0,0,0,0, 0,0,0,0,1, 1,0,1,1,1): "C2",
+    (1,0,1,1,1, 0,0,1,0,0, 0,0,1,0,0, 0,0,1,0,0, 1,1,1,0,1): "C3",
+    (0,0,1,0,0, 1,0,1,0,1, 0,0,1,0,0, 1,0,1,0,1, 0,0,1,0,0): "C4",
+    (1,1,0,1,1, 1,0,0,0,1, 1,0,1,0,1, 1,0,0,0,1, 1,1,0,1,1): "C5",
+    (1,0,1,1,1, 1,0,1,0,1, 1,1,1,0,1, 0,0,0,0,0, 1,0,1,0,1): "C6",
+    (1,0,0,0,1, 0,0,0,0,0, 1,0,0,0,1, 1,1,0,1,1, 0,1,0,1,0): "C7",
+}
+
+# Build full lookup including all 4 rotations of each canonical pattern.
+def _build_slot_lookup() -> dict[tuple, str]:
+    def _rot90(p: tuple) -> tuple:
+        """Rotate 5×5 tuple 90° clockwise: new[r,c] = old[4-c, r]."""
+        return tuple(p[(4 - c) * 5 + r] for r in range(5) for c in range(5))
+
+    lookup: dict[tuple, str] = {}
+    for base_pat, name in _SLOT_CANONICAL.items():
+        p = base_pat
+        for rot in range(4):
+            lookup.setdefault(p, name)  # first match wins (prefer 0°)
+            p = _rot90(p)
+    return lookup
+
+
+_SLOT_LOOKUP: dict[tuple, str] = _build_slot_lookup()
+
+# Sprite number from name suffix, e.g. "A3" -> 3, "B7" -> 7
+def _slot_num(name: str) -> int:
+    return int(name[-1])
+
+# Sprite series from name, e.g. "A3" -> "A", "B7" -> "B"
+def _slot_series(name: str) -> str:
+    return name[-2]
+
+
+def _identify_slot(frame: list, r: int, c: int) -> str | None:
+    """Identify the TR87 sprite in the inner 5×5 of a 7×7 slot at (r, c).
+
+    Returns a sprite name like "A3", "B6", or None if unrecognized.
+    """
+    raw = tuple(
+        1 if frame[r + 1 + i][c + 1 + j] == 5 else 0
+        for i in range(5)
+        for j in range(5)
+    )
+    return _SLOT_LOOKUP.get(raw)
+
+
+def _slot_raw_pattern(frame: list, r: int, c: int) -> tuple:
+    """Return the raw 25-bit inner pattern of a 7×7 slot at (r, c).
+
+    Unlike _identify_slot, this preserves rotation — two slots with the same
+    sprite at different rotations return different tuples.  Used as rule keys
+    in alter_rules mode where different rotations map to different targets.
+    """
+    return tuple(
+        1 if frame[r + 1 + i][c + 1 + j] == 5 else 0
+        for i in range(5)
+        for j in range(5)
+    )
+
+
+def _find_horizontal_strips(
+    frame: list,
+    frame_colors: set[int],
+    min_slots: int = 2,
+) -> list[dict]:
+    """Find horizontal rows of identical-colored 7×7 framed slots.
+
+    Returns list of strip dicts:
+        frame_color, top_row, left_cols (sorted), n_slots, slot_names
+    """
+    rows = len(frame)
+    cols = len(frame[0]) if rows else 0
+    SLOT = 7
+
+    def _slot_border_ok(r: int, c: int, fc: int) -> bool:
+        """Check that a 7×7 window at (r, c) has an all-fc border."""
+        if r + SLOT > rows or c + SLOT > cols:
+            return False
+        if not all(frame[r][c + j] == fc for j in range(SLOT)):
+            return False
+        if not all(frame[r + SLOT - 1][c + j] == fc for j in range(SLOT)):
+            return False
+        if not all(frame[r + i][c] == fc for i in range(SLOT)):
+            return False
+        if not all(frame[r + i][c + SLOT - 1] == fc for i in range(SLOT)):
+            return False
+        return True
+
+    strips = []
+
+    for r in range(rows - SLOT + 1):
+        # Only process strip START positions to avoid false positives from
+        # large continuous same-color regions.  A strip start is a column where
+        # the pixel immediately to the left is NOT the current frame color.
+        for c in range(cols - SLOT + 1):
+            fc = int(frame[r][c])
+            if fc not in frame_colors:
+                continue
+            # Must be a strip start: neighbor to the left is not fc
+            if c > 0 and int(frame[r][c - 1]) == fc:
+                continue
+            if not _slot_border_ok(r, c, fc):
+                continue
+            # Extend to consecutive slots spaced exactly SLOT apart
+            left_cols = [c]
+            next_c = c + SLOT
+            while next_c + SLOT <= cols + 1 and _slot_border_ok(r, next_c, fc):
+                left_cols.append(next_c)
+                next_c += SLOT
+            if len(left_cols) >= min_slots:
+                names = [_identify_slot(frame, r, lc) for lc in left_cols]
+                raw_patterns = [_slot_raw_pattern(frame, r, lc) for lc in left_cols]
+                strips.append({
+                    "frame_color": fc,
+                    "top_row": r,
+                    "left_cols": left_cols,
+                    "n_slots": len(left_cols),
+                    "slot_names": names,
+                    "slot_raw_patterns": raw_patterns,
+                })
+
+    return strips
+
+
+def _find_rule_pairs(
+    frame: list,
+    background_row: int = 34,
+) -> list[tuple[list[str | None], list[str | None], list[tuple], list[tuple]]]:
+    """Detect rule pairs (including multi-sprite) from the rule area.
+
+    The rule area is all rows with top_row < background_row.  At each row,
+    slot groups are sorted left-to-right and paired as (group0, group1),
+    (group2, group3), … where each group is a consecutive run of same-color
+    slots.  This handles both 1:1 and multi-sprite (1:N, N:1, N:M) rules.
+
+    Returns list of (lhs_names, rhs_names, lhs_raw, rhs_raw):
+        lhs_names / rhs_names — sprite names (may contain None for unidentified)
+        lhs_raw / rhs_raw    — raw 25-bit pattern tuples (rotation-preserving)
+
+    The raw fields are used by detect_slot_strips in alter_rules mode where
+    different rotations of the same sprite represent different rules.
+    """
+    FRAME_COLORS = {10, 7, 11}
+
+    # Collect all slot groups in the rule area using the existing strip finder
+    rule_groups = [
+        g for g in _find_horizontal_strips(frame, FRAME_COLORS, min_slots=1)
+        if g["top_row"] < background_row
+    ]
+    if not rule_groups:
+        return []
+
+    # Group by row
+    from collections import defaultdict
+    by_row: dict = defaultdict(list)
+    for g in rule_groups:
+        by_row[g["top_row"]].append(g)
+
+    rules: list[tuple[list, list, list, list]] = []
+    for _row in sorted(by_row):
+        groups = sorted(by_row[_row], key=lambda g: g["left_cols"][0])
+        # Pair consecutive groups: (0→1), (2→3), …
+        for i in range(0, len(groups) - 1, 2):
+            lhs_names = groups[i]["slot_names"]
+            rhs_names = groups[i + 1]["slot_names"]
+            lhs_raw = groups[i]["slot_raw_patterns"]
+            rhs_raw = groups[i + 1]["slot_raw_patterns"]
+            rules.append((list(lhs_names), list(rhs_names), list(lhs_raw), list(rhs_raw)))
+
+    return rules
+
+
+def _apply_rules_to_seq(
+    seq: list[str | None],
+    rule_pairs: list[tuple[list, list]],
+    n_passes: int = 1,
+) -> list[str | None] | None:
+    """Apply sequence-rewriting rules to seq n_passes times.
+
+    rule_pairs: list of (lhs_names, rhs_names) tuples.
+    Returns the transformed sequence, or None if any element couldn't be
+    matched.  Tries longest LHS patterns first at each position.
+    """
+    rule_map: dict[tuple, list] = {}
+    for lhs, rhs in rule_pairs:
+        key = tuple(lhs)
+        if None not in key:
+            rule_map[key] = list(rhs)
+
+    result: list = list(seq)
+    for _ in range(n_passes):
+        out: list = []
+        i = 0
+        while i < len(result):
+            matched = False
+            # Try longest keys first
+            for size in sorted({len(k) for k in rule_map}, reverse=True):
+                if i + size > len(result):
+                    continue
+                key = tuple(result[i: i + size])
+                if key in rule_map:
+                    out.extend(rule_map[key])
+                    i += size
+                    matched = True
+                    break
+            if not matched:
+                return None
+        result = out
+    return result
+
+
+def _solve_alter_visual(
+    rule_area_groups: list[dict],
+    reference: list[str | None],
+    target: list[str | None],
+) -> list[int] | None:
+    """Compute per-group rotation deltas for alter_rules mode.
+
+    In alter_rules mode, each rule group in the rule area is a "dial" that can
+    be rotated.  Rotating a group by k means all sprites in it advance k steps
+    (sprite_num increments by k, mod 7).  The goal is to choose rotations such
+    that applying the (rotated) rules to `reference` yields `target`.
+
+    rule_area_groups — list of strip dicts from _find_horizontal_strips, sorted
+        by (top_row, left_col).  Groups alternate LHS/RHS: index 0=LHS of rule
+        0, index 1=RHS of rule 0, index 2=LHS of rule 1, ...
+
+    Returns a list of integer deltas (one per group, same ordering) or None if
+    no consistent rotation assignment exists.
+    """
+    if len(rule_area_groups) % 2 != 0:
+        return None
+    n_rules = len(rule_area_groups) // 2
+    rotations: dict[int, int] = {}
+
+    def search(ref_pos: int, tgt_pos: int) -> bool:
+        if ref_pos == len(reference) and tgt_pos == len(target):
+            return True
+        if ref_pos > len(reference) or tgt_pos > len(target):
+            return False
+        for rule_i in range(n_rules):
+            lhs_idx = rule_i * 2
+            rhs_idx = rule_i * 2 + 1
+            lhs_names = rule_area_groups[lhs_idx]["slot_names"]
+            rhs_names = rule_area_groups[rhs_idx]["slot_names"]
+            lhs_size = len(lhs_names)
+            rhs_size = len(rhs_names)
+            if ref_pos + lhs_size > len(reference):
+                continue
+            if tgt_pos + rhs_size > len(target):
+                continue
+            ref_sub = reference[ref_pos: ref_pos + lhs_size]
+            tgt_sub = target[tgt_pos: tgt_pos + rhs_size]
+            if None in ref_sub or None in tgt_sub:
+                continue
+            if None in lhs_names or None in rhs_names:
+                continue
+
+            # Find rotation k_lhs that maps lhs_names → ref_sub (sprite-number shift)
+            k_lhs = (_slot_num(ref_sub[0]) - _slot_num(lhs_names[0]) + 7) % 7
+            if not all(
+                (_slot_num(lhs_names[j]) - 1 + k_lhs) % 7 + 1 == _slot_num(ref_sub[j])
+                for j in range(lhs_size)
+            ):
+                continue
+            if lhs_idx in rotations and rotations[lhs_idx] != k_lhs:
+                continue
+
+            # Find rotation k_rhs that maps rhs_names → tgt_sub
+            k_rhs = (_slot_num(tgt_sub[0]) - _slot_num(rhs_names[0]) + 7) % 7
+            if not all(
+                (_slot_num(rhs_names[j]) - 1 + k_rhs) % 7 + 1 == _slot_num(tgt_sub[j])
+                for j in range(rhs_size)
+            ):
+                continue
+            if rhs_idx in rotations and rotations[rhs_idx] != k_rhs:
+                continue
+
+            old_lhs = rotations.get(lhs_idx)
+            old_rhs = rotations.get(rhs_idx)
+            rotations[lhs_idx] = k_lhs
+            rotations[rhs_idx] = k_rhs
+
+            if search(ref_pos + lhs_size, tgt_pos + rhs_size):
+                return True
+
+            if old_lhs is None:
+                del rotations[lhs_idx]
+            else:
+                rotations[lhs_idx] = old_lhs
+            if old_rhs is None:
+                del rotations[rhs_idx]
+            else:
+                rotations[rhs_idx] = old_rhs
+
+        return False
+
+    if not search(0, 0):
+        return None
+    return [rotations.get(i, 0) for i in range(len(rule_area_groups))]
+
+
+def _detect_cursor_in_rule_area(frame: list, rule_area_groups: list[dict]) -> int | None:
+    """Return 0-indexed position of the cursor among rule area groups.
+
+    The cursor is a 5-wide white (color 0) row just above or below the active
+    group's first slot inner area.
+    """
+    CURSOR_COLOR = 0
+    SLOT = 7
+    rows = len(frame)
+    for group_idx, group in enumerate(rule_area_groups):
+        top_r = group["top_row"]
+        left_c = group["left_cols"][0]
+        inner_c = left_c + 1
+        for check_r in [top_r - 4, top_r - 3, top_r - 2,
+                        top_r + SLOT + 1, top_r + SLOT + 2, top_r + SLOT + 3]:
+            if 0 <= check_r < rows:
+                if all(
+                    0 <= inner_c + j < len(frame[check_r]) and
+                    frame[check_r][inner_c + j] == CURSOR_COLOR
+                    for j in range(5)
+                ):
+                    return group_idx
+    return None
+
+
+def _solve_alter_double_visual(
+    rule_area_groups: list[dict],
+    reference: list[str | None],
+    target: list[str | None],
+) -> list[int] | None:
+    """Compute per-group rotation deltas for alter_rules + double_translation mode.
+
+    Rules interleave stage-1 (A-series LHS → B-series RHS) and stage-2
+    (B-series LHS → C-series RHS) pairs in visual order.  Stage-1 rules are
+    applied to reference to produce an intermediate B-series sequence; stage-2
+    rules then map that intermediate to the target.
+
+    Both stages require independent LHS and RHS rotations (delta per group).
+    Stage-1 RHS deltas are searched (0-6) because they determine the unknown
+    intermediate; stage-2 deltas are determined by matching intermediate→target.
+
+    Returns a list of integer deltas (one per group) or None on failure.
+    """
+    if len(rule_area_groups) % 2 != 0:
+        return None
+    n_rules = len(rule_area_groups) // 2
+
+    # Separate rules into stage1 (LHS matches reference series) and stage2
+    ref_series = _slot_series(reference[0]) if reference and reference[0] else "A"
+    stage1 = [
+        i for i in range(n_rules)
+        if (rule_area_groups[i * 2]["slot_names"]
+            and rule_area_groups[i * 2]["slot_names"][0]
+            and _slot_series(rule_area_groups[i * 2]["slot_names"][0]) == ref_series)
+    ]
+    stage2 = [i for i in range(n_rules) if i not in stage1]
+
+    rotations: dict[int, int] = {}
+    intermediate: list[str] = []
+
+    def search2(inter_pos: int, tgt_pos: int) -> bool:
+        if inter_pos == len(intermediate) and tgt_pos == len(target):
+            return True
+        if inter_pos > len(intermediate) or tgt_pos > len(target):
+            return False
+        for rule_i in stage2:
+            lhs_idx = rule_i * 2
+            rhs_idx = rule_i * 2 + 1
+            lhs_names = rule_area_groups[lhs_idx]["slot_names"]
+            rhs_names = rule_area_groups[rhs_idx]["slot_names"]
+            lhs_size = len(lhs_names)
+            rhs_size = len(rhs_names)
+            if inter_pos + lhs_size > len(intermediate):
+                continue
+            if tgt_pos + rhs_size > len(target):
+                continue
+            inter_sub = intermediate[inter_pos: inter_pos + lhs_size]
+            tgt_sub = target[tgt_pos: tgt_pos + rhs_size]
+            if None in inter_sub or None in tgt_sub:
+                continue
+            if None in lhs_names or None in rhs_names:
+                continue
+            k_lhs = (_slot_num(inter_sub[0]) - _slot_num(lhs_names[0]) + 7) % 7
+            if not all(
+                (_slot_num(lhs_names[j]) - 1 + k_lhs) % 7 + 1 == _slot_num(inter_sub[j])
+                for j in range(lhs_size)
+            ):
+                continue
+            if lhs_idx in rotations and rotations[lhs_idx] != k_lhs:
+                continue
+            k_rhs = (_slot_num(tgt_sub[0]) - _slot_num(rhs_names[0]) + 7) % 7
+            if not all(
+                (_slot_num(rhs_names[j]) - 1 + k_rhs) % 7 + 1 == _slot_num(tgt_sub[j])
+                for j in range(rhs_size)
+            ):
+                continue
+            if rhs_idx in rotations and rotations[rhs_idx] != k_rhs:
+                continue
+            old_l, old_r = rotations.get(lhs_idx), rotations.get(rhs_idx)
+            rotations[lhs_idx] = k_lhs
+            rotations[rhs_idx] = k_rhs
+            if search2(inter_pos + lhs_size, tgt_pos + rhs_size):
+                return True
+            if old_l is None:
+                del rotations[lhs_idx]
+            else:
+                rotations[lhs_idx] = old_l
+            if old_r is None:
+                del rotations[rhs_idx]
+            else:
+                rotations[rhs_idx] = old_r
+        return False
+
+    def search1(ref_pos: int) -> bool:
+        if ref_pos == len(reference):
+            return search2(0, 0)
+        for rule_i in stage1:
+            lhs_idx = rule_i * 2
+            rhs_idx = rule_i * 2 + 1
+            lhs_names = rule_area_groups[lhs_idx]["slot_names"]
+            rhs_names = rule_area_groups[rhs_idx]["slot_names"]
+            lhs_size = len(lhs_names)
+            rhs_size = len(rhs_names)
+            if ref_pos + lhs_size > len(reference):
+                continue
+            ref_sub = reference[ref_pos: ref_pos + lhs_size]
+            if None in ref_sub or None in lhs_names:
+                continue
+            k_lhs = (_slot_num(ref_sub[0]) - _slot_num(lhs_names[0]) + 7) % 7
+            if not all(
+                (_slot_num(lhs_names[j]) - 1 + k_lhs) % 7 + 1 == _slot_num(ref_sub[j])
+                for j in range(lhs_size)
+            ):
+                continue
+            if lhs_idx in rotations and rotations[lhs_idx] != k_lhs:
+                continue
+            # Try all RHS rotations — they determine the intermediate (unknown)
+            for k_rhs in range(7):
+                if rhs_idx in rotations and rotations[rhs_idx] != k_rhs:
+                    continue
+                rotated_rhs = [
+                    rhs_names[j][:-1] + str((_slot_num(rhs_names[j]) - 1 + k_rhs) % 7 + 1)
+                    for j in range(rhs_size)
+                ]
+                old_l, old_r = rotations.get(lhs_idx), rotations.get(rhs_idx)
+                rotations[lhs_idx] = k_lhs
+                rotations[rhs_idx] = k_rhs
+                intermediate.extend(rotated_rhs)
+                if search1(ref_pos + lhs_size):
+                    return True
+                del intermediate[-rhs_size:]
+                if old_l is None:
+                    del rotations[lhs_idx]
+                else:
+                    rotations[lhs_idx] = old_l
+                if old_r is None:
+                    del rotations[rhs_idx]
+                else:
+                    rotations[rhs_idx] = old_r
+        return False
+
+    if not search1(0):
+        return None
+    return [rotations.get(i, 0) for i in range(len(rule_area_groups))]
+
+
+def _detect_cursor_slot(frame: list, strip: dict) -> int | None:
+    """Return the 0-indexed slot position of the cursor in the given strip.
+
+    The cursor is a 5-wide white (color 0) row appearing just above or below
+    the strip's inner area (with a 4-row offset per the game engine).
+    """
+    CURSOR_COLOR = 0  # white
+    rows = len(frame)
+    top_r = strip["top_row"]
+    SLOT = 7
+
+    for slot_i, left_c in enumerate(strip["left_cols"]):
+        inner_c = left_c + 1  # inner area starts 1 col inside the frame
+        # Above: cursor top at top_r - 4 (offset from pjqbnqnbsq: y_offset=4)
+        # Below: cursor top at top_r + SLOT + 2 (approx)
+        for check_r in [top_r - 4, top_r - 3, top_r - 2, top_r + SLOT + 1,
+                        top_r + SLOT + 2, top_r + SLOT + 3]:
+            if 0 <= check_r < rows:
+                if all(0 <= inner_c + j < len(frame[check_r]) and
+                       frame[check_r][inner_c + j] == CURSOR_COLOR
+                       for j in range(5)):
+                    return slot_i
+    return None
+
+
+def detect_slot_strips(frame: list) -> dict | None:
+    """Detect a TR87-type slot puzzle from raw pixel data.
+
+    Scans the frame for horizontal slot strips and rule pairs, then computes
+    the target state and action plan for the editable strip.
+
+    The reference strip is the topmost (smallest top_row) strip; the editable
+    strip is the one below it.  Frame color is NOT used to distinguish them —
+    different levels use different color schemes (e.g., L2 has pink=reference,
+    yellow=editable).
+
+    Returns a dict with keys:
+        reference     list[str|None]   variant names in reference strip
+        editable      list[str|None]   variant names in editable strip
+        cursor_slot   int|None         0-indexed active slot in editable strip
+        rules         list[(lhs,rhs)]  detected rule pairs (names or None)
+        rule_map      dict             {lhs_name: rhs_name} for single-sprite rules
+        target        list[str|None]   target names for each editable slot
+        deltas        list[int|None]   ACTION2 presses needed per slot
+        action_plan   list[int]        action sequence (2=ACTION2, 4=ACTION4)
+        mode_hint     str              "standard", "double", or "unknown"
+    Returns None if no slot strip structure is found.
+    """
+    FRAME_COLORS = {10, 7, 11}  # cyan, pink, yellow
+    # TR87 background (dark-grey) starts at row 34 in all levels.
+    # Puzzle strips are within the background; rule area is above it.
+    BACKGROUND_ROW = 34
+
+    all_strips = _find_horizontal_strips(frame, FRAME_COLORS, min_slots=2)
+    if not all_strips:
+        return None
+
+    # Puzzle strips: within the background region (top_row >= BACKGROUND_ROW)
+    puzzle_strips = [s for s in all_strips if s["top_row"] >= BACKGROUND_ROW]
+    if not puzzle_strips:
+        return None
+
+    # Need at least two puzzle strips at different rows
+    unique_rows = sorted({s["top_row"] for s in puzzle_strips})
+    if len(unique_rows) < 2:
+        return None
+
+    # Reference = strips at topmost puzzle row (mirrors game: min y = zvojhrjxxm)
+    # Editable = strips at second puzzle row (ztgmtnnufb)
+    ref_row = unique_rows[0]
+    edit_row = unique_rows[1]
+
+    ref_candidates = [s for s in puzzle_strips if s["top_row"] == ref_row]
+    edit_candidates = [s for s in puzzle_strips if s["top_row"] == edit_row]
+
+    ref_strip = max(ref_candidates, key=lambda s: s["n_slots"])
+    edit_strip = max(edit_candidates, key=lambda s: s["n_slots"])
+
+    reference = ref_strip["slot_names"]
+    editable = edit_strip["slot_names"]
+    cursor_slot = _detect_cursor_slot(frame, edit_strip)
+
+    # Find rule pairs from the rule area (rows < BACKGROUND_ROW)
+    # Each entry: (lhs_names, rhs_names, lhs_raw, rhs_raw)
+    rules_full = _find_rule_pairs(frame, background_row=BACKGROUND_ROW)
+    # Name-only view for display and standard matching
+    rules = [(lhs, rhs) for lhs, rhs, _lr, _rr in rules_full]
+
+    # Build rule_map for format_slot_strip_context (flat 1:1 view for display)
+    rule_map: dict[str, str] = {}
+    for lhs_names, rhs_names in rules:
+        if len(lhs_names) == 1 and len(rhs_names) == 1:
+            ln, rn = lhs_names[0], rhs_names[0]
+            if ln and rn:
+                rule_map[ln] = rn
+
+    # Detect alter_rules mode: the SAME sprite name appears as LHS in two or more
+    # DISTINCT rules (same sprite at different rotations → different rules).
+    # This is different from a multi-sprite LHS (e.g. [C3, C3] → ...) where the
+    # same name repeats within one rule's LHS — that's a normal multi-slot pattern.
+    # We check by collecting one representative name per rule and looking for repeats.
+    lhs_first_per_rule = [lhs[0] for lhs, _ in rules if lhs and lhs[0]]
+    lhs_names_flat = [n for lhs, _ in rules for n in lhs if n]
+    alter_mode = len(set(lhs_first_per_rule)) < len(lhs_first_per_rule)
+
+    mode_hint = "standard"
+    target: list[str | None]
+
+    if alter_mode:
+        # In alter_rules mode the interactive elements are the rule area slot
+        # groups (rows < BACKGROUND_ROW), not the puzzle strips.  Each group is
+        # a "dial" rotated via ACTION2.  The puzzle strips display the reference
+        # (input A-series) and the goal output (target B-series, read-only).
+        # We compute the required rotation delta for each group so that
+        # rules(reference) == target (editable strip IS the target here).
+
+        # Collect rule area groups in cursor-traversal order (top then left)
+        rule_area_groups_sorted = sorted(
+            [g for g in _find_horizontal_strips(frame, FRAME_COLORS, min_slots=1)
+             if g["top_row"] < BACKGROUND_ROW],
+            key=lambda g: (g["top_row"], g["left_cols"][0]),
+        )
+
+        # editable (second puzzle strip) is the goal/target in alter_rules mode
+        target: list[str | None] = list(editable)
+        alter_deltas = _solve_alter_visual(rule_area_groups_sorted, reference, editable)
+
+        if alter_deltas is not None:
+            alter_cursor = _detect_cursor_in_rule_area(frame, rule_area_groups_sorted)
+            n_groups = len(rule_area_groups_sorted)
+            start = alter_cursor if alter_cursor is not None else 0
+            order = list(range(start, n_groups)) + list(range(0, start))
+            action_plan: list[int] = []
+            for idx, group_idx in enumerate(order):
+                d = alter_deltas[group_idx]
+                action_plan.extend([2] * d)
+                if idx < n_groups - 1:
+                    action_plan.append(4)
+            deltas: list[int | None] = [None] * len(editable)  # per-puzzle-slot N/A
+            mode_hint = "alter"
+        else:
+            target = [None] * len(editable)
+            deltas = [None] * len(editable)
+            action_plan = []
+            mode_hint = "alter-failed"
+
+        return {
+            "reference": reference,
+            "editable": editable,
+            "cursor_slot": cursor_slot,
+            "rules": rules,
+            "rule_map": rule_map,
+            "target": target,
+            "deltas": deltas,
+            "action_plan": action_plan,
+            "mode_hint": mode_hint,
+            "alter_group_deltas": alter_deltas,
+        }
+    else:
+        # Compute target via multi-sprite sequence rewriting (single pass first)
+        target_single = _apply_rules_to_seq(reference, rules, n_passes=1)
+
+        if target_single is not None:
+            target = target_single
+            # Check if target series matches editable series; if not, try double
+            edit_series_set = {_slot_series(n) for n in editable if n}
+            tgt_series_set  = {_slot_series(t) for t in target if t}
+            if tgt_series_set and edit_series_set and not tgt_series_set & edit_series_set:
+                target_double = _apply_rules_to_seq(reference, rules, n_passes=2)
+                if target_double is not None:
+                    tgt2_series = {_slot_series(t) for t in target_double if t}
+                    if tgt2_series & edit_series_set:
+                        target = target_double
+                        mode_hint = "double"
+        else:
+            # Single pass failed; try double pass directly
+            target_double = _apply_rules_to_seq(reference, rules, n_passes=2)
+            if target_double is not None:
+                target = target_double
+                mode_hint = "double"
+            else:
+                # Both standard passes failed.  If rules mix A-series and B-series
+                # LHS sprites, this is alter_rules + double_translation mode (L6):
+                # rule groups in the rule area are rotatable dials, two-stage.
+                lhs_series_set = {_slot_series(n) for n in lhs_names_flat}
+                if len(lhs_series_set) > 1:
+                    rule_area_groups_sorted = sorted(
+                        [g for g in _find_horizontal_strips(frame, FRAME_COLORS, min_slots=1)
+                         if g["top_row"] < BACKGROUND_ROW],
+                        key=lambda g: (g["top_row"], g["left_cols"][0]),
+                    )
+                    alter_double_deltas = _solve_alter_double_visual(
+                        rule_area_groups_sorted, reference, editable
+                    )
+                    if alter_double_deltas is not None:
+                        alter_cursor = _detect_cursor_in_rule_area(frame, rule_area_groups_sorted)
+                        n_groups = len(rule_area_groups_sorted)
+                        start = alter_cursor if alter_cursor is not None else 0
+                        order = list(range(start, n_groups)) + list(range(0, start))
+                        action_plan_ad: list[int] = []
+                        for idx, group_idx in enumerate(order):
+                            d = alter_double_deltas[group_idx]
+                            action_plan_ad.extend([2] * d)
+                            if idx < n_groups - 1:
+                                action_plan_ad.append(4)
+                        return {
+                            "reference": reference,
+                            "editable": editable,
+                            "cursor_slot": cursor_slot,
+                            "rules": rules,
+                            "rule_map": rule_map,
+                            "target": list(editable),  # editable IS the goal
+                            "deltas": [None] * len(editable),
+                            "action_plan": action_plan_ad,
+                            "mode_hint": "alter-double",
+                            "alter_group_deltas": alter_double_deltas,
+                        }
+                target = [None] * len(reference)
+
+    # Compute deltas: target must have same length as editable
+    if len(target) != len(editable):
+        # Size mismatch — cannot align; produce partial deltas
+        deltas_raw: list[int | None] = []
+        for tgt, cur in zip(target, editable):
+            if tgt is None or cur is None:
+                deltas_raw.append(None)
+            elif _slot_series(tgt) != _slot_series(cur):
+                deltas_raw.append(None)
+            else:
+                deltas_raw.append((_slot_num(tgt) - _slot_num(cur)) % 7)
+        deltas: list[int | None] = deltas_raw
+    else:
+        deltas = []
+        for tgt, cur in zip(target, editable):
+            if tgt is None or cur is None:
+                deltas.append(None)
+            elif _slot_series(tgt) != _slot_series(cur):
+                deltas.append(None)
+            else:
+                deltas.append((_slot_num(tgt) - _slot_num(cur)) % 7)
+
+    # Build action plan starting from the detected cursor position so the plan
+    # works correctly after a transition-peek ACTION4 (cursor at slot 1).
+    n_edit = len(editable)
+    action_plan: list[int] = []
+    if None not in deltas and len(deltas) == n_edit:
+        # Determine starting slot from cursor detection
+        start = cursor_slot if cursor_slot is not None else 0
+        # Visit slots in order: start, start+1, ..., n_edit-1, 0, ..., start-1
+        order = list(range(start, n_edit)) + list(range(0, start))
+        for idx, slot_idx in enumerate(order):
+            d = deltas[slot_idx]
+            action_plan.extend([2] * d)  # type: ignore[arg-type]
+            if idx < n_edit - 1:
+                action_plan.append(4)  # cursor right
+
+    return {
+        "reference": reference,
+        "editable": editable,
+        "cursor_slot": cursor_slot,
+        "rules": rules,
+        "rule_map": rule_map,
+        "target": target,
+        "deltas": deltas,
+        "action_plan": action_plan,
+        "mode_hint": mode_hint,
+    }
+
+
+def format_slot_strip_context(slot_data: dict) -> str:
+    """Format detect_slot_strips output as a structural context string.
+
+    Returns a multi-line string ready for injection into the MEDIATOR prompt.
+    """
+    lines: list[str] = []
+    lines.append("Slot strips:")
+
+    ref = slot_data["reference"]
+    edit = slot_data["editable"]
+    cursor = slot_data["cursor_slot"]
+    rules = slot_data["rules"]
+    target = slot_data["target"]
+    deltas = slot_data["deltas"]
+    plan = slot_data["action_plan"]
+    mode = slot_data["mode_hint"]
+
+    def _fmt_names(names: list) -> str:
+        return "  ".join(n if n else "?" for n in names)
+
+    n_ref = len(ref)
+    n_edit = len(edit)
+    lines.append(f"  Reference ({n_ref} slots): {_fmt_names(ref)}")
+    cursor_mark = ""
+    edit_slots_str = []
+    for i, n in enumerate(edit):
+        mark = " [CURSOR]" if i == cursor else ""
+        edit_slots_str.append(f"{n if n else '?'}{mark}")
+    lines.append(f"  Editable ({n_edit} slots): {'  '.join(edit_slots_str)}")
+
+    if rules:
+        def _fmt_rule(lhs_names, rhs_names):
+            l = "+".join(n if n else "?" for n in lhs_names)
+            r = "+".join(n if n else "?" for n in rhs_names)
+            return f"{l}->{r}"
+        rule_strs = [_fmt_rule(lhs, rhs) for lhs, rhs in rules]
+        lines.append(f"  Rules ({len(rules)}): {', '.join(rule_strs)}")
+
+    if any(t is not None for t in target):
+        tgt_str = _fmt_names(target)
+        lines.append(f"  Target (rules applied{' twice' if mode == 'double' else ''}): {tgt_str}")
+
+    if None not in deltas:
+        delta_parts = [f"slot{i+1}:+{d}" for i, d in enumerate(deltas)]  # type: ignore
+        lines.append(f"  Deltas (ACTION2 presses): {', '.join(delta_parts)}")
+    else:
+        solved = [(i, d) for i, d in enumerate(deltas) if d is not None]
+        if solved:
+            parts = [f"slot{i+1}:+{d}" for i, d in solved]
+            lines.append(f"  Deltas (partial): {', '.join(parts)}")
+
+    if plan:
+        # Summarize the plan as groups of ACTION2s and ACTION4s
+        plan_str = " ".join(
+            f"2×{sum(1 for x in g if x == 2)}" if 2 in g else "4"
+            for g in _split_actions(plan)
+        )
+        lines.append(f"  Action plan: {plan_str}")
+        lines.append(
+            f"  Raw actions: [{', '.join(str(a) for a in plan)}]"
+        )
+        lines.append(
+            "  IMPORTANT: Execute this action plan directly using ACTION2 and ACTION4. "
+            "Do NOT waste steps on exploration."
+        )
+    elif None not in deltas:
+        lines.append("  Action plan: already solved (all deltas = 0)")
+    else:
+        lines.append(
+            "  Action plan: incomplete — some rule mappings unresolved. "
+            "Use ACTION2 to cycle the current slot and ACTION4 to move right."
+        )
+
+    return "\n".join(lines)
+
+
+def _split_actions(plan: list[int]) -> list[list[int]]:
+    """Split action plan into groups separated by ACTION4."""
+    groups: list[list[int]] = []
+    current: list[int] = []
+    for a in plan:
+        if a == 4:
+            if current:
+                groups.append(current)
+            groups.append([4])
+            current = []
+        else:
+            current.append(a)
+    if current:
+        groups.append(current)
+    return groups

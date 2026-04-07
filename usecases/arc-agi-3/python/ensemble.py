@@ -1019,8 +1019,8 @@ async def run_episode(
 
         _struct_ms = int((time.time() - _t0) * 1000)
 
-        # Detect puzzle levels from structural context (≥6 visual groups).
-        _is_puzzle = "Visual groups:" in structural_str
+        # Detect puzzle levels from structural context (≥6 visual groups or slot strips).
+        _is_puzzle = "Visual groups:" in structural_str or "Slot strips:" in structural_str
 
         # Check if the frame changed enough to warrant a new OBSERVER call.
         _frame_diff = 0
@@ -1580,6 +1580,21 @@ async def run_episode(
                 _promote_fired_candidates(
                     rule_engine, matched, task_id, log
                 )
+                # Slot-strip puzzles (TR87-type): the frame returned on level
+                # completion still shows the previous level's solved state.
+                # Take one ACTION4 "peek" step so the next OBSERVER cycle
+                # sees the new level's initial visual content.
+                if _is_puzzle and step_count < max_steps:
+                    _peek_action = next(
+                        (a for a in getattr(env, "action_space", [])
+                         if getattr(a, "name", str(a)) == "ACTION4"),
+                        None,
+                    )
+                    if _peek_action is not None:
+                        obs = env.step(_peek_action, data={})
+                        step_count += 1
+                        log(f"  [ACTOR] Transition peek: ACTION4 to load "
+                            f"next level frame (levels={obs_levels_completed(obs)})")
                 break  # re-enter OBSERVER with fresh state
 
     # -----------------------------------------------------------------------

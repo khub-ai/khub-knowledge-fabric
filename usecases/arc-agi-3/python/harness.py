@@ -130,11 +130,136 @@ def parse_args() -> argparse.Namespace:
                    help="Level to start playing from (default: 1). "
                         "If the scorecard already has prior levels completed, skips pre-solve. "
                         "If not, executes the known subplan for this env to advance levels.")
+    p.add_argument("--competition", action="store_true",
+                   help="Run in competition mode: iterate the curated list of "
+                        "competition-ready games with per-game budgets, one scorecard, "
+                        "and write a submission summary.")
     p.add_argument("--model", default="",
                    help="Override LLM model. Examples: claude-sonnet-4-6, "
                         "Qwen/Qwen3.5-9B, meta-llama/Llama-3.3-70B-Instruct-Turbo, "
                         "deepseek-ai/DeepSeek-V3.1, Qwen/Qwen3.5-397B-A17B")
     return p.parse_args()
+
+
+# ---------------------------------------------------------------------------
+# Competition mode
+# ---------------------------------------------------------------------------
+
+# Curated list of games we currently consider competition-ready, with budgets
+# tuned to known-good runs. Add games here as they reach competition quality.
+COMPETITION_GAMES: list[dict] = [
+    # TR87: visual slot solver clears all 6 levels deterministically in ~170 steps.
+    {"env_id": "tr87", "max_steps": 300, "max_cycles": 80, "episodes": 1},
+    # LS20: only level 1 is currently confirmed. Single best-effort attempt.
+    {"env_id": "ls20", "max_steps": 200, "max_cycles": 60, "episodes": 1},
+]
+
+
+async def _run_competition(arc, args, render_mode) -> None:
+    """Run the curated competition game list under a single scorecard."""
+    rules    = RuleEngine(args.rules or None, dataset_tag=args.dataset_tag)
+    tool_reg = ToolRegistry(read_only=False, dataset_tag=args.dataset_tag)
+    playlog_root = Path(args.playlog) if args.playlog else None
+
+    console.print(Panel(
+        f"[bold]ARC-AGI-3 COMPETITION MODE[/bold]\n"
+        f"Model:    [cyan]{DEFAULT_MODEL}[/cyan]\n"
+        f"Games:    {', '.join(g['env_id'] for g in COMPETITION_GAMES)}\n"
+        f"Playlogs: {playlog_root or '(disabled)'}",
+        title="Harness — Competition"
+    ))
+
+    submission: list[dict] = []
+    output_path = Path(args.output).with_name("competition_results.json")
+    started = time.time()
+
+    for game in COMPETITION_GAMES:
+        env_id   = game["env_id"]
+        max_st   = game["max_steps"]
+        max_cy   = game["max_cycles"]
+        n_eps    = game["episodes"]
+
+        console.rule(f"[bold cyan]{env_id}[/bold cyan]")
+        env = arc.make(env_id, render_mode=render_mode)
+        if env is None:
+            console.print(f"[red]Failed to create env: {env_id}[/red]")
+            continue
+
+        ens.MAX_STEPS  = max_st
+        ens.MAX_CYCLES = max_cy
+
+        episodes: list[EpisodeMetadata] = []
+        shared_dirs: dict = {}
+        best_levels = 0
+
+        for ep in range(1, n_eps + 1):
+            meta = await run_episode(
+                env                     = env,
+                episode_num             = ep,
+                env_id                  = env_id,
+                rule_engine             = rules,
+                tool_registry           = tool_reg,
+                max_steps               = max_st,
+                max_cycles              = max_cy,
+                verbose                 = not args.quiet,
+                playlog_root            = playlog_root,
+                known_action_directions = shared_dirs,
+                start_level             = 1,
+            )
+            shared_dirs.update(meta.action_directions)
+            episodes.append(meta)
+            best_levels = max(best_levels, meta.levels_completed)
+            if meta.won:
+                console.print(f"[green bold]WIN {env_id} ep{ep}[/green bold]")
+                break
+
+        submission.append({
+            "env_id":          env_id,
+            "episodes_run":    len(episodes),
+            "won":             any(e.won for e in episodes),
+            "best_levels":     best_levels,
+            "total_steps":     sum(e.steps_taken for e in episodes),
+            "total_cost_usd":  round(sum(e.cost_usd for e in episodes), 6),
+            "episodes":        [asdict(e) for e in episodes],
+        })
+
+        # Incremental write after every game.
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(json.dumps({
+            "model":     DEFAULT_MODEL,
+            "started":   datetime.datetime.utcfromtimestamp(started).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "elapsed_s": round(time.time() - started, 1),
+            "games":     submission,
+        }, indent=2), encoding="utf-8")
+
+    # Final summary table
+    table = Table(title="Competition Summary")
+    table.add_column("Game"); table.add_column("Won"); table.add_column("Levels")
+    table.add_column("Steps"); table.add_column("Cost USD")
+    for g in submission:
+        table.add_row(g["env_id"], "yes" if g["won"] else "no",
+                      str(g["best_levels"]), str(g["total_steps"]),
+                      f"${g['total_cost_usd']:.4f}")
+    console.print(table)
+    console.print(f"Submission written to [bold]{output_path}[/bold]")
+
+    # Close the shared scorecard
+    try:
+        scorecard = arc.close_scorecard()
+        if scorecard is not None:
+            sc_path = output_path.with_name("competition_scorecard.json")
+            if hasattr(scorecard, "model_dump_json"):
+                sc_path.write_text(scorecard.model_dump_json(indent=2), encoding="utf-8")
+            else:
+                import dataclasses
+                sc_dict = (dataclasses.asdict(scorecard)
+                           if dataclasses.is_dataclass(scorecard)
+                           else {k: v for k, v in vars(scorecard).items()
+                                 if not k.startswith("_")})
+                sc_path.write_text(json.dumps(sc_dict, indent=2), encoding="utf-8")
+            console.print(f"Scorecard written to [bold]{sc_path}[/bold]")
+    except Exception as exc:
+        console.print(f"[yellow]Could not close scorecard: {exc}[/yellow]")
 
 
 # ---------------------------------------------------------------------------
@@ -174,6 +299,12 @@ async def main() -> None:
     # Build environment
     render_mode = None if args.render == "none" else args.render
     arc = arc_agi.Arcade(arc_api_key=os.environ.get("ARC_API_KEY", ""))
+
+    # Competition mode: run the curated game list and exit.
+    if args.competition:
+        await _run_competition(arc, args, render_mode)
+        return
+
     env = arc.make(args.env, render_mode=render_mode)
     if env is None:
         console.print(f"[red]Failed to create environment: {args.env}[/red]")
