@@ -353,56 +353,87 @@ Rules are authored for a specific pair (e.g. `melanoma_vs_melanocytic_nevus`). W
 
 `patch.py` detects cross-pair firings automatically and surfaces them as explicit signals for the human expert or superior VLM to review.
 
+#### Model routing: --validator-model separation
+
+`patch.py` accepts three distinct model roles:
+
+| Flag | Role | Typical value |
+|---|---|---|
+| `--cheap-model` | Pupil — the model being patched | `qwen/qwen3-vl-8b-instruct` |
+| `--expert-model` | Tutor — authors rules, does contrastive analysis, generates spectrum | `claude-tutor` (filesystem) or `claude-sonnet-4-6` (API) |
+| `--validator-model` | Validator — binary precondition checks on pool images | `claude-sonnet-4-6` |
+
+Without `--validator-model`, all pool validation calls go to the expert model — which is correct when the expert is an API VLM, but wrong when the expert is `claude-tutor` (a human-in-the-loop via filesystem). In the tutor workflow, all six pool validation call sites must use `claude-sonnet-4-6` directly to avoid routing 100+ binary validation requests to the human. `_val_model = validator_model or expert_model` handles this at the top of the loop.
+
+#### Expert model: filesystem inbox/outbox (claude-tutor)
+
+When `--expert-model claude-tutor` is set, agent calls that require expert judgment (EXPERT_RULE_AUTHOR, RULE_COMPLETER, SEMANTIC_RULE_VALIDATOR, contrastive analysis, spectrum generation) are routed through a filesystem protocol instead of an API:
+
+- Request written as JSON to `tutor_inbox/<request_id>.json` with the agent role, system prompt, user text, and image paths
+- Loop polls for `tutor_outbox/<request_id>.txt`; when present, reads the response and continues
+- Completed requests are moved to `tutor_inbox/done/`
+
+This allows a human expert (or Claude Code session acting as expert) to respond to each authoring step interactively, one at a time, while pool validation still runs automatically via `--validator-model`.
+
 #### Architecture (patch.py)
 
 ```
-patch.py --cheap-model o4-mini --expert-model claude-sonnet-4-6 --pair <pair_id>
+patch.py --cheap-model qwen/qwen3-vl-8b-instruct \
+         --expert-model claude-tutor \
+         --validator-model claude-sonnet-4-6 \
+         --pair melanoma_vs_melanocytic_nevus
 
 Step 0.  Run cheap VLM zero-shot → collect failures
 
-For each failure image:
+For each failure image (one at a time — early exit on first unresolved failure):
 
-Step 1a. EXPERT_RULE_AUTHOR (VLM + image)
+Step 1a. EXPERT_RULE_AUTHOR (expert-model + failure image)
            → candidate rule with pre-conditions (diagnostic — what was distinctive)
 
-Step 1b. RULE_COMPLETER (text-only)
+Step 1b. RULE_COMPLETER (expert-model, text-only)
            → fill implicit background conditions the expert omitted
            → returns enriched rule with added_preconditions + completion_rationale
 
-Step 1c. SEMANTIC_RULE_VALIDATOR (text-only, no images)
+Step 1c. SEMANTIC_RULE_VALIDATOR (expert-model, text-only, no images)
            → rate each pre-condition: reliable / unreliable / context_dependent
            → overall: accept / revise / reject
            If reject → skip image validation, surface to expert immediately
 
-Step 2.  Sample two independent image pools from training set:
-           authoring pool  (seed=0,  --max-authoring-per-class, default 8)
-             Expert-visible: used to get tp_cases/fp_cases for contrastive analysis
-           held-out pool   (seed=42, --max-val-per-class, default 8)
+Step 2.  Sample three independent image pools from training set:
+           authoring pool   (seed=0,   --max-authoring-per-class)
+             Expert-visible: validator observations → tp_cases/fp_cases for contrastive analysis
+           held-out pool    (seed=42,  --max-val-per-class)
              Expert-blind:  binding acceptance gate (expert never sees these images)
+           confirmation pool (seed=123, --max-confirm-per-class)
+             Expert-blind:  secondary precision check after held-out passes
 
-Step 3a. Validate completed rule against authoring pool
+           All pool validation calls use validator-model (not expert-model).
+
+Step 3a. Validate completed rule against authoring pool (validator-model)
            → tp_cases, fp_cases with per-image observations for expert context
 
-Step 3b. Validate completed rule against held-out pool (binding gate)
+Step 3b. Validate completed rule against held-out pool (validator-model, binding gate)
            Accept if: fires_on_trigger AND fp ≤ 1 AND precision ≥ 0.75
-           If accepted → register, skip to Step 4
+           If accepted → also validate against confirmation pool → register if passes
            If rejected, fires_on_trigger=False → reject (cannot tighten further)
            If rejected, fp=0, low precision → reject (no FP observations to analyze)
            If rejected, fp > 0 → spectrum search:
              a. run_contrastive_feature_analysis(auth_tp_cases, auth_fp_cases)
                   → single most discriminating visual feature (uses authoring observations)
-             b. run_rule_spectrum_generator()
+             b. run_rule_spectrum_generator() (expert-model)
                   → 4 specificity levels in one call, ordered most-general → most-specific:
-                      Level 1: single essential pre-condition only
-                      Level 2: original pre-conditions (moderate)
-                      Level 3: original + contrastive tightening
-                      Level 4: most specific (all conditions)
-             c. validate_candidate_rules_batch(all 4 levels, held_out_images) — parallel
+                      Level 1: single essential pre-condition only (most_general)
+                      Level 2: core + one supporting condition (moderate)
+                      Level 3: original rule as authored, unchanged (original)
+                      Level 4: original + contrastive tightening condition (most_specific)
+             c. validate_candidate_rules_batch(all 4 levels, held_out_images, validator-model)
              d. Pick the most general level that passes the held-out gate
              e. If none pass → _surface_to_expert() with best-precision level
 
-Step 4.  Register accepted rule in patch_rules_clean.json
-Step 5.  Re-run cheap VLM with patch rules → compare accuracy
+Step 4.  Register accepted rule in patch_rules file
+Step 5.  Re-run cheap VLM with patch rules on the failure image → check if fixed
+         If NOT fixed and more failures remain → STOP (early exit); save state
+         If fixed → proceed to next failure image
 Step 6.  Detect cross-pair firings → surface to operator
 ```
 
@@ -489,13 +520,19 @@ iterating blindly:
 | Level | Label | Strategy |
 |---|---|---|
 | 1 | most_general | Single essential pre-condition only |
-| 2 | moderate | Original pre-conditions as authored |
-| 3 | original | Original + contrastive discriminating feature |
-| 4 | most_specific | Full tightening (all conditions) |
+| 2 | moderate | Core condition + one supporting condition |
+| 3 | original | Original rule as authored (all original pre-conditions, unchanged) |
+| 4 | most_specific | Original + one contrastive tightening condition |
 
 All four are validated in parallel against the held-out pool. The most general
 passing level is selected. This avoids over-tightening because the search starts
 from the loosest formulation and only tightens as needed.
+
+**Key empirical finding (Qwen3-VL-8B mel/nev run, 2026-04-08)**: for ISIC_0024315, Level 1
+(2 preconditions: regression structures + peripheral globules) achieved precision=1.0 and was
+selected. Levels 2, 3, and 4 each achieved precision=0.67 or did not fire on the trigger at all.
+More conditions hurt rather than helped — the added conditions created new FP pathways while also
+failing to fire on the TP. Simpler rules can be more precise than complex ones.
 
 #### Dialogic loop results (o4-mini, 2026-04-06)
 
@@ -504,6 +541,32 @@ from the loosest formulation and only tightens as needed.
 | Mel/Nev | 4/6 (67%) | **5/6 (83%)** | +16.7pp | 2 rules accepted on first attempt (FP=0, precision=1.00) |
 | BCC/BKL | 4/6 (67%) | **5/6 (83%)** | +16.7pp | 1 rule accepted (FP=1, precision=0.80); rule 2 rejected (fires_on_trigger=False) |
 | AK/BKL | 4/6 (67%) | — | 0pp | Both rules fail; revision tightened rule until fires_on_trigger=False — escalated to expert |
+
+#### Dialogic loop results (Qwen3-VL-8B + claude-tutor, 2026-04-08)
+
+Run command:
+```bash
+python patch.py \
+  --failures-from results_baseline_qwen3vl8b_zeroshot.json \
+  --cheap-model "qwen/qwen3-vl-8b-instruct" \
+  --expert-model "claude-tutor" \
+  --validator-model "claude-sonnet-4-6" \
+  --pair melanoma_vs_melanocytic_nevus \
+  --max-val-per-class 4 --max-authoring-per-class 4 --max-confirm-per-class 8 \
+  --patch-rules patch_rules_single_test.json \
+  --output patch_session_single_test.json
+```
+
+Qwen3-VL-8B baseline on mel/nev: 3/6 (50%) — all three melanomas missed, all three benign moles correct.
+
+| Failure | Correct label | Rule authored | Spectrum level selected | Held-out precision | Result |
+|---|---|---|---|---|---|
+| ISIC_0024315 | Melanoma | regression structures + irregular peripheral globules | **Level 1** (most_general, 2 preconditions) | 1.00 (0 FP) | ✓ FIXED |
+| ISIC_0024333 | Melanoma | diffuse regression + peppering + disorganized texture | in progress | — | — |
+| ISIC_0024400 | Melanoma | gray-blue structureless areas + multi-zone asymmetry | in progress | — | — |
+
+Expert model: `claude-tutor` (human-in-the-loop via filesystem inbox/outbox).
+Validator model: `claude-sonnet-4-6` (API, handles all pool validation directly).
 
 **Mel/Nev and BCC/BKL both lifted to 83%**, matching Claude Sonnet 4.6 zero-shot on those pairs, with the expert cost paid once per rule.
 
@@ -595,14 +658,21 @@ python migrate_rules.py
 python harness.py --pair melanoma_vs_melanocytic_nevus --mode test
 python harness.py --all --max-per-class 3 --mode test --output results_pilot.json
 
-# Dialogic patching loop: cheap model + expert VLM patch authors
+# Dialogic patching loop: cheap model + API expert
 python patch.py --cheap-model o4-mini --expert-model claude-sonnet-4-6 \
     --pair melanoma_vs_melanocytic_nevus --max-per-class 3
 
-# Preview authored patch rules, then re-run pipeline with them
-python patch.py --cheap-model o4-mini --expert-model claude-sonnet-4-6 \
-    --patch-rules patch_rules_clean.json --pair melanoma_vs_melanocytic_nevus \
-    --max-per-class 3 --skip-patch  # run pipeline only, no new authoring
+# Dialogic patching loop: cheap model + human-in-the-loop tutor + cheap validator
+# (expert-model routes authoring to filesystem; validator-model handles pool checks via API)
+python patch.py \
+    --failures-from results_baseline_qwen3vl8b_zeroshot.json \
+    --cheap-model "qwen/qwen3-vl-8b-instruct" \
+    --expert-model "claude-tutor" \
+    --validator-model "claude-sonnet-4-6" \
+    --pair melanoma_vs_melanocytic_nevus \
+    --max-val-per-class 4 --max-authoring-per-class 4 --max-confirm-per-class 8 \
+    --patch-rules patch_rules_single_test.json \
+    --output patch_session_single_test.json
 ```
 
 ### 4.5 Runtime notes
