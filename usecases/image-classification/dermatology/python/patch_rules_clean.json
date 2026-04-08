@@ -1,10 +1,10 @@
 {
+  "version": 2,
   "rules": [
     {
       "id": "r_001",
-      "condition": "[Patch rule \u2014 melanoma_vs_melanocytic_nevus] Lesion has a darker central core that transitions smoothly and gradually to lighter brown toward the periphery (centrifugal pigment gradient); Border is soft, blurred, or feathered \u2014 not angulated, notched, or sharply demarcated in focal areas; No blue-white structures, shiny white lines, or regression areas are present; No radial streaming, pseudopods, or peripheral globules indicating asymmetric growth; No atypical pigment network with thick irregular lines and irregular holes; Background pigment network, if visible, is relatively regular or blended/homogeneous; Lesion is roughly symmetric in overall shape and pigment distribution despite appearing heterogeneous at first glance",
-      "action": "Classify as Melanocytic Nevus. Confidence: medium. Rule: When a lesion displays a central darker zone that fades gradually and centrifugally into lighter brown at the periphery without sharp color cutoffs, and the overall border is soft/feathered rather than angulated, and there are no blue-white structures, regression areas, atypical network, or radial streaming, classify as Melanocytic Nevus.",
-      "source_level": 0,
+      "condition": "[Patch rule \u2014 melanoma_vs_melanocytic_nevus] Lesion is clearly asymmetric \u2014 one half is not a mirror image of the other in shape OR pigment distribution; At least three distinct colors are visible within the lesion (e.g. light brown, dark brown/black, gray-blue, pink-red, white regression area); Border is irregular, notched, or scalloped \u2014 not smooth/round/oval; Pigment distribution is heterogeneous (dark patches next to lighter or pink/white areas), not a uniform brown of a banal nevus; DO NOT demand ulceration, bleeding, or clinical history of growth \u2014 those are NOT required for a dermoscopic melanoma call; the visual ABCD-style features above are themselves sufficient; An atypical pigment network (broadened, branched, abruptly cut off at the periphery) OR streaks/pseudopods radiating from the edge OR a blue-white veil OR irregular dots/globules unevenly distributed is present \u2014 at least one of these melanoma-specific dermoscopic structures; The lesion is NOT a uniform reticular network with regular meshwork and gradual fade-out at the periphery (the classic banal nevus pattern); The lesion does NOT consist of evenly-sized, evenly-distributed brown globules in a symmetric arrangement (the classic globular nevus pattern)",
+      "action": "Classify as Melanoma. Confidence: high. Rule: When a pigmented lesion is asymmetric AND shows three or more distinct colors (e.g. dark brown plus gray-blue plus pink/red or white) AND has an irregular/notched border, classify as Melanoma. Do NOT require ulceration \u2014 these dermoscopic features alone are sufficient evidence of melanoma; nevi are typically symmetric, one-or-two-toned brown, with smooth borders.",
       "rule_type": "task",
       "scope": "dataset",
       "stats_by_ns": {
@@ -14,29 +14,29 @@
           "failures": 0
         }
       },
-      "source": "expert_vlm:claude-opus-4-6",
-      "source_task": "melanoma_vs_melanocytic_nevus_ISIC_0024392",
+      "source": "expert_vlm:claude-tutor",
+      "source_task": "melanoma_vs_melanocytic_nevus_ISIC_0024315",
       "tags": [
         "derm-ham10000",
         "melanoma_vs_melanocytic_nevus",
-        "patch:o4-mini",
-        "triggered_by:melanoma_vs_melanocytic_nevus_ISIC_0024392"
+        "patch:qwen/qwen3-vl-8b-instruct",
+        "triggered_by:melanoma_vs_melanocytic_nevus_ISIC_0024315"
       ],
       "lineage": {
         "type": "new",
         "parent_ids": [],
-        "reason": "patch rule authored by expert VLM to correct o4-mini failure"
+        "reason": "patch rule for melanoma_vs_melanocytic_nevus triggered by melanoma_vs_melanocytic_nevus_ISIC_0024315"
       },
       "status": "active",
+      "source_level": 0,
       "tasks_seen": 0,
-      "created": "2026-04-05T09:00:00",
+      "created": "2026-04-08T04:04:34",
       "last_fired": null
     },
     {
       "id": "r_002",
-      "condition": "[Patch rule \u2014 basal_cell_carcinoma_vs_benign_keratosis] Fine fingerprint-like or gyrate ridges visible within the lesion body; Admixture of light brown and pinkish-grey tones without true steel-blue or blue-white ovoid nests; Grey areas are diffuse and smudged rather than forming discrete blue-grey globules or ovoid nests; Absence of arborizing (branching) telangiectasia on close inspection; Absence of leaf-like structures or spoke-wheel areas at the periphery; Border shows gradual fading or moth-eaten edges rather than sharp well-defined margin typical of BCC",
-      "action": "Classify as Benign Keratosis. Confidence: medium. Rule: When a lesion displays a central structureless zone with admixed brown and pinkish-grey hues, fingerprint-like or ridge-like fine linear structures radiating within the lesion, and a gradual moth-eaten or smudged border without arborizing telangiectasia, leaf-like structures, or spoke-wheel areas, classify as Benign Keratosis.",
-      "source_level": 0,
+      "condition": "[Patch rule \u2014 melanoma_vs_melanocytic_nevus] Lesion is clearly asymmetric in shape and pigment distribution; At least three distinct colors are visible (e.g. light brown, dark brown, gray-blue/lavender, pink-red, white); Border is irregular, notched, or scalloped \u2014 not smooth/round/oval; Pigment distribution is heterogeneous, not uniform brown of a banal nevus; An atypical pigment network (broadened, branched, abruptly cut off at the periphery) OR streaks/pseudopods OR a blue-white veil OR irregular dots/globules unevenly distributed is present \u2014 at least one melanoma-specific dermoscopic structure; The lesion is NOT a uniform reticular network with regular meshwork and gradual fade-out at the periphery (the classic banal nevus pattern); The lesion does NOT consist of evenly-sized, evenly-distributed brown globules in a symmetric arrangement (the classic globular nevus pattern); DO NOT demand ulceration, bleeding, or clinical history of growth \u2014 the dermoscopic ABCD-style features above are themselves sufficient",
+      "action": "Classify as Melanoma. Confidence: high. Rule: Asymmetric multi-lobed lesion with at least three hues (light brown, dark brown, gray-purple/lavender central area, pink). Border is irregular and notched. Pigment is heterogeneous with a broadened atypical-appearing network and a central gray-blue/lavender area suggestive of regression or blue-white veil. Not a uniform reticular or symmetric globular pattern.",
       "rule_type": "task",
       "scope": "dataset",
       "stats_by_ns": {
@@ -46,54 +46,23 @@
           "failures": 0
         }
       },
-      "source": "expert_vlm:claude-opus-4-6",
-      "source_task": "basal_cell_carcinoma_vs_benign_keratosis_ISIC_0024336",
+      "source": "expert_vlm:claude-tutor",
+      "source_task": "melanoma_vs_melanocytic_nevus_ISIC_0024333",
       "tags": [
         "derm-ham10000",
-        "basal_cell_carcinoma_vs_benign_keratosis",
-        "patch:o4-mini",
-        "triggered_by:basal_cell_carcinoma_vs_benign_keratosis_ISIC_0024336"
+        "melanoma_vs_melanocytic_nevus",
+        "patch:qwen/qwen3-vl-8b-instruct",
+        "triggered_by:melanoma_vs_melanocytic_nevus_ISIC_0024333"
       ],
       "lineage": {
         "type": "new",
         "parent_ids": [],
-        "reason": "patch rule authored by expert VLM to correct o4-mini failure"
+        "reason": "patch rule for melanoma_vs_melanocytic_nevus triggered by melanoma_vs_melanocytic_nevus_ISIC_0024333"
       },
       "status": "active",
-      "tasks_seen": 0,
-      "created": "2026-04-05T09:00:00",
-      "last_fired": null
-    },
-    {
-      "id": "r_003",
-      "condition": "[Patch rule \u2014 actinic_keratosis_vs_benign_keratosis] Flat pigmented lesion with a mixture of brown and grey-blue hues in a patchy distribution; Fingerprint-like or cerebriform parallel ridge structures visible within the pigmented area; Grey-blue structureless zone present centrally, suggesting regression or lichenoid inflammation; Relatively well-circumscribed overall border without ill-defined erythematous spread into surrounding skin; Absence of surface scale, strawberry pattern, or rosettes typical of actinic keratosis; No prominent surrounding erythema or diffuse pink structureless background extending beyond the lesion",
-      "action": "Classify as Benign Keratosis. Confidence: medium. Rule: When a flat pigmented lesion shows a central zone with multiple colors (brown, grey-blue, pink) arranged in a patchy/mottled pattern with fingerprint-like or cerebriform ridges visible within the pigmented area, and the lesion has a well-demarcated border with a sharp transition from pigmented zone to surrounding skin, classify as Benign Keratosis (solar lentigo / lichen planus-like keratosis).",
       "source_level": 0,
-      "rule_type": "task",
-      "scope": "dataset",
-      "stats_by_ns": {
-        "derm-ham10000": {
-          "fires": 0,
-          "successes": 0,
-          "failures": 0
-        }
-      },
-      "source": "expert_vlm:claude-opus-4-6",
-      "source_task": "actinic_keratosis_vs_benign_keratosis_ISIC_0024336",
-      "tags": [
-        "derm-ham10000",
-        "actinic_keratosis_vs_benign_keratosis",
-        "patch:o4-mini",
-        "triggered_by:actinic_keratosis_vs_benign_keratosis_ISIC_0024336"
-      ],
-      "lineage": {
-        "type": "new",
-        "parent_ids": [],
-        "reason": "patch rule authored by expert VLM to correct o4-mini failure"
-      },
-      "status": "active",
       "tasks_seen": 0,
-      "created": "2026-04-05T09:00:00",
+      "created": "2026-04-08T04:23:59",
       "last_fired": null
     }
   ]

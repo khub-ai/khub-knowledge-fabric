@@ -106,6 +106,14 @@ MAX_CYCLES = 40    # hard cap on OBSERVER-MEDIATOR cycles per episode
 # Set to False to revert to full OBSERVER calls on every cycle.
 SKIP_OBSERVER_FOR_PUZZLES = True
 
+# Competition mode: when True, ALL per-game artifacts (LS20 BFS planner, TR87
+# slot-strip detector, hardcoded subplans, puzzle bypass paths) are excluded.
+# KF must solve every game using only game-agnostic primitives and concepts
+# learned from training. Training mode (False) keeps the bespoke solvers
+# enabled so they can be used as ground-truth references for the generalized
+# layer under development.
+COMPETITION_MODE = False
+
 # Known action sequences to pre-solve (skip) levels that are already mastered.
 # Keys are env_id strings.  Values are ordered action names.
 # LS20: ACTION3×3 + ACTION1×4 + ACTION4×3 + ACTION1×3 = 13 steps to complete level 1.
@@ -376,14 +384,24 @@ class EpisodeLogger:
             self._write(f"  MATCHED RULES: (none)")
 
     def observer_output(self, obs_text: str) -> None:
-        """Extract and log the key hypotheses from the OBSERVER JSON output."""
+        """Extract and log the key hypotheses from the OBSERVER output.
+
+        Supports two formats:
+          1. Legacy JSON in a fenced code block (pre-agent-loop OBSERVER).
+          2. Markdown with ## sections (agent_loop / CLI OBSERVER).
+        If neither yields content, dumps the raw text indented.
+        """
         self._write("  [OBSERVER OUTPUT]")
+        if not obs_text:
+            return
         import re, json as _json
-        for block in re.findall(r"```(?:json)?\s*([\s\S]*?)\s*```", obs_text or ""):
+        found_json = False
+        for block in re.findall(r"```(?:json)?\s*([\s\S]*?)\s*```", obs_text):
             try:
                 obj = _json.loads(block)
             except Exception:
                 continue
+            found_json = True
             for key in ("level_description", "hypothesized_goal", "reasoning"):
                 if key in obj:
                     tag = "GUESS" if key in ("hypothesized_goal", "reasoning") else "OBSERVE"
@@ -394,7 +412,12 @@ class EpisodeLogger:
                 self._write(f"    [ACTION-CHAR] {item}")
             for item in obj.get("identified_objects", []):
                 self._write(f"    [OBJECT] {item}")
-            break  # only first JSON block
+            break
+        if found_json:
+            return
+        # Markdown fallback: emit the whole observation, indented.
+        for line in obs_text.splitlines():
+            self._write(f"    {line}")
 
     def mediator_output(self, med_text: str, action_plan: list) -> None:
         """Log MEDIATOR reasoning, proposed plan, and any explicit guesses."""
@@ -863,14 +886,63 @@ async def run_episode(
     # Determine total number of levels from the game object (env-agnostic).
     # Falls back to 0 (unknown) so the viewer can still display partial info.
     _game = getattr(env, "_game", None)
-    _win_levels: int = len(_game.levels) if (_game and hasattr(_game, "levels")) else 0
+    _win_levels: int = (
+        len(getattr(_game, "_levels", None) or getattr(_game, "levels", None) or [])
+        if _game else 0
+    )
+
+    # Hoisted log helper so pre-solve / planner blocks below can use it.
+    def log(msg: str) -> None:
+        if verbose:
+            print(msg)
 
     # Pre-solve: advance to start_level if we're not there yet.
     # If the scorecard already has level N-1 completed, env.reset() restores
     # directly to level N — no steps needed.  If we're behind the target,
     # execute the known subplan to skip through mastered levels.
+    #
+    # LS20 uses the per-level BFS planner (ls20_solver) instead of a hardcoded
+    # subplan: for each level we extract metadata from env._game, run BFS, and
+    # execute the resulting action sequence. The planner is invoked again after
+    # every level advance. We solve all the way to WIN, not just up to start_level.
     _levels_after_reset = obs_levels_completed(obs)
-    if start_level > 1:
+    if env_id == "ls20" and _game is not None and not COMPETITION_MODE:
+        from ls20_solver import plan_ls20_level
+        log(f"[LS20-PLAN] Currently at level {_levels_after_reset + 1}/{_win_levels}. "
+            f"Running per-level BFS planner.")
+        AS = {a.name: a for a in env.action_space}
+        _hard_step_cap = max_steps  # respect outer budget
+        _local_steps = 0
+        while obs_levels_completed(obs) < _win_levels and _local_steps < _hard_step_cap:
+            cur_lvl_idx = obs_levels_completed(obs)
+            try:
+                plan = plan_ls20_level(_game, cur_lvl_idx)
+            except Exception as exc:
+                log(f"[LS20-PLAN] Planner crashed on level {cur_lvl_idx + 1}: {exc}")
+                plan = None
+            if not plan:
+                log(f"[LS20-PLAN] No plan for level {cur_lvl_idx + 1} — handing off to MEDIATOR.")
+                break
+            log(f"[LS20-PLAN] Level {cur_lvl_idx + 1}: executing {len(plan)} actions.")
+            level_before = cur_lvl_idx
+            for _act in plan:
+                if _local_steps >= _hard_step_cap:
+                    break
+                obs = env.step(AS[_act])
+                _local_steps += 1
+                if obs_levels_completed(obs) > level_before:
+                    break
+            else:
+                # Plan exhausted but level didn't advance — solver/state mismatch.
+                if obs_levels_completed(obs) == level_before:
+                    log(f"[LS20-PLAN] Plan completed without advancing level "
+                        f"{level_before + 1}; aborting planner loop.")
+                    break
+        log(f"[LS20-PLAN] Done. Now at level {obs_levels_completed(obs) + 1} "
+            f"after {_local_steps} planner steps.")
+        # Charge planner steps against the episode budget.
+        step_count_seed = _local_steps
+    elif start_level > 1 and not COMPETITION_MODE:
         if _levels_after_reset >= start_level - 1:
             log(f"[PRE-SOLVE] Scorecard already at level {_levels_after_reset + 1} "
                 f"(target: {start_level}) — skipping pre-solve.")
@@ -887,8 +959,11 @@ async def run_episode(
             else:
                 log(f"[PRE-SOLVE] No known subplan for '{env_id}' — "
                     f"proceeding from level {_levels_after_reset + 1}.")
+        step_count_seed = 0
+    else:
+        step_count_seed = 0
 
-    step_count      = 0
+    step_count      = step_count_seed
     cycle_count     = 0
     action_history: list[dict] = []
     all_matched_ids: list[str] = []
@@ -913,10 +988,8 @@ async def run_episode(
     _plan_step_idx      = 0
     _last_obs_frame: list = []  # frame at last OBSERVER call, for caching
     _is_puzzle: bool = False    # cached from previous cycle for early rule-skip
-
-    def log(msg: str) -> None:
-        if verbose:
-            print(msg)
+    _last_structural_str: str = ""   # Fix 1: cache to avoid resending when frame unchanged
+    _last_structural_frame_sig: tuple = ()  # Fix 1: frame signature for cache invalidation
 
     log(f"\n{'-' * 50}")
     log(f"Episode {episode_num}  env={env_id}  model={DEFAULT_MODEL}")
@@ -1008,14 +1081,31 @@ async def run_episode(
         # directly to the MEDIATOR — the OBSERVER may summarize/drop BFS routes.
         _t0 = time.time()
         _curr_frame = obs_frame(obs)
-        structural_str = format_structural_context(
-            _curr_frame,
-            concept_bindings=concept_bindings,
-            known_dynamic_colors=known_dynamic_colors,
-            explored_colors=explored_colors,
-            action_directions=action_directions,
-            contact_events=contact_events,
+
+        # Fix 1: cache structural_str — only rebuild when frame or bindings changed.
+        # Use a lightweight frame signature (sample of cells) for fast comparison.
+        _h_f = len(_curr_frame)
+        _w_f = len(_curr_frame[0]) if _curr_frame else 0
+        _frame_sig = (
+            _h_f, _w_f,
+            tuple(_curr_frame[0]) if _curr_frame else (),
+            tuple(_curr_frame[_h_f // 2]) if _curr_frame else (),
+            tuple(_curr_frame[-1]) if _curr_frame else (),
+            tuple(sorted(concept_bindings.keys())) if concept_bindings else (),
         )
+        if _frame_sig != _last_structural_frame_sig:
+            structural_str = format_structural_context(
+                _curr_frame,
+                concept_bindings=concept_bindings,
+                known_dynamic_colors=known_dynamic_colors,
+                explored_colors=explored_colors,
+                action_directions=action_directions,
+                contact_events=contact_events,
+            )
+            _last_structural_str = structural_str
+            _last_structural_frame_sig = _frame_sig
+        else:
+            structural_str = _last_structural_str
 
         _struct_ms = int((time.time() - _t0) * 1000)
 
@@ -1039,7 +1129,143 @@ async def run_episode(
         # focus/cursor, mismatch info, and reference slot mapping — everything
         # the MEDIATOR needs. We build a lightweight synthetic OBSERVER output
         # from locally-computed data, saving ~$0.15 per skipped call.
-        if SKIP_OBSERVER_FOR_PUZZLES and _is_puzzle:
+        if COMPETITION_MODE and (_frame_diff > 3 or not _obs_text_current):
+            # --- COMPETITION MODE: bounded tool-loop OBSERVER ---
+            # Replaces the single-shot OBSERVER call with an Anthropic
+            # tool-use loop that has hard caps and access only to a small
+            # custom toolset (no Bash/Read/Write). The agent can recall
+            # learned concepts from the persistent ConceptRegistry and
+            # record new ones. Per-game artifacts (LS20 BFS, TR87 slot-
+            # strip detector) are excluded by design here.
+            from agent_loop import run_observer_agent
+            from object_tracker import summarize_current_objects
+            _objects_summary = summarize_current_objects(_curr_frame, concept_bindings)
+            # Minimal context: dimensions, level, budget, action names tried,
+            # PRIOR HYPOTHESIS (so the agent refines instead of starting cold),
+            # and a compact recent-action-outcomes trace (so the agent sees
+            # wall hits and dead actions without spending a tool call). The
+            # agent fetches the frame/objects/effects via tools as needed.
+            _h = len(_curr_frame)
+            _w = len(_curr_frame[0]) if _curr_frame else 0
+            _ae = state_manager._data.get("action_effects") or {}
+            _tried = ", ".join(sorted(_ae.keys())) or "(none yet)"
+            _untried_actions = [
+                a.name for a in available_actions
+                if not getattr(a, "is_complex", lambda: False)() and a.name not in _ae
+            ]
+            # Prior hypothesis carried from MEDIATOR's last cycle (if any).
+            _prior_hypo = state_manager._data.get("current_hypothesis") or "(none yet)"
+            # Compact recent action outcomes trace (last 8 steps), with
+            # explicit WALL markers when an action produced no movement.
+            _recent: list[str] = []
+            for _h_entry in (action_history[-8:] if action_history else []):
+                _act = _h_entry.get("action", "?")
+                _diff = _h_entry.get("diff", _h_entry.get("frame_diff"))
+                _moved = _h_entry.get("moved")
+                if _diff is not None and _diff <= 4:
+                    _recent.append(f"{_act} -> WALL/no-movement (diff={_diff})")
+                elif _moved:
+                    _recent.append(f"{_act} -> {_moved}")
+                else:
+                    _recent.append(f"{_act} -> diff={_diff}")
+            _recent_str = "\n".join(f"  {i+1}. {s}" for i, s in enumerate(_recent)) or "  (no actions yet)"
+
+            # Stuck detector: count consecutive recent steps with diff<=4.
+            # If the last N steps all produced no meaningful change, the
+            # current hypothesis is almost certainly wrong — force a reset.
+            _stuck_n = 0
+            for _h_entry in reversed(action_history[-12:] if action_history else []):
+                _d = _h_entry.get("diff")
+                if _d is not None and _d <= 4:
+                    _stuck_n += 1
+                else:
+                    break
+            _stuck_block = ""
+            if _stuck_n >= 6:
+                _stuck_block = (
+                    f"## STAGNATION ALERT\n"
+                    f"The last {_stuck_n} steps produced essentially no state change. "
+                    f"Your prior hypothesis is almost certainly WRONG or the situation "
+                    f"has changed. You MUST:\n"
+                    f"  1. Discard the prior hypothesis and form a NEW one.\n"
+                    f"  2. Try an action or strategy you have NOT recently tried.\n"
+                    f"  3. Do NOT propose a 'submit' or 'puzzle solved' plan unless "
+                    f"levels_completed has actually increased.\n\n"
+                )
+                # Also wipe MEDIATOR's stale hypothesis so the next cycle starts fresh.
+                try:
+                    state_manager._data["current_hypothesis"] = None
+                    _prior_hypo = "(reset due to stagnation)"
+                except Exception:
+                    pass
+
+            _user_ctx = (
+                f"## Current game state\n"
+                f"env_id: {env_id}\n"
+                f"level: {_levels_after_reset + 1}\n"
+                f"frame: {_h}x{_w}\n"
+                f"steps_remaining: {max_steps - step_count}\n"
+                f"actions_tried: {_tried}\n"
+                f"actions_untried: {', '.join(_untried_actions) or '(none)'}\n\n"
+                f"{_stuck_block}"
+                f"## Prior hypothesis (from last cycle — refine, do not discard)\n"
+                f"{_prior_hypo}\n\n"
+                f"## Recent action outcomes (most recent last)\n"
+                f"{_recent_str}\n\n"
+                f"Use your tools to verify or refine the hypothesis. "
+                f"If a recent action hit a wall, do NOT plan to repeat it. "
+                f"Start with recall_concepts."
+            )
+            obs_text, _observer_ms, _agent_stats = await run_observer_agent(
+                current_frame=_curr_frame,
+                previous_frame=_last_obs_frame or None,
+                action_effects=state_manager._data.get("action_effects") or {},
+                objects_summary=_objects_summary,
+                concept_bindings=concept_bindings,
+                episode_meta={
+                    "env_id": env_id,
+                    "level": _levels_after_reset + 1,
+                    "step": step_count,
+                },
+                user_context=_user_ctx,
+                verbose=verbose,
+            )
+            _last_obs_frame = [row[:] for row in _curr_frame]
+            log(
+                f"  [OBSERVER] competition agent: turns={_agent_stats['turns']} "
+                f"tool_calls={_agent_stats['tool_calls']} "
+                f"recorded={len(_agent_stats['recorded'])} "
+                f"confirmed={len(_agent_stats['confirmed'])}"
+            )
+            # Inject top recalled concepts into the MEDIATOR's rules_section.
+            # This closes the producer->consumer loop: concepts the agent has
+            # learned (in this episode or previous ones) are surfaced to the
+            # planner so it can act on them.
+            try:
+                from agent_loop import get_registry as _get_reg, DOMAIN as _DOMAIN
+                _reg = _get_reg()
+                _hits = _reg.recall(
+                    domain=_DOMAIN,
+                    limit=5,
+                    include_cross_domain=True,
+                    cross_domain_kinds=["compositional", "mechanic"],
+                )
+                if _hits:
+                    _lines = ["", "## Learned mechanics (from ConceptRegistry)", ""]
+                    for _c in _hits:
+                        _tag = "" if _c.domain == _DOMAIN else f" [from {_c.domain}]"
+                        _lines.append(
+                            f"- **{_c.name}** ({_c.kind}, conf={_c.confidence:.2f}){_tag}"
+                        )
+                        _lines.append(f"  - {_c.abstraction.get('summary', '')}")
+                        _hint = _c.abstraction.get("hint", "")
+                        if _hint:
+                            _lines.append(f"  - hint: {_hint}")
+                    rules_section = (rules_section or "") + "\n".join(_lines)
+                    log(f"  [CONCEPTS] injected {len(_hits)} learned concept(s) into MEDIATOR")
+            except Exception as _e:
+                log(f"  [CONCEPTS] recall failed: {_e}")
+        elif SKIP_OBSERVER_FOR_PUZZLES and _is_puzzle and not COMPETITION_MODE:
             _action_effects = state_manager._data.get("action_effects") or {}
             _effects_str = _format_action_effects(_action_effects)
             _preds = compute_trend_predictions(_action_effects, max_steps - step_count)
@@ -1152,15 +1378,24 @@ async def run_episode(
         # Round 2: MEDIATOR
         # ------------------------------------------------------------------
         _t0 = time.time()
+        # Fix 2: cap action history at 6 entries for MEDIATOR — the
+        # `## Recent action outcomes` already sent to OBSERVER covers last 8
+        # steps compactly; the full 15-entry history is redundant.
+        _mediator_history = action_history[-6:] if action_history else []
+
+        # Fix 3: in COMPETITION_MODE the OBSERVER already summarises the
+        # frame; sending structural_str to MEDIATOR again is double-billing.
+        _mediator_struct = "" if COMPETITION_MODE else structural_str
+
         action_plan, med_text, _med_ms = await run_mediator(
             obs_text,
             rules_section=rules_section,
             tools_section=tools_section,
-            action_history=action_history,
+            action_history=_mediator_history,
             available_actions=available_actions,
             state_section=_gs,
             action_directions=action_directions if action_directions else None,
-            structural_context_str=structural_str,
+            structural_context_str=_mediator_struct,
             verbose=verbose,
         )
         _mediator_ms = int((time.time() - _t0) * 1000)
@@ -1177,7 +1412,9 @@ async def run_episode(
                     _glog = goal_manager.apply_updates(_updates)
                     if _glog:
                         log(f"  [goals] {'; '.join(_glog)}")
+                        # Verbose: one console line per goal change for visibility.
                         for entry in _glog:
+                            log(f"    [GOAL+] {entry}")
                             ep_log.goal_event("update", "", entry)
                 except Exception:
                     pass  # malformed goal_updates — ignore gracefully
@@ -1185,6 +1422,12 @@ async def run_episode(
                 state_manager.apply_agent_updates(_updates["state_updates"])
                 sets = _updates["state_updates"].get("set", {})
                 log(f"  [state] updated: {list(sets.keys())}")
+                # Verbose: show each key=value so user can see what MEDIATOR set.
+                for _k, _v in sets.items():
+                    _vs = str(_v)
+                    if len(_vs) > 120:
+                        _vs = _vs[:117] + "..."
+                    log(f"    [STATE+] {_k} = {_vs}")
                 ep_log.state_update(sets)
 
         # Extract candidate rules proposed by MEDIATOR (exploration + planning).
@@ -1197,14 +1440,24 @@ async def run_episode(
             if rule_changes:
                 new_ids = []
                 for r in rule_changes:
-                    if r.get("lineage", {}).get("type") == "new":
+                    _is_new = r.get("lineage", {}).get("type") == "new"
+                    if _is_new:
                         # Downgrade active → candidate so it needs confirmation
                         r["status"] = "candidate"
                         rule_engine.save()
                     new_ids.append(r["id"])
+                    # Verbose: print each proposed rule with its IF/THEN so
+                    # the user can see what's being learned in real time.
+                    _tag = "NEW" if _is_new else "UPD"
+                    _cond = (r.get("condition", "") or "").strip()
+                    _act  = (r.get("action", "") or "").strip()
+                    if len(_cond) > 140: _cond = _cond[:137] + "..."
+                    if len(_act)  > 140: _act  = _act[:137] + "..."
+                    log(f"    [RULE {_tag}] {r['id']} ({r.get('status','candidate')})")
+                    log(f"      IF:   {_cond}")
+                    log(f"      THEN: {_act}")
                     ep_log.rule_proposed(
-                        r["id"], r.get("status", "candidate"),
-                        r.get("condition", ""), r.get("action", ""),
+                        r["id"], r.get("status", "candidate"), _cond, _act,
                     )
                 log(f"  [rules] {len(rule_changes)} rule(s) proposed: {new_ids}")
 
@@ -1282,11 +1535,26 @@ async def run_episode(
             levels_after = obs_levels_completed(obs)
             state_after  = obs_state_name(obs)
 
+            # Compute per-step pixel diff so the agent loop can detect
+            # wall-hits / dead actions on subsequent cycles.
+            _frame_after = obs_frame(obs)
+            _step_diff = 0
+            try:
+                for _r in range(min(len(_frame_after), len(frame_before))):
+                    _ra = _frame_after[_r]
+                    _rb = frame_before[_r]
+                    for _c in range(min(len(_ra), len(_rb))):
+                        if _ra[_c] != _rb[_c]:
+                            _step_diff += 1
+            except Exception:
+                _step_diff = -1
+
             action_history.append({
                 "action": action_name,
                 "data":   data,
                 "levels": levels_after,
                 "state":  state_after,
+                "diff":   _step_diff,
             })
 
             # Write playlog for this step (use live state so action_effects show up)

@@ -331,6 +331,145 @@ async def _call_agent_openrouter(
                 raise
 
 
+# ---------------------------------------------------------------------------
+# Claude-tutor backend (human-in-the-loop via filesystem inbox/outbox)
+# ---------------------------------------------------------------------------
+#
+# When the model string is "claude-tutor", the harness writes the request to
+# tutor_inbox/<request_id>.json and blocks until tutor_outbox/<request_id>.txt
+# appears.  A human (or another Claude session) reads the inbox file, looks at
+# any referenced images, and writes a response file.  This lets us plug Claude
+# Code (this conversation) into the existing harness as the expert/tutor model
+# without any API plumbing.
+#
+# Inbox JSON shape:
+#   { "agent_id": ..., "system_prompt": ..., "text_content": "...",
+#     "image_paths": ["tutor_inbox/<id>_img0.jpg", ...] }
+#
+# Outbox shape: a plain text file containing the response (the JSON the agent
+# would normally produce — agents.py callers parse it themselves).
+
+_TUTOR_INBOX  = Path(__file__).parent / "tutor_inbox"
+_TUTOR_OUTBOX = Path(__file__).parent / "tutor_outbox"
+_TUTOR_POLL_SECS = 2.0
+
+
+def _is_claude_tutor_model(model: str) -> bool:
+    return model == "claude-tutor"
+
+
+async def _call_agent_claude_tutor(
+    agent_id: str,
+    user_message: Union[str, list],
+    system_prompt: str = "",
+    model: str = "claude-tutor",
+    max_tokens: int = 4096,
+    max_retries: int = 5,
+) -> tuple[str, int]:
+    """Human-in-the-loop tutor backend.  Writes request to inbox, polls outbox."""
+    import uuid
+
+    _TUTOR_INBOX.mkdir(parents=True, exist_ok=True)
+    _TUTOR_OUTBOX.mkdir(parents=True, exist_ok=True)
+
+    req_id = uuid.uuid4().hex[:12]
+
+    # Normalize user_message into text + image files
+    text_parts: list[str] = []
+    image_paths: list[str] = []
+
+    if isinstance(user_message, str):
+        text_parts.append(user_message)
+    else:
+        for i, block in enumerate(user_message):
+            if not isinstance(block, dict):
+                text_parts.append(str(block))
+                continue
+            btype = block.get("type")
+            if btype == "text":
+                text_parts.append(block.get("text", ""))
+            elif btype == "image":
+                src = block.get("source", {})
+                if src.get("type") == "base64":
+                    img_path = _TUTOR_INBOX / f"{req_id}_img{i}.jpg"
+                    img_path.write_bytes(base64.b64decode(src.get("data", "")))
+                    image_paths.append(str(img_path))
+                elif src.get("type") == "path":
+                    image_paths.append(src.get("path", ""))
+
+    inbox_payload = {
+        "request_id":    req_id,
+        "agent_id":      agent_id,
+        "system_prompt": system_prompt,
+        "text_content":  "\n\n".join(p for p in text_parts if p),
+        "image_paths":   image_paths,
+    }
+    inbox_file = _TUTOR_INBOX / f"{req_id}.json"
+    inbox_file.write_text(json.dumps(inbox_payload, indent=2), encoding="utf-8")
+
+    outbox_file = _TUTOR_OUTBOX / f"{req_id}.txt"
+    print(f"\n[claude-tutor] ⏸  Waiting for tutor response: {outbox_file}", flush=True)
+    print(f"[claude-tutor]    Inbox: {inbox_file}", flush=True)
+    if image_paths:
+        print(f"[claude-tutor]    Images: {len(image_paths)}", flush=True)
+
+    # Poll until outbox file appears
+    while not outbox_file.exists():
+        await asyncio.sleep(_TUTOR_POLL_SECS)
+
+    response_text = outbox_file.read_text(encoding="utf-8")
+    print(f"[claude-tutor] ▶  Got response ({len(response_text)} chars)", flush=True)
+
+    # Archive: move handled inbox/outbox files into a 'done' subdir
+    done_dir = _TUTOR_INBOX / "done"
+    done_dir.mkdir(exist_ok=True)
+    try:
+        inbox_file.rename(done_dir / inbox_file.name)
+        outbox_file.rename(done_dir / outbox_file.name)
+    except Exception:
+        pass
+
+    # Return (text, tokens=0) — tutor calls don't count against any budget
+    return response_text, 0
+
+
+_CALL_CACHE: dict[str, tuple[str, int]] = {}
+_CALL_CACHE_HITS = 0
+_CALL_CACHE_MISSES = 0
+
+
+def _hash_user_message(user_message) -> str:
+    import hashlib, json as _json
+    h = hashlib.sha256()
+    if isinstance(user_message, str):
+        h.update(b"s:"); h.update(user_message.encode("utf-8"))
+    else:
+        for blk in user_message:
+            if isinstance(blk, dict):
+                t = blk.get("type", "")
+                if t == "text":
+                    h.update(b"t:"); h.update(blk.get("text", "").encode("utf-8"))
+                elif t == "image":
+                    src = blk.get("source", {})
+                    data = src.get("data", "")
+                    h.update(b"i:"); h.update(data.encode("utf-8") if isinstance(data, str) else b"")
+                else:
+                    h.update(_json.dumps(blk, sort_keys=True, default=str).encode("utf-8"))
+            else:
+                h.update(str(blk).encode("utf-8"))
+    return h.hexdigest()
+
+
+def _cache_key(model: str, system_prompt: str, user_message) -> str:
+    import hashlib
+    sp = hashlib.sha256(system_prompt.encode("utf-8")).hexdigest()[:16]
+    return f"{model}|{sp}|{_hash_user_message(user_message)}"
+
+
+def get_call_cache_stats() -> dict:
+    return {"hits": _CALL_CACHE_HITS, "misses": _CALL_CACHE_MISSES, "size": len(_CALL_CACHE)}
+
+
 async def call_agent(
     agent_id: str,
     user_message: Union[str, list],
@@ -339,22 +478,40 @@ async def call_agent(
     max_tokens: int = 4096,
     max_retries: int = 5,
 ) -> tuple[str, int]:
-    """Route call to Anthropic, OpenAI, or OpenRouter backend based on model string."""
+    """Route call to Anthropic, OpenAI, OpenRouter, or claude-tutor backend."""
+    global _CALL_CACHE_HITS, _CALL_CACHE_MISSES
     active = model or ACTIVE_MODEL
+    # Cache lookup — skip claude-tutor (human-in-the-loop, freshness matters)
+    cache_key = None
+    if not _is_claude_tutor_model(active):
+        cache_key = _cache_key(active, system_prompt, user_message)
+        if cache_key in _CALL_CACHE:
+            _CALL_CACHE_HITS += 1
+            return _CALL_CACHE[cache_key]
+        _CALL_CACHE_MISSES += 1
+    if _is_claude_tutor_model(active):
+        return await _call_agent_claude_tutor(
+            agent_id, user_message, system_prompt,
+            model=active, max_tokens=max_tokens, max_retries=max_retries,
+        )
     if _is_openrouter_model(active):
-        return await _call_agent_openrouter(
+        result = await _call_agent_openrouter(
             agent_id, user_message, system_prompt,
             model=active, max_tokens=max_tokens, max_retries=max_retries,
         )
-    if _is_openai_model(active):
-        return await _call_agent_openai(
+    elif _is_openai_model(active):
+        result = await _call_agent_openai(
             agent_id, user_message, system_prompt,
             model=active, max_tokens=max_tokens, max_retries=max_retries,
         )
-    return await _core_agents.call_agent(
-        agent_id, user_message, system_prompt,
-        model=active, max_tokens=max_tokens, max_retries=max_retries,
-    )
+    else:
+        result = await _core_agents.call_agent(
+            agent_id, user_message, system_prompt,
+            model=active, max_tokens=max_tokens, max_retries=max_retries,
+        )
+    if cache_key is not None and result and result[0]:
+        _CALL_CACHE[cache_key] = result
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -1204,14 +1361,31 @@ async def run_expert_rule_author(
         {
             "type": "text",
             "text": (
-                f"Lesion pair: {class_a} vs {class_b}\n\n"
+                f"You are the TUTOR. A weaker PUPIL VLM just classified this "
+                f"dermoscopic image and got it wrong. Your job is to (a) notice "
+                f"exactly where the pupil went off the rails, and (b) give the "
+                f"pupil a corrective visual rule it can apply to this and similar "
+                f"future cases.\n\n"
+                f"Lesion pair: {class_a} vs {class_b}\n"
                 f"Ground truth: {correct_label}\n"
-                f"Model prediction: {wrong_prediction}  ← WRONG\n"
-                f"Model reasoning: {reasoning_snippet}\n\n"
-                "The model made an error on this image. "
-                "Please author a corrective visual rule that would have led to the "
-                f"correct diagnosis ('{correct_label}') and that will generalize to "
-                "similar cases."
+                f"Pupil's prediction: {wrong_prediction}  ← WRONG\n"
+                f"Pupil's stated reasoning: {reasoning_snippet}\n\n"
+                "First, look at the image carefully and diagnose the pupil's "
+                "mistake:\n"
+                "  • Did the pupil hallucinate features that aren't actually in "
+                "the image (e.g. \"scale\" or \"telangiectasia\" that don't exist)?\n"
+                "  • Did the pupil overweight an ambiguous cue?\n"
+                "  • Did the pupil miss a salient feature that would have flipped "
+                "the decision?\n\n"
+                "Then author a corrective visual rule that:\n"
+                f"  1. Would have led the pupil to the correct diagnosis "
+                f"('{correct_label}')\n"
+                "  2. Targets the specific failure mode you identified (not generic "
+                "advice)\n"
+                "  3. Uses pre-conditions the pupil can actually check from the "
+                "image — concrete visual features, not abstract reasoning\n"
+                "  4. Will generalize to similar cases without firing on the "
+                f"opposite class ({class_a if correct_label != class_a else class_b})"
             ),
         },
     ]

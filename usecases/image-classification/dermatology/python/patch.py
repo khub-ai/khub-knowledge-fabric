@@ -163,7 +163,10 @@ def _run_zero_shot_baseline(cheap_model: str, data_dir: str, output: str,
     if result.returncode != 0:
         console.print("[red]Zero-shot baseline run failed[/red]")
         sys.exit(1)
-    with open(Path(_HERE) / output) as f:
+    out_path = Path(_HERE) / output
+    if not out_path.exists():
+        return []
+    with open(out_path) as f:
         data = json.load(f)
     return data.get("tasks", [])
 
@@ -171,8 +174,14 @@ def _run_zero_shot_baseline(cheap_model: str, data_dir: str, output: str,
 def _run_pipeline_with_patch_rules(cheap_model: str, data_dir: str, output: str,
                                     max_per_class: int,
                                     patch_rules_path: Path,
-                                    pair: str = "") -> list[dict]:
-    """Run cheap model + isolated patch rules through the KF pipeline."""
+                                    pair: str = "",
+                                    failure_task_ids: list[str] | None = None,
+                                    ) -> list[dict]:
+    """Run cheap model + isolated patch rules through the KF pipeline.
+
+    If *failure_task_ids* is given, only those tasks are re-run (via --task-list).
+    This avoids replacing zero-shot successes with potentially wrong KF answers.
+    """
     cmd = [
         sys.executable, "harness.py",
         "--max-per-class", str(max_per_class),
@@ -182,15 +191,32 @@ def _run_pipeline_with_patch_rules(cheap_model: str, data_dir: str, output: str,
         "--output", output,
         "--data-dir", data_dir,
     ]
-    if pair:
+
+    # If we have specific failure IDs, write them to a temp file and use --task-list
+    task_list_path: Path | None = None
+    if failure_task_ids:
+        task_list_path = Path(_HERE) / "_patch_rerun_tasks.json"
+        with open(task_list_path, "w") as f:
+            json.dump(failure_task_ids, f)
+        cmd += ["--task-list", str(task_list_path), "--all"]
+    elif pair:
         cmd += ["--pair", pair]
     else:
         cmd += ["--all"]
+
     result = subprocess.run(cmd, cwd=_HERE, capture_output=False, text=True)
     if result.returncode != 0:
         console.print("[red]Pipeline re-run failed[/red]")
         sys.exit(1)
-    with open(Path(_HERE) / output) as f:
+
+    # Clean up temp task list
+    if task_list_path and task_list_path.exists():
+        task_list_path.unlink()
+
+    out_path = Path(_HERE) / output
+    if not out_path.exists():
+        return []
+    with open(out_path) as f:
         data = json.load(f)
     return data.get("tasks", [])
 
@@ -207,16 +233,28 @@ async def run_patch_loop(
     rule_engine,
     max_val_per_class: int,
     max_authoring_per_class: int,
+    max_confirm_per_class: int,
     min_precision: float,
     dry_run: bool,
+    validator_model: str = "",
 ) -> list[dict]:
     """Author, validate, and register rules for each failure.
 
     Rules are written ONLY to the isolated rule_engine (patch_rules_clean.json).
     The main rules.json and KB JSON files are never touched.
 
+    validator_model: model used for pool validation (RULE_VALIDATOR calls).
+      Defaults to expert_model when not specified.  Use a cheaper model here
+      (e.g. claude-sonnet-4-6) to avoid routing all pool images through the
+      expensive expert or the claude-tutor human-in-the-loop path.
+
     Returns list of patch records.
     """
+    # Pool validation uses a potentially cheaper model than rule authoring.
+    # This separates the expensive expert (authoring, semantic validation) from
+    # the high-volume binary precondition checks (held-out, authoring, confirm pools).
+    _val_model = validator_model or expert_model
+
     patch_records = []
 
     for i, failure in enumerate(failures, 1):
@@ -344,7 +382,7 @@ async def run_patch_loop(
                 validation_images=authoring_images,
                 trigger_image_path=task["test_image_path"],
                 trigger_correct_label=correct,
-                model=expert_model,
+                model=_val_model,
             )
             tp_c = authoring_val.get("tp_cases", [])
             fp_c = authoring_val.get("fp_cases", [])
@@ -364,6 +402,27 @@ async def run_patch_loop(
                                                    split="train", seed=42)]
         held_out_images = held_imgs_a + held_imgs_b
 
+        # Confirmation pool — sampled lazily after spectrum picks a winner.
+        # Different seed (123) and larger size, so a passing rule must
+        # generalize beyond the small held-out pool that drove its design.
+        confirm_pool_cache: list = []
+
+        async def _get_confirmation_pool() -> list:
+            if confirm_pool_cache:
+                return confirm_pool_cache
+            cf_a = [(str(img.file_path), pair_info["class_a"])
+                    for img in ds.sample_images(dx_a, max_confirm_per_class,
+                                                split="train", seed=123)]
+            cf_b = [(str(img.file_path), pair_info["class_b"])
+                    for img in ds.sample_images(dx_b, max_confirm_per_class,
+                                                split="train", seed=123)]
+            # Exclude images already seen in held-out or authoring pools to keep
+            # the confirmation set genuinely fresh.
+            seen = {p for p, _ in held_out_images}
+            confirm_pool_cache.extend([(p, lbl) for p, lbl in (cf_a + cf_b)
+                                        if p not in seen])
+            return confirm_pool_cache
+
         console.print(f"  Held-out pool: {len(held_out_images)} images")
 
         # --- Step 3: Held-out gate FIRST (binding acceptance gate) ---
@@ -375,7 +434,7 @@ async def run_patch_loop(
             validation_images=held_out_images,
             trigger_image_path=task["test_image_path"],
             trigger_correct_label=correct,
-            model=expert_model,
+            model=_val_model,
         )
 
         fires_on_trigger = validation["fires_on_trigger"]
@@ -396,6 +455,10 @@ async def run_patch_loop(
         active_rule  = candidate_rule
         best_level   = None   # winning level dict, if any
 
+        # confirmation_validation will be set whenever a confirmation pool run
+        # is performed; recorded in the patch record for traceability.
+        confirmation_validation: dict | None = None
+
         if accepted:
             best_level = {"level": 3, "label": "original", **candidate_rule}
         elif not fires_on_trigger:
@@ -411,7 +474,7 @@ async def run_patch_loop(
                 validation_images=held_out_images,
                 trigger_image_path=task["test_image_path"],
                 trigger_correct_label=correct,
-                model=expert_model,
+                model=_val_model,
             )
             if pre_val["fires_on_trigger"]:
                 console.print(
@@ -453,7 +516,7 @@ async def run_patch_loop(
                     validation_images=held_out_images,
                     trigger_image_path=task["test_image_path"],
                     trigger_correct_label=correct,
-                    model=expert_model,
+                    model=_val_model,
                 )
                 for lv, vr in zip(spectrum_levels, validations):
                     lv_accepted = vr["accepted"] and vr["precision"] >= min_precision
@@ -498,14 +561,19 @@ async def run_patch_loop(
         elif fp == 0:
             console.print(f"  [red]REJECTED[/red] — precision {precision:.2f} < {min_precision:.2f} (no FP to analyze)")
         else:
-            # --- Step 3c: Spectrum search (contrastive uses authoring observations) ---
-            # Lazily fetch authoring pool observations for contrastive analysis.
-            # The final gate will still use held_out_images (never shown to expert).
-            tp_cases, fp_cases = await _get_authoring_cases(candidate_rule)
+            # --- Step 3c: Spectrum search ---
+            # Use the HELD-OUT pool's actual TP/FP cases as the contrastive input —
+            # these are the exact rejection-causing samples (the rule wrongly fired
+            # on the FP image, that's why we're here).  This gives the contrastive
+            # step concrete evidence to reason about, instead of asking it to guess
+            # from the authoring pool which had no FPs.
+            tp_cases = validation.get("tp_cases", [])
+            fp_cases = validation.get("fp_cases", [])
 
             console.print(
                 f"  [yellow]REJECTED[/yellow] — FP={fp}, precision={precision:.2f}. "
-                f"Running contrastive analysis + spectrum..."
+                f"Running contrastive analysis + spectrum on the actual "
+                f"held-out FP case(s)..."
             )
 
             # Contrastive analysis to find discriminating feature
@@ -547,7 +615,7 @@ async def run_patch_loop(
                     validation_images=held_out_images,
                     trigger_image_path=task["test_image_path"],
                     trigger_correct_label=correct,
-                    model=expert_model,
+                    model=_val_model,
                 )
 
                 # Report and find the most general passing level
@@ -594,6 +662,48 @@ async def run_patch_loop(
                         f"{len(best_level.get('preconditions',[]))} pre-condition(s)"
                     )
 
+        # --- Step 3d: Confirmation pool ---
+        # Any rule that survived the held-out gate (whether the original or a
+        # spectrum-tightened variant) must also pass a LARGER, FRESH pool before
+        # we trust it.  The held-out pool is small (16 images by default), and a
+        # passing precision there could be a sampling fluke.  The confirmation
+        # pool uses a different seed and a larger size to test generalization.
+        if accepted and max_confirm_per_class > 0:
+            confirm_images = await _get_confirmation_pool()
+            console.print(
+                f"  Confirmation pool: {len(confirm_images)} fresh images "
+                f"(seed=123, {max_confirm_per_class}/class) — "
+                f"validating winning rule..."
+            )
+            confirmation_validation = await agents.validate_candidate_rule(
+                candidate_rule=active_rule,
+                validation_images=confirm_images,
+                trigger_image_path=task["test_image_path"],
+                trigger_correct_label=correct,
+                model=_val_model,
+            )
+            cf_precision = confirmation_validation["precision"]
+            cf_fp = confirmation_validation["fp"]
+            console.print(
+                f"  Confirmation: TP={confirmation_validation['tp']} "
+                f"FP={cf_fp} TN={confirmation_validation['tn']} "
+                f"FN={confirmation_validation['fn']} | "
+                f"precision={cf_precision:.2f}"
+            )
+            if cf_precision < min_precision:
+                console.print(
+                    f"  [red]CONFIRMATION FAILED[/red] — precision "
+                    f"{cf_precision:.2f} < {min_precision:.2f}. "
+                    f"Rule did not generalize beyond the held-out pool. "
+                    f"Rejecting."
+                )
+                accepted = False
+            else:
+                console.print(
+                    f"  [green]CONFIRMED[/green] — rule generalizes "
+                    f"({cf_precision:.2f} ≥ {min_precision:.2f})"
+                )
+
         record = {
             "task_id":           task_id,
             "pair_id":           pair_id,
@@ -604,6 +714,11 @@ async def run_patch_loop(
             "semantic_validation": semantic_result,
             "validation":        {k: v for k, v in validation.items()
                                   if k not in ("tp_cases", "fp_cases")},
+            "confirmation_validation": (
+                {k: v for k, v in confirmation_validation.items()
+                 if k not in ("tp_cases", "fp_cases")}
+                if confirmation_validation else None
+            ),
             "spectrum_history":  spectrum_history,
             "accepted":          accepted,
             "registered":        False,
@@ -734,6 +849,12 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="KF dialogic patching loop")
     p.add_argument("--cheap-model",       dest="cheap_model",       default="o4-mini")
     p.add_argument("--expert-model",      dest="expert_model",      default="gpt-4o")
+    p.add_argument("--validator-model",   dest="validator_model",   default="",
+                   help="Model for pool validation (RULE_VALIDATOR calls). "
+                        "Defaults to expert-model when not set. "
+                        "Use a cheaper model (e.g. claude-sonnet-4-6) to reduce cost "
+                        "since pool validation is high-volume binary precondition checking, "
+                        "not creative rule authoring.")
     p.add_argument("--failures-from",     dest="failures_from",     default="",
                    help="Load failures from an existing results JSON")
     p.add_argument("--pair",              default="",
@@ -743,6 +864,8 @@ def parse_args() -> argparse.Namespace:
                    help="Held-out validation pool size per class (expert never sees)")
     p.add_argument("--max-authoring-per-class", dest="max_authoring_per_class", type=int, default=8,
                    help="Authoring pool size per class (shown to expert for contrastive analysis)")
+    p.add_argument("--max-confirm-per-class",   dest="max_confirm_per_class",   type=int, default=16,
+                   help="Confirmation pool size per class (fresh seed, used after spectrum picks a winner; 0 disables)")
     p.add_argument("--min-precision",     dest="min_precision",     type=float, default=0.75)
     p.add_argument("--data-dir",          dest="data_dir",
                    default="C:/_backup/ml/data/DermaMNIST_HAM10000")
@@ -762,9 +885,12 @@ async def main() -> None:
 
     patch_rules_path = Path(_HERE) / args.patch_rules
 
+    effective_validator = args.validator_model or args.expert_model
     console.rule("[bold]KF Dialogic Patching Loop[/bold]")
     console.print(f"  Cheap model:            [cyan]{args.cheap_model}[/cyan]")
     console.print(f"  Expert model:           [cyan]{args.expert_model}[/cyan]")
+    console.print(f"  Validator model:        [cyan]{effective_validator}[/cyan]"
+                  + (" [dim](same as expert)[/dim]" if not args.validator_model else ""))
     console.print(f"  Patch rules file:       [cyan]{patch_rules_path}[/cyan]")
     console.print(f"  Authoring pool/class:   {args.max_authoring_per_class} "
                   f"(expert sees; contrastive analysis context)")
@@ -806,94 +932,168 @@ async def main() -> None:
     rule_engine = _init_patch_rules(patch_rules_path)
     console.print(f"  Created empty: {patch_rules_path.name}")
 
-    # Steps 3–5: For each failure, author + validate + register
-    console.print(f"\n[bold]Steps 3–5[/bold]: Expert rule authoring + validation + registration...\n")
-    patch_records = await run_patch_loop(
-        failures=failures,
-        ds=ds,
-        cheap_model=args.cheap_model,
-        expert_model=args.expert_model,
-        rule_engine=rule_engine,
-        max_val_per_class=args.max_val_per_class,
-        max_authoring_per_class=args.max_authoring_per_class,
-        min_precision=args.min_precision,
-        dry_run=args.dry_run,
-    )
+    # Steps 3–6: Process failures ONE AT A TIME.
+    # For each failure: author + validate + register rule, then immediately
+    # test the cheap model on that specific image with the cumulative patch
+    # rules so far.  This gives per-failure feedback before moving on and
+    # avoids queuing up all expert calls before any test is run.
+    console.print(f"\n[bold]Steps 3–6[/bold]: Per-failure patch + test loop...\n")
 
+    patch_records:     list[dict] = []
+    all_rerun_tasks:   list[dict] = []
+    cross_pair_events: list[dict] = []
+    before_correct = total - len(failures)
+
+    rerun_output = f"patch_rerun_{args.cheap_model.replace('-', '_')}.json"
+
+    for i, failure in enumerate(failures, 1):
+        console.rule(f"[bold]Failure {i}/{len(failures)}: {failure['task_id']}[/bold]")
+
+        # --- Author + validate + register rule for this single failure ---
+        records = await run_patch_loop(
+            failures=[failure],
+            ds=ds,
+            cheap_model=args.cheap_model,
+            expert_model=args.expert_model,
+            rule_engine=rule_engine,
+            max_val_per_class=args.max_val_per_class,
+            max_authoring_per_class=args.max_authoring_per_class,
+            max_confirm_per_class=args.max_confirm_per_class,
+            min_precision=args.min_precision,
+            dry_run=args.dry_run,
+            validator_model=args.validator_model,
+        )
+        patch_records.extend(records)
+
+        rec = records[0] if records else {}
+        registered_now = rec.get("registered", False)
+
+        # --- Immediately test: run the cheap model on this failure image ---
+        # with all patch rules registered so far.
+        if not args.skip_rerun and not args.dry_run:
+            console.print(
+                f"\n  [bold]Test[/bold]: Re-running {args.cheap_model} on "
+                f"[cyan]{failure['task_id']}[/cyan] with cumulative patch rules..."
+            )
+            step_tasks = _run_pipeline_with_patch_rules(
+                cheap_model=args.cheap_model,
+                data_dir=args.data_dir,
+                output=rerun_output,
+                max_per_class=args.max_per_class,
+                patch_rules_path=patch_rules_path,
+                failure_task_ids=[failure["task_id"]],
+            )
+            all_rerun_tasks.extend(step_tasks)
+
+            fixed_now = sum(1 for t in step_tasks if t["correct"])
+            if fixed_now:
+                console.print(
+                    f"  [green]✓ FIXED[/green] — {args.cheap_model} now correctly "
+                    f"classifies {failure['task_id']}"
+                )
+            else:
+                reason = "rule not registered" if not registered_now else "rule registered but cheap model still failed"
+                console.print(
+                    f"  [red]✗ STILL FAILING[/red] — {reason}"
+                )
+                if i < len(failures):
+                    console.print(
+                        f"  [yellow]Patch did not fix this failure. "
+                        f"Stopping before remaining {len(failures) - i} failure(s). "
+                        f"Review the rule and re-run with --failures-from to resume.[/yellow]"
+                    )
+                    # Save state and exit the loop — no point continuing if
+                    # the patch strategy is not working.
+                    n_accepted   = sum(1 for r in patch_records if r["accepted"])
+                    n_registered = sum(1 for r in patch_records if r["registered"])
+                    session = {
+                        "cheap_model":        args.cheap_model,
+                        "expert_model":       args.expert_model,
+                        "validator_model":    effective_validator,
+                        "patch_rules_file":   str(patch_rules_path),
+                        "dry_run":            args.dry_run,
+                        "total_tasks":        total,
+                        "failures_before":    len(failures),
+                        "failures_processed": i,
+                        "stopped_early":      True,
+                        "stop_reason":        reason,
+                        "rules_authored":     len(patch_records),
+                        "rules_accepted":     n_accepted,
+                        "rules_registered":   n_registered,
+                        "cross_pair_events":  cross_pair_events,
+                        "patch_records":      patch_records,
+                    }
+                    with open(args.output, "w") as f:
+                        json.dump(session, f, indent=2)
+                    console.print(f"\nSession saved to [cyan]{args.output}[/cyan]")
+                    return
+
+            # Cross-pair check for rules registered in this step
+            step_events = _detect_cross_pair_firing(step_tasks, records)
+            cross_pair_events.extend(step_events)
+            if step_events:
+                console.print(f"  [yellow]⚠ Cross-pair firing on {len(step_events)} task(s)[/yellow]")
+
+        # Save incremental session state after each failure so progress is
+        # preserved even if a later failure causes an error.
+        n_accepted   = sum(1 for r in patch_records if r["accepted"])
+        n_registered = sum(1 for r in patch_records if r["registered"])
+        session = {
+            "cheap_model":       args.cheap_model,
+            "expert_model":      args.expert_model,
+            "validator_model":   effective_validator,
+            "patch_rules_file":  str(patch_rules_path),
+            "dry_run":           args.dry_run,
+            "total_tasks":       total,
+            "failures_before":   len(failures),
+            "failures_processed": i,
+            "rules_authored":    len(patch_records),
+            "rules_accepted":    n_accepted,
+            "rules_registered":  n_registered,
+            "cross_pair_events": cross_pair_events,
+            "patch_records":     patch_records,
+        }
+        with open(args.output, "w") as f:
+            json.dump(session, f, indent=2)
+
+    # --- Final summary ---
     accepted   = [r for r in patch_records if r["accepted"]]
     registered = [r for r in patch_records if r["registered"]]
 
-    console.print(f"\nRules authored: {len(patch_records)} | "
-                  f"Accepted: {len(accepted)} | "
-                  f"Registered: {len(registered)}")
+    rerun_fixed   = sum(1 for t in all_rerun_tasks if t["correct"])
+    after_correct = before_correct + rerun_fixed
 
-    # Step 6: Re-run cheap model with only the patch rules
-    rerun_tasks: list[dict] = []
-    cross_pair_events: list[dict] = []
-
-    if registered and not args.skip_rerun:
-        console.print(f"\n[bold]Step 6[/bold]: Re-running {args.cheap_model} "
-                      f"with {len(registered)} patch rule(s)...")
-        rerun_output = f"patch_rerun_{args.cheap_model.replace('-', '_')}.json"
-        rerun_tasks = _run_pipeline_with_patch_rules(
-            cheap_model=args.cheap_model,
-            data_dir=args.data_dir,
-            output=rerun_output,
-            max_per_class=args.max_per_class,
-            patch_rules_path=patch_rules_path,
-            pair=args.pair,
+    if cross_pair_events:
+        console.print("\n[bold yellow]⚠ Cross-pair rule firing detected:[/bold yellow]")
+        for ev in cross_pair_events:
+            console.print(
+                f"  Rule intended for [cyan]{ev['intended_pair']}[/cyan] "
+                f"fired on [magenta]{ev['fired_on_pair']}[/magenta] "
+                f"(task {ev['task_id']}) → {ev['flag']}"
+            )
+        console.print(
+            "  [dim]→ Surface to human expert: the pupil has been enlightened, "
+            "the master must confirm or refine.[/dim]"
         )
 
-        # Cross-pair firing detection (Fix 5)
-        cross_pair_events = _detect_cross_pair_firing(rerun_tasks, patch_records)
-        if cross_pair_events:
-            console.print("\n[bold yellow]⚠ Cross-pair rule firing detected:[/bold yellow]")
-            for ev in cross_pair_events:
-                console.print(
-                    f"  Rule intended for [cyan]{ev['intended_pair']}[/cyan] "
-                    f"fired on [magenta]{ev['fired_on_pair']}[/magenta] "
-                    f"(task {ev['task_id']}) → {ev['flag']}"
-                )
-            console.print(
-                "  [dim]→ Surface to human expert: the pupil has been enlightened, "
-                "the master must confirm or refine.[/dim]"
-            )
-
-        before_correct = total - len(failures)
-        after_correct  = sum(1 for t in rerun_tasks if t["correct"])
-        delta          = after_correct - before_correct
-
-        console.rule("[bold]Patch Summary[/bold]")
-        tbl = Table(show_header=True, header_style="bold")
-        tbl.add_column("Phase"); tbl.add_column("Correct"); tbl.add_column("Accuracy")
-        tbl.add_row("Before patching (zero-shot)",
-                    f"{before_correct}/{total}", f"{before_correct/total*100:.1f}%")
-        tbl.add_row("After patching (KF + patch rules)",
+    console.rule("[bold]Patch Summary[/bold]")
+    tbl = Table(show_header=True, header_style="bold")
+    tbl.add_column("Phase"); tbl.add_column("Correct"); tbl.add_column("Accuracy")
+    tbl.add_row("Before patching (zero-shot)",
+                f"{before_correct}/{total}", f"{before_correct/total*100:.1f}%")
+    if all_rerun_tasks:
+        tbl.add_row("After patching (KF on failures only)",
                     f"{after_correct}/{total}", f"{after_correct/total*100:.1f}%")
-        tbl.add_row("Delta", f"{delta:+d}", f"{delta/total*100:+.1f}pp")
-        console.print(tbl)
+        tbl.add_row("Delta", f"{rerun_fixed:+d}", f"{rerun_fixed/total*100:+.1f}pp")
+        tbl.add_row("Failures patched",
+                    f"{rerun_fixed}/{len(failures)}", "")
+    tbl.add_row("Rules authored/accepted/registered",
+                f"{len(patch_records)}/{len(accepted)}/{len(registered)}", "")
+    console.print(tbl)
 
-    elif args.dry_run:
-        console.print("\n[yellow]Dry-run: no rules registered, skipping re-run.[/yellow]")
-    elif not registered:
-        console.print("\nNo rules accepted — skipping re-run.")
+    if args.dry_run:
+        console.print("\n[yellow]Dry-run: no rules registered.[/yellow]")
 
-    # Save session record
-    session = {
-        "cheap_model":       args.cheap_model,
-        "expert_model":      args.expert_model,
-        "patch_rules_file":  str(patch_rules_path),
-        "dry_run":           args.dry_run,
-        "total_tasks":       total,
-        "failures_before":   len(failures),
-        "rules_authored":    len(patch_records),
-        "rules_accepted":    len(accepted),
-        "rules_registered":  len(registered),
-        "cross_pair_events": cross_pair_events,
-        "patch_records":     patch_records,
-    }
-    with open(args.output, "w") as f:
-        json.dump(session, f, indent=2)
     console.print(f"\nSession saved to [cyan]{args.output}[/cyan]")
 
 

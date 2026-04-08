@@ -467,7 +467,7 @@ async def run_mediator(
         user_message += f"\n## Available actions\n\n{format_action_space(available_actions)}\n"
 
     if action_history:
-        history_str = format_action_history(action_history, last_n=15)
+        history_str = format_action_history(action_history, last_n=6)
         user_message += f"\n## Full action history\n\n{history_str}\n"
 
     if state_section:

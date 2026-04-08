@@ -1338,11 +1338,15 @@ def format_structural_context(
     lines: list[str] = []
 
     # --- Slot strip puzzle detection (TR87-type) ---
-    # Runs before group detection; if slot strips are found, prepend their
-    # context and skip the generic exploration/navigation sections.
-    _slot_data = detect_slot_strips(frame)
-    if _slot_data:
-        lines.append(format_slot_strip_context(_slot_data))
+    # This is a per-game artifact: it encodes hardcoded knowledge of the TR87
+    # rule grammar (slot semantics, alter mode, etc.) and would not generalize
+    # to an unseen game. In competition mode it must be excluded so KF relies
+    # only on game-agnostic primitives + concepts learned from training.
+    import ensemble as _ens  # local import: avoid circular at module load
+    if not getattr(_ens, "COMPETITION_MODE", False):
+        _slot_data = detect_slot_strips(frame)
+        if _slot_data:
+            lines.append(format_slot_strip_context(_slot_data))
 
     # Pre-compute groups to detect puzzle levels (groups are reused at the end).
     _groups = detect_groups(frame, objects, containment) if objects and containment else []
@@ -1624,11 +1628,16 @@ def format_structural_context(
                 matched = [mm for mm in sm if mm.match]
                 mismatched = [mm for mm in sm if not mm.match]
                 all_matched = len(matched) + pw_match_count
+                # Applicability gate: only emit mismatches if there's positive
+                # evidence this is actually a pattern-matching puzzle (any
+                # confirmed matches or pairwise mappings). Otherwise the
+                # "closest to" signal is noise on navigation games like ls20.
+                _puzzle_evidence = bool(matched) or bool(pw)
                 if matched:
                     lines.append(f"\nContent matches ({all_matched}/{total}):")
                     for mm in matched:
                         lines.append(f"  {_slot_label(mm.group_b)}: MATCH via {mm.best_transform}")
-                if mismatched:
+                if mismatched and _puzzle_evidence:
                     lines.append(f"\nContent mismatches ({len(mismatched)}/{total}):")
                     for mm in mismatched:
                         lines.append(f"  {_slot_label(mm.group_b)}: closest to {_pos_label(mm.group_a)} ({mm.detail})")

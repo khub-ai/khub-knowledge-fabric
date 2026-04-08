@@ -1,0 +1,1296 @@
+{
+  "version": 1,
+  "concepts": [
+    {
+      "id": "c_94b85686b94a",
+      "name": "grid_panel_with_pattern_display",
+      "domain": "arc-agi-3",
+      "kind": "object_role",
+      "signature": {
+        "trigger": "Multiple rectangular bordered regions containing dark-grey interior with colored marker pixels (off-black/white dots) visible in a grid layout",
+        "evidence": "ls20 level 1: Two bordered panels in dark-grey area contain off-black/white pixel patterns. A yellow horizontal bar runs across the bottom. Blue/orange/red small squares appear near edges."
+      },
+      "abstraction": {
+        "summary": "Bordered panels (dark border, grey interior) display patterns made of colored markers. A separate bottom region shows a horizontal bar (score/status). Small colored squares near border edges may be controls or indicators.",
+        "hint": ""
+      },
+      "confidence": 0.5,
+      "provenance": {
+        "first_seen": {
+          "env_id": "ls20",
+          "level": 1,
+          "step": 0
+        },
+        "evidence_history": [
+          {
+            "evidence": "ls20 level 1: Two bordered panels in dark-grey area contain off-black/white pixel patterns. A yellow horizontal bar runs across the bottom. Blue/orange/red small squares appear near edges."
+          }
+        ]
+      },
+      "created_at": "2026-04-07T22:43:30.600099+00:00",
+      "updated_at": "2026-04-07T22:43:30.600099+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_29f655fb1a85",
+      "name": "vertical_slider_with_step_cost",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Blue and orange objects move vertically in response to up/down actions; a yellow horizontal bar shrinks with each action used.",
+        "evidence": "ACTION1: blue(centroid 48->43) and orange(46->40) both moved up 5 rows; yellow bar size 84->82. ACTION2: blue(43->48) and orange(40->46) moved down 5 rows; yellow bar 82->80. Two objects move together as a unit."
+      },
+      "abstraction": {
+        "summary": "ACTION1 moves blue+orange objects up by 5 rows; ACTION2 moves them down by 5 rows. Each action costs 1 step (yellow bar shrinks by 1 unit). Goal likely involves aligning the sliding objects with a target position within the step budget.",
+        "hint": "Track the target position (likely a gap or marker in the dark-grey area) and use the minimum number of up/down actions to align the blue/orange slider with it."
+      },
+      "confidence": 0.75,
+      "provenance": {
+        "first_seen": {
+          "env_id": "ls20",
+          "level": 1,
+          "step": 2
+        },
+        "evidence_history": [
+          {
+            "evidence": "ACTION1: blue(centroid 48->43) and orange(46->40) both moved up 5 rows; yellow bar size 84->82. ACTION2: blue(43->48) and orange(40->46) moved down 5 rows; yellow bar 82->80. Two objects move together as a unit."
+          }
+        ]
+      },
+      "created_at": "2026-04-07T22:44:20.818864+00:00",
+      "updated_at": "2026-04-07T22:44:20.818864+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_7e9770b80b35",
+      "name": "2d_slider_with_target_pattern",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "A movable object (blue+orange) can slide in all 4 directions by 5 cells per action; a target pattern exists in a bordered box; a step counter (yellow bar) shrinks each action.",
+        "evidence": "diff_last_frames confirmed: ACTION1 moves color9(blue) and color12(orange) up by 5r; ACTION2 down 5r; ACTION3 left 5c; ACTION4 right 5c. Yellow bar shrinks by 2px width per action. A bordered box in upper right (rows 8-16, cols 32-40) shows a target pattern with blue(9) pixels."
+      },
+      "abstraction": {
+        "summary": "ACTION1=up, ACTION2=down, ACTION3=left, ACTION4=right \u2014 each moves the blue/orange slider 5 cells in that direction. The goal is to align the slider with the target position shown in a bordered box (likely in the upper area). Yellow bar tracks remaining budget.",
+        "hint": "Calculate the offset between current slider position and target, divide by 5 to find number of actions needed in each axis. Use minimum actions to conserve step budget."
+      },
+      "confidence": 1.0,
+      "provenance": {
+        "first_seen": {
+          "env_id": "ls20",
+          "level": 1,
+          "step": 4
+        },
+        "evidence_history": [
+          {
+            "evidence": "diff_last_frames confirmed: ACTION1 moves color9(blue) and color12(orange) up by 5r; ACTION2 down 5r; ACTION3 left 5c; ACTION4 right 5c. Yellow bar shrinks by 2px width per action. A bordered box in upper right (rows 8-16, cols 32-40) shows a target pattern with blue(9) pixels."
+          },
+          {
+            "at": "2026-04-07T22:54:50.058392+00:00",
+            "evidence": "Frame shows a 2D grid environment with: a bordered target box (rows 8-16, cols 32-40) containing an off-black pattern with white/off-white markers; a sliding object area (lower-left, rows 50-62, cols 1-11) containing orange/blue patterns; a dark-grey main play area; and a yellow step bar (row 62, cols 12-54). The slider object appears to be at cols 1-11, rows 50-61 with a blue+off-black pattern that needs to be aligned with the target box."
+          },
+          {
+            "at": "2026-04-07T22:55:38.962786+00:00",
+            "evidence": "blue (color 9) and orange (color 12) objects move up by exactly 5 rows per ACTION1. Yellow bar (color 11) shrinks by 2 pixels per action. Target pattern visible in bordered box (rows 8-16, cols 32-40). Slider currently at row 18 (blue) and 16 (orange). Target appears at rows ~11-16."
+          },
+          {
+            "at": "2026-04-07T22:56:35.951705+00:00",
+            "evidence": "In ls20 level 1: blue (color 12) and orange (color 9) move together exactly 5 cells up per ACTION1, 5 cells down per ACTION2. Yellow bar (color 11) shrinks by ~2px per action. A bordered box (dark-grey/color 3 border) at rows 8-15, cols 32-40 contains the target pattern. The slider is currently at rows 30-36, cols 33-37. ACTION3 had no movement effect (only yellow shrunk), confirming no horizontal action."
+          },
+          {
+            "at": "2026-04-07T23:12:53.133399+00:00",
+            "evidence": "Frame shows a 2D slider game with a bordered play area, a target pattern box (rows 8-16, cols 32-40) containing a white+off-white (code 9) pattern, a movable piece (blue+orange, codes 1/0) in the play area around row 31-32, a yellow step bar at row 61, and red indicators. All 4 actions available match 2d_slider_with_target_pattern mechanic."
+          },
+          {
+            "at": "2026-04-07T23:13:48.914152+00:00",
+            "evidence": "In ls20 level 1: blue (color 12) and orange (color 9) slider moves up 5 rows on ACTION1, down 5 rows on ACTION2. Yellow bar shrinks with each action. A target pattern is shown in a bordered box (rows 8-16, cols 32-40). Slider currently at centroid ~(48,36) for blue and (46,36) for orange."
+          },
+          {
+            "at": "2026-04-07T23:14:33.318387+00:00",
+            "evidence": "In env_id ls20 level 1: blue (color 12) and orange (color 9) slider moves up 5 rows per ACTION1, down 5 rows per ACTION2. Yellow bar (color 11) shrinks each step. Target pattern visible in bordered box (rows 8-16, cols 32-40). White box (rows 57-59, cols 1-10) with blue/orange pattern appears to be target. Step counter at ~85% (size 68, started at 82+)."
+          },
+          {
+            "at": "2026-04-07T23:15:21.304556+00:00",
+            "evidence": "ACTION1/ACTION2 confirmed to move blue+orange slider up/down by 5 cells. Yellow bar (step_counter) shrinks each action. Target pattern visible in bordered box (rows 8-16, cols 32-40). Slider currently at row 16-18. ACTION3 toggles a white/black indicator (no movement). ACTION4 causes minimal change only."
+          },
+          {
+            "at": "2026-04-07T23:16:57.184704+00:00",
+            "evidence": "ACTION2 confirmed: blue+orange slider moves down by 5 rows per action. Yellow bar shrinks each action. Target pattern in bordered box visible at rows 8-16, cols 32-40. Slider (blue+orange) currently at rows 20-24, col 34-38. Actions 1-4 all tried: ACTION1=up(no effect?), ACTION2=down(+5r), ACTION3/4 show yellow bar shrinking but slider not moving horizontally - this is vertical-only slider."
+          },
+          {
+            "at": "2026-04-07T23:17:50.159005+00:00",
+            "evidence": "ls20 level 1: blue+orange slider moves up 5 rows with ACTION1, down 5 rows with ACTION2. ACTION3 and ACTION4 cause no slider movement (only yellow bar shrinks). Target pattern visible in bordered box at rows 8-24, cols 32-40."
+          },
+          {
+            "at": "2026-04-07T23:18:48.140576+00:00",
+            "evidence": "In ls20 level 1: ACTION1 moves blue+orange slider up by 5 rows, ACTION2 moves down by 5 rows. Yellow bar (step counter) shrinks each action. Target pattern shown in bordered box (upper right, rows 8-16, cols 32-40). Slider currently at rows 15-20, col 36. The 2d_slider_with_target_pattern mechanic is confirmed for this game."
+          },
+          {
+            "at": "2026-04-07T23:19:41.235906+00:00",
+            "evidence": "In ls20 level 1: ACTION1 moves blue(color9)+orange(color12) slider UP by 5 rows; ACTION2 moves DOWN by 5 rows; ACTION3/ACTION4 did NOT move the slider horizontally (only yellow bar shrank). Yellow bar (color11) shrinks by ~2 pixels per action. A bordered box (dark-grey border, rows 8-16, cols 32-40) shows a target pattern with blue/orange markers. Current slider at row ~18 (centroid), target pattern near row ~11-15."
+          },
+          {
+            "at": "2026-04-07T23:20:58.500993+00:00",
+            "evidence": "ACTION1 moves blue+orange slider up by 5 rows, ACTION2 moves down by 5 rows. Yellow bar shrinks with each action. Target pattern visible in bordered box at rows 8-16. Slider currently at rows 14-20 col 36. This matches 2d_slider_with_target_pattern mechanic."
+          },
+          {
+            "at": "2026-04-07T23:21:47.940397+00:00",
+            "evidence": "In ls20 level 1: blue+orange slider moves up 5 rows on ACTION1, down 5 rows on ACTION2. Actions 3 and 4 do NOT move the slider horizontally (no left/right movement observed). The slider is in a vertical channel at column ~36. Yellow bar shrinks with each action. White square at top-right toggles to black on ACTION2 and back to white on ACTION1."
+          },
+          {
+            "at": "2026-04-07T23:22:44.923615+00:00",
+            "evidence": "In ls20 level 1: ACTION1 moves blue+orange slider UP by 5 rows, ACTION2 moves DOWN by 5 rows. ACTION3 and ACTION4 appear to only affect the yellow step bar (no slider movement), suggesting this is a vertical-only slider. Yellow bar shrinks with each action taken. Target pattern (bordered box at rows 8-15, cols 32-40) shows a dark pattern with blue/orange that the slider (currently at rows 30-36) must align with."
+          },
+          {
+            "at": "2026-04-07T23:23:29.701885+00:00",
+            "evidence": "In ls20 level 1: ACTION1 moves blue+orange slider up by 5 rows, ACTION2 moves it down by 5 rows, confirmed by accumulated action effects. Yellow bar shrinks each action. A bordered target box (rows 8-16, cols 32-40) contains a pattern with blue (color 9) and orange (color 12) pixels. The slider (blue+orange) is currently at row ~16-18, col 36."
+          },
+          {
+            "at": "2026-04-07T23:25:19.771199+00:00",
+            "evidence": "ACTION2 moves blue+orange slider down by 5 rows. The frame shows a bordered box (dark-grey border at rows 8-16, cols 32-40) containing a target pattern with color-9 (blue) markers, and a slider pattern (blue+orange) at rows ~56-62, cols 1-10. Yellow bar shrinks each action. ACTION3/ACTION4 seem to only affect bars (not slider position), suggesting they may be column-scroll controls."
+          },
+          {
+            "at": "2026-04-07T23:26:09.062029+00:00",
+            "evidence": "ACTION2 moves blue+orange slider DOWN by 5 rows confirmed. ACTION1 (all zeros) seems to move UP. The frame shows a bordered box (dark-grey border at rows 8-16, cols 32-40) with a target pattern, and a main slider area on the left (rows 26-53). Yellow bar at row 62 shrinks with each action, current width=14 (28% remaining out of ~50px)."
+          },
+          {
+            "at": "2026-04-07T23:27:02.295466+00:00",
+            "evidence": "ls20 level 1: ACTION2 moves blue+orange slider DOWN by 5 rows confirmed. Yellow bar shrinks with each action. Target pattern in bordered box at rows 8-16, cols 32-40. Slider currently at rows ~33-36, cols 19-23. ACTION1 not moving suggests slider can't go up from current position or is at top limit."
+          },
+          {
+            "at": "2026-04-07T23:27:48.153710+00:00",
+            "evidence": "In ls20 level 1: ACTION1 moves blue+orange slider UP by 5 rows, ACTION2 moves DOWN by 5 rows. Yellow bar (step counter) shrinks with each action. A bordered target box exists at rows 8-16, cols 32-40 with a pattern of dark-grey/blue markers. The slider (blue+orange) is currently at row 57, col 36."
+          },
+          {
+            "at": "2026-04-07T23:28:41.312178+00:00",
+            "evidence": "ACTION2 moves blue+orange slider DOWN by 5 rows each step. Yellow bar at row 62 shrinks by 2 pixels per action (confirmed step counter). Target pattern is in bordered box at rows 8-16, cols 32-40. Slider (blue+orange) is currently at rows ~33-36 col 36. Actions 3 and 4 appear to only affect the step counter and not move the slider (possibly no horizontal motion or at boundary)."
+          },
+          {
+            "at": "2026-04-07T23:29:26.198619+00:00",
+            "evidence": "In ls20 level 1: blue (color 9) and orange (color 12) slider move down 5 cells per ACTION2; yellow bar shrinks with each action. Target pattern box (dark-grey bordered, rows 8-16, cols 32-40) shows a blue+orange pattern. Slider at rows 57-62, col 36."
+          },
+          {
+            "at": "2026-04-07T23:30:23.804445+00:00",
+            "evidence": "In ls20 level 1: Blue (color 12) + orange (color 9) slider at centroid ~(16-18, 36) moves up 5 rows with ACTION1, down 5 rows with ACTION2. Yellow bar shrinks with each action. Target pattern visible in bordered box at rows 8-16, cols 32-40. Slider needs to align with target in the main dark-grey field area."
+          },
+          {
+            "at": "2026-04-07T23:31:11.988021+00:00",
+            "evidence": "In ls20 level 1: blue+orange slider moves vertically \u00b15 rows with ACTION1/ACTION2. ACTION3/ACTION4 appear to have no effect on the slider (only yellow step-counter changes). The target pattern (bordered box at rows 8-16, cols 32-40) shows a dark-grey/blue arrangement. Current slider position: blue at (18,36), orange at (16,36). Yellow bar size=6 (very small, ~85% budget consumed)."
+          },
+          {
+            "at": "2026-04-07T23:33:33.085903+00:00",
+            "evidence": "In ls20 level 1: ACTION2 moves blue+orange slider down by 5 rows each time. Yellow bar (row 62) shrinks with each action used. Target pattern shown in bordered box (rows 8-16, cols 32-40). Slider currently at rows ~20-24, col ~34-38. ACTION1 has no observed movement effect (slider may be at top boundary or ACTION1 is not up-movement)."
+          },
+          {
+            "at": "2026-04-07T23:34:26.618274+00:00",
+            "evidence": "In ls20 level 1: ACTION2 moves blue+orange slider DOWN by 5 rows. ACTION1 has no effect (slider likely at top boundary). ACTION3/ACTION4 appear to only affect step counter / visual indicator with no slider movement. The game has a 2D field with a slider and a target pattern in a bordered box. Yellow bar at row 62 tracks remaining budget (currently 85%)."
+          },
+          {
+            "at": "2026-04-07T23:56:49.424532+00:00",
+            "evidence": "env ls20 level 1: 64x64 frame shows a dark-grey main area with a bordered box (rows 8-15, cols 32-40) containing off-white/dark pattern (target). A slider shape (blue+orange at rows 48-50, cols 34-38) appears on the main field. Yellow bar at row 62 tracks budget. Off-black object at rows 31-32, cols 20-22 is the current slider. Red dots mark step indicator. Structure matches 2d_slider_with_target_pattern mechanic."
+          },
+          {
+            "at": "2026-04-07T23:57:37.290424+00:00",
+            "evidence": "In ls20 level 1: ACTION1 confirmed to move blue(color 9) and orange(color 12) objects UP by 5 rows each time. Yellow bar (color 11) shrinks by 2 pixels per action. A bordered box (rows 8-15, cols 32-40) shows a target pattern with blue dots. The slider is currently at centroid ~(23,36) for blue and (20,36) for orange after 5 ACTION1 presses."
+          },
+          {
+            "at": "2026-04-07T23:58:25.646336+00:00",
+            "evidence": "In ls20 level 1: Blue(color9)+orange(color12) slider moves up 5 rows per ACTION1. Yellow bar (color11) shrinks by 2 pixels per action. A bordered target box exists at rows 8-16, cols 32-40 with a pattern of blue(9) dots. The slider is currently at rows 15-18 (centroid 18,36 for blue). Target appears to be at rows 8-16 area. The gap/corridor structure at rows 31-43 cols 29-33 shows a passage the slider may need to traverse."
+          },
+          {
+            "at": "2026-04-07T23:59:32.543274+00:00",
+            "evidence": "In ls20 level 1: blue/orange slider moves vertically (ACTION2=down by 5 rows confirmed), yellow bar shrinks each action. A bordered target box exists at rows 8-15, cols 32-40 containing a blue pattern. The slider (blue+orange) is currently at rows ~20-23, cols 33-37. ACTION1 toggles a black/white square at (58,6). ACTION3/ACTION4 only shrink yellow bar (no movement effect). This is primarily a vertical slider game."
+          },
+          {
+            "at": "2026-04-08T00:00:16.825444+00:00",
+            "evidence": "ACTION1 moves blue+orange slider UP by 5 rows; ACTION2 moves it DOWN by 5 rows. ACTION3 and ACTION4 only shrink yellow step bar by 2 pixels each (minimal effect \u2014 likely no horizontal movement as the slider only moves vertically). Yellow bar tracks step budget decreasing with each action."
+          },
+          {
+            "at": "2026-04-08T00:01:07.246107+00:00",
+            "evidence": "In ls20 level 1: ACTION1 moves blue(color9)+orange(color12) slider UP by 5 rows. ACTION2 moves them DOWN by 5 rows. ACTION3 and ACTION4 had minimal effect (no horizontal slider movement seen). Yellow bar (color11) shrinks each action, currently at ~85% (~58/68px wide). Target pattern visible in bordered box at rows 8-15, cols 32-40 with blue(9) dots in specific positions. Slider currently at rows 30-36, col 34-38."
+          },
+          {
+            "at": "2026-04-08T00:01:57.238153+00:00",
+            "evidence": "ACTION1 moves blue+orange slider UP by 5 rows; ACTION2 moves it DOWN by 5 rows. Yellow bar shrinks each action. Blue/orange slider currently at centroid (57,36) area. Actions 3&4 have no slider movement effect (only tiny pixel changes). Target pattern visible in bordered box at rows 8-16, cols 32-40."
+          },
+          {
+            "at": "2026-04-08T00:03:14.369045+00:00",
+            "evidence": "In ls20 level 1: ACTION1 moves blue(color9)+orange(color12) slider UP by 5 rows, ACTION2 moves DOWN by 5 rows, ACTION3 moves LEFT by 5 cols, ACTION4 moves RIGHT by 5 cols. Yellow bar shrinks each action. Target pattern visible in bordered box at rows 8-16, cols 32-40. Current slider at centroid ~(26-28, 36)."
+          },
+          {
+            "at": "2026-04-08T00:04:04.645079+00:00",
+            "evidence": "In ls20 level 1: ACTION1=up moves blue+orange slider 5 rows up, ACTION2=down moves 5 rows down, ACTION3=left moves 5 columns left, ACTION4=right moves 5 columns right. Yellow bar shrinks each action. Target pattern (blue/orange inside bordered box) exists in upper-right quadrant. Slider starts at ~row 26-28, col 36. Target position visible at rows 8-16, cols 32-40."
+          },
+          {
+            "at": "2026-04-08T00:04:47.565497+00:00",
+            "evidence": "In ls20 level 1: ACTION1 moves blue+orange slider UP by 5 rows, ACTION2 moves DOWN 5 rows, ACTION3 moves LEFT 5 cols, ACTION4 moves RIGHT 5 cols. Yellow bar shrinks each action. Blue/orange objects at centroid ~(57,5) and ~(16,36) seen in current frame. Target pattern visible in bordered box rows 8-17, cols 32-40."
+          },
+          {
+            "at": "2026-04-08T00:05:38.368606+00:00",
+            "evidence": "ACTION1=up, ACTION2=down, ACTION3=left, ACTION4=right confirmed: blue+orange slider moves exactly 5 cells per action in corresponding direction. Yellow bar shrinks each action. Target pattern visible in bordered box at rows 8-16, cols 32-40."
+          },
+          {
+            "at": "2026-04-08T00:06:17.175862+00:00",
+            "evidence": "Confirmed in ls20 level 1: ACTION1=up moves blue+orange slider 5 rows up, ACTION2=down moves it 5 rows down, ACTION3=left moves it 5 cols left, ACTION4=right moves it 5 cols right. Yellow bar shrinks each action (currently 85% = 32px wide). Target pattern visible in bordered box (dark-grey border, rows 8-16, cols 32-40). Slider currently at centroid row~17, col~36."
+          },
+          {
+            "at": "2026-04-08T00:07:08.636651+00:00",
+            "evidence": "ACTION1=up moves blue+orange slider 5 rows up, ACTION2=down moves 5 rows down, ACTION3=left moves 5 cols left, ACTION4=right moves 5 cols right. Yellow bar (step_counter) shrinks with each action. Target pattern visible in bordered box at rows 8-16, cols 32-40. Slider currently at rows 16-17, cols 34-38 (blue+orange). 2D slider mechanic confirmed in ls20."
+          },
+          {
+            "at": "2026-04-08T00:08:00.137197+00:00",
+            "evidence": "ls20 level 1: blue (color9) + orange (color12) slider moves exactly 5 cells per action (up=ACTION1, down=ACTION2, left=ACTION3, right=ACTION4). Yellow bar (color11) shrinks with each action. White 10x10 target box visible at top-right area centroid (58,6). Current slider position at row~16, col~36. Target appears to be at row~58, col~6."
+          },
+          {
+            "at": "2026-04-08T00:08:38.283281+00:00",
+            "evidence": "In ls20 level 1: ACTION1 moves blue+orange slider UP 5 rows, ACTION2 moves DOWN 5 rows, ACTION4 moves RIGHT 5 cols. ACTION3 has no effect on slider (only shrinks yellow step counter). Yellow bar at row 62 shrinks with each action. Confirmed 2D slider mechanic."
+          },
+          {
+            "at": "2026-04-08T00:09:26.972133+00:00",
+            "evidence": "In env ls20 level 1: ACTION1/ACTION2 move blue(color9)+orange(color12) slider up/down by 5 rows. ACTION4 moves right by 5 cols. Yellow bar (color11) shrinks each action. A bordered box (dark-grey border, rows 8-16, cols 32-40) contains a target pattern with blue(9) blobs. The slider (blue+orange) is currently at row ~16-18, col 36. A separate bordered display box at bottom-left (rows ~57-63, cols 1-11) shows the current slider pattern in white(0) and blue(9). Step budget shown as yellow bar at bottom row 63."
+          },
+          {
+            "at": "2026-04-08T00:10:12.830842+00:00",
+            "evidence": "In ls20 level 1: ACTION1 moves blue+orange slider up by 5 rows; ACTION2 moves down by 5 rows; ACTION4 moves right by 5 cols (confirmed). The yellow bar shrinks with each action. A bordered box (dark-grey border with black background) at upper-right area contains a target pattern with orange/blue markers. A second bordered box at lower-left shows the slider's current pattern. Steps remaining = 143."
+          },
+          {
+            "at": "2026-04-08T00:10:56.921570+00:00",
+            "evidence": "Blue (color 12) and orange (color 9) slider moves exactly 5 cells up/down with ACTION1/ACTION2, and exactly 5 cells right with ACTION4 (left not tested yet but likely mirrors). Yellow bar (color 11) shrinks each action. A bordered box in the upper-right area (rows 8-16, cols 32-40) contains a target pattern with blue/orange dots (9). The slider is currently at centroid (18,36) for blue, (16,36) for orange. No level advance yet."
+          },
+          {
+            "at": "2026-04-08T00:11:49.757605+00:00",
+            "evidence": "Game ls20 level 1 confirms 2D slider: ACTION1=up (-5r), ACTION2=down (+5r), ACTION3=left (only changes yellow step bar), ACTION4=right (+5c). Blue (color 9) and orange (color 12) slider moves 5 cells per action. Yellow bar (color 11) shrinks. The final ACTION4 caused a full-screen flash to color 11 (all-yellow), suggesting a level reset or boundary hit. The step budget was nearly exhausted (yellow bar almost gone)."
+          },
+          {
+            "at": "2026-04-08T02:10:00.027430+00:00",
+            "evidence": "Game tr87 level 1: ACTION3 moves white cursor LEFT by 7 columns per press, ACTION4 moves it RIGHT by 7 columns per press. Step counter (off-white bar) shrinks each action. Grid of 7x7 pattern slots (cyan=top region, pink=bottom region) visible with small black dots inside. A wide bottom display shows a combined pattern target."
+          }
+        ]
+      },
+      "created_at": "2026-04-07T22:45:13.694065+00:00",
+      "updated_at": "2026-04-08T02:10:00.027430+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_90b6d4a4ae76",
+      "name": "pattern_matching_grid_puzzle",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Multiple grids of 7x7 cells with cyan/pink borders and black dots inside; a wider bordered area at bottom showing letter-like patterns; small black rectangle cursor visible in one of the grids",
+        "evidence": "Frame shows 12 small cells arranged in a 3x4 grid (rows 4-28, cols 4-51). Each cell has either cyan (color 10) or pink (color 7) border and contains a pattern of 5 (off-white) pixels against the border color. Lower area (rows 34-46) shows a wide horizontal band with similar patterns at larger scale. A small black rectangle appears at centroid (43,31) and (54,31)."
+      },
+      "abstraction": {
+        "summary": "The game shows a 3x4 grid of small 7x7 pattern cells (left half = cyan-bordered, right half = pink-bordered) in the upper area. Below is a long horizontal banner with sequences of patterns. A cursor (black dot) appears to select cells. Actions likely navigate the cursor or select matching patterns.",
+        "hint": "Try all 4 actions to see which moves a cursor and which selects/confirms. The goal may be to match small cell patterns to the large banner patterns."
+      },
+      "confidence": 0.5,
+      "provenance": {
+        "first_seen": {
+          "env_id": "tr87",
+          "level": 1,
+          "step": 0
+        },
+        "evidence_history": [
+          {
+            "evidence": "Frame shows 12 small cells arranged in a 3x4 grid (rows 4-28, cols 4-51). Each cell has either cyan (color 10) or pink (color 7) border and contains a pattern of 5 (off-white) pixels against the border color. Lower area (rows 34-46) shows a wide horizontal band with similar patterns at larger scale. A small black rectangle appears at centroid (43,31) and (54,31)."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T00:49:34.074706+00:00",
+      "updated_at": "2026-04-08T00:49:34.074706+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_0858d2d8ad8d",
+      "name": "slot-rotation-indicator-brackets",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "White bracket-like markers (size=7, 5w x 2h) appear at top/bottom of slots in a UI panel",
+        "evidence": "ACTION3 caused white objects (size=7) to move from centroid (48,17) and (60,17) [top] to (48,45) and (60,45) [bottom], indicating a flip/rotation of slot content was applied."
+      },
+      "abstraction": {
+        "summary": "ACTION3 toggles white bracket markers between top and bottom positions in the bottom panel's slots, indicating rotation state of slot content. Brackets at bottom = rotated state.",
+        "hint": "Track bracket position (top vs bottom) to determine current rotation state of each slot; use ACTION3 to cycle through rotations."
+      },
+      "confidence": 0.6,
+      "provenance": {
+        "first_seen": {
+          "env_id": "tr87",
+          "level": 1,
+          "step": 4
+        },
+        "evidence_history": [
+          {
+            "evidence": "ACTION3 caused white objects (size=7) to move from centroid (48,17) and (60,17) [top] to (48,45) and (60,45) [bottom], indicating a flip/rotation of slot content was applied."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T00:50:33.559048+00:00",
+      "updated_at": "2026-04-08T00:50:33.559048+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_7c56292c46bd",
+      "name": "grid_slot_puzzle_pattern_matching",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Grid of small cells with patterns, two sections (light and dark background), navigation via actions",
+        "evidence": "Frame shows 4x3 grid of 7x7 pattern cells in top panel (light-grey), another row in bottom panel (dark-grey). White bracket markers appear near specific slots. ACTION3 causes diff=28-29 affecting large bbox with pattern swaps."
+      },
+      "abstraction": {
+        "summary": "Game has a grid of pattern slots in two panels (top=light-grey, bottom=dark-grey). ACTION2 cycles through slots, ACTION3 applies rotation transformation. White markers indicate selected/target slots. Step counter at bottom tracks progress.",
+        "hint": "Use ACTION2 to navigate between slots, ACTION3 to transform pattern. Match patterns between panels to advance level."
+      },
+      "confidence": 0.6,
+      "provenance": {
+        "first_seen": {
+          "env_id": "tr87",
+          "level": 1,
+          "step": 9
+        },
+        "evidence_history": [
+          {
+            "evidence": "Frame shows 4x3 grid of 7x7 pattern cells in top panel (light-grey), another row in bottom panel (dark-grey). White bracket markers appear near specific slots. ACTION3 causes diff=28-29 affecting large bbox with pattern swaps."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T00:51:32.159533+00:00",
+      "updated_at": "2026-04-08T00:51:32.159533+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_4547e9b09aac",
+      "name": "grid-slot-rotation-puzzle",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Frame has a top half (light background) with small 7x7 grid slots and a bottom half (dark background) with wide panel slots. White indicators mark active slot. Step counter bar at bottom.",
+        "evidence": "Top region rows 4-29: 4 columns of 7x7 cyan/pink bordered slots, each with internal black pixel patterns. Bottom region rows 33-57: wide dark-grey bordered slots with letter-like patterns. White 5x2 markers (color 0) appear to indicate active slot. ACTION2 moves markers, ACTION3 changes pixel layout within marked slot. Step counter (off-white bar, row 63) shrinks with each action."
+      },
+      "abstraction": {
+        "summary": "Two-region puzzle: top light-background zone has small pattern slots, bottom dark-background zone has wide pattern rows. ACTION2 cycles the selected slot (moves white markers), ACTION3 rotates/transforms the pattern in the selected slot. The goal is to match all slots to their target patterns.",
+        "hint": "Use ACTION2 to navigate to the target slot (watch white marker position), then ACTION3 to rotate/fix the pattern. Monitor which slots still mismatch after each ACTION3."
+      },
+      "confidence": 0.9500000000000002,
+      "provenance": {
+        "first_seen": {
+          "env_id": "tr87",
+          "level": 1,
+          "step": 12
+        },
+        "evidence_history": [
+          {
+            "evidence": "Top region rows 4-29: 4 columns of 7x7 cyan/pink bordered slots, each with internal black pixel patterns. Bottom region rows 33-57: wide dark-grey bordered slots with letter-like patterns. White 5x2 markers (color 0) appear to indicate active slot. ACTION2 moves markers, ACTION3 changes pixel layout within marked slot. Step counter (off-white bar, row 63) shrinks with each action."
+          },
+          {
+            "at": "2026-04-08T01:49:34.051172+00:00",
+            "evidence": "Frame shows top light-grey zone (rows 0-33) with 3x4 grid of 7x7 pattern slots (cyan/pink bordered with 5=light-grey interior). Bottom dark-grey zone (rows 34-63) has wide horizontal panel rows with patterns. White markers at rows 48,62 col 15-19 indicate active slot. Off-white bar at row 63 is the step counter."
+          },
+          {
+            "at": "2026-04-08T01:50:17.145420+00:00",
+            "evidence": "Frame shows top light-grey zone (rows 0-32) with 4 columns of 3-row pattern slots (cyan/pink, 7x7 each), dark-grey bottom zone (rows 33-62) with a wide combined display row. White markers at row 45 (cols 48,60) indicate active slot position. ACTION3 moved white markers from row 17 to row 45 (down one slot row). ACTION2 changed pink pattern in bottom display area. Step counter (off-white) at row 63 shrank with each action."
+          },
+          {
+            "at": "2026-04-08T01:51:05.848998+00:00",
+            "evidence": "Frame confirms two regions: top light-grey area with 3x3 grid of pattern slots (cyan=target, pink=current), bottom dark-grey area with combined display row. White markers at cols 38 move left 7 pixels per ACTION3. ACTION2 modifies the selected slot pattern. Step counter (off-white bar) shrinks each action."
+          },
+          {
+            "at": "2026-04-08T02:01:42.446862+00:00",
+            "evidence": "Frame shows top light-background zone with 3x2 grid of 7x7 pattern slots (cyan=col1,col2; pink=col1,col2; black dots in slots), dark-background zone with wide combined pattern row. White markers at rows 48,60 indicate active slot column. ACTION3 moves white markers left by 7 cols. ACTION2 modifies patterns (pink pixel changes). Step counter bar at row 63 shrinks with each action."
+          },
+          {
+            "at": "2026-04-08T02:07:35.538673+00:00",
+            "evidence": "Frame shows top light-grey zone with 3x2 grid of 7x7 small cyan/pink slots, plus dark-grey bottom zone with wide horizontal pattern rows. White markers appear at top-left slots (cols 17, 45). ACTION3/ACTION4 toggle white markers between column 17 and column 45 (left/right halves). The large cyan/pink band at rows 43-50 shows combined display. Off-white bar at row 63 is step counter (~60% remaining)."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T00:52:23.893458+00:00",
+      "updated_at": "2026-04-08T02:07:35.538673+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_021b7bf75700",
+      "name": "pattern_matching_grid_slots",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Grid of slots with pattern tiles (cyan/pink=color10/7), white cursor markers, and step counter bar at bottom",
+        "evidence": "Frame shows 6 slots in top area arranged in 2 rows x 3 cols (rows 4-29, cols 4-51), large display in bottom half, cursor white markers move between slot positions with ACTION2, ACTION3 changes pattern content (diff=28-29 with '0->3'/'3->0' changes indicating dark shape toggling)"
+      },
+      "abstraction": {
+        "summary": "Game has a 4x2+ grid of pattern slots in top half (light-grey area), a long combined display in dark-grey area, and cursor navigates between columns. ACTION3 rotates/cycles pattern in selected slot. ACTION2 moves cursor to next slot position.",
+        "hint": "Use ACTION2 to move cursor between slots, ACTION3 to rotate/transform the selected slot's pattern until it matches the target in the display area"
+      },
+      "confidence": 1.0,
+      "provenance": {
+        "first_seen": {
+          "env_id": "tr87",
+          "level": 1,
+          "step": 14
+        },
+        "evidence_history": [
+          {
+            "evidence": "Frame shows 6 slots in top area arranged in 2 rows x 3 cols (rows 4-29, cols 4-51), large display in bottom half, cursor white markers move between slot positions with ACTION2, ACTION3 changes pattern content (diff=28-29 with '0->3'/'3->0' changes indicating dark shape toggling)"
+          },
+          {
+            "at": "2026-04-08T00:59:34.703002+00:00",
+            "evidence": "tr87 level 1: 3x2 grid of 7x7 slots in top half (light-grey, rows 0-31), large display panel in dark-grey bottom (rows 34-47 for cyan, 51-60 for pink), white markers at rows 48, cols 47 and 59 indicating active slot position. Cyan slots are reference patterns, pink slots are target patterns. Bottom panels show composite pattern views."
+          },
+          {
+            "at": "2026-04-08T01:52:05.281172+00:00",
+            "evidence": "Game has 4x3 grid of pattern slots in top half (light-grey area, rows 0-34) showing cyan/pink patterns in 7x7 tiles. Bottom dark-grey area has two wide display bands: a cyan band (rows 39-45) and a pink band (rows 50-56). White markers at row 48 move left by 7 cols per ACTION3, indicating cursor position. ACTION2 modifies the selected slot's pattern (pink/cyan pixels toggle). Step counter at row 63 shrinks each action."
+          },
+          {
+            "at": "2026-04-08T01:52:57.886215+00:00",
+            "evidence": "Frame confirms 4-column grid of cyan/pink (10/7) pattern slots in top half (light-grey), combined display panels in dark-grey bottom half. ACTION3 moves white cursor markers left by exactly 7 columns each press. ACTION2 modifies pink pattern in the selected slot area. Step counter (off-white bar) shrinks with each action."
+          },
+          {
+            "at": "2026-04-08T01:53:51.570494+00:00",
+            "evidence": "env_id tr87: Top half (light-grey) has a 3x2 grid of 7x7 pattern slots (cyan=color10, pink=color7). Two white markers at rows 48 and 60 move left by 7 pixels per ACTION3, indicating current selected column. ACTION2 changes content of selected slot (pink pattern shifts). ACTION3 moves white cursor markers left by 7 cols. Step counter (off-white) shrinks each action."
+          },
+          {
+            "at": "2026-04-08T01:54:39.398195+00:00",
+            "evidence": "Frame shows 4x3 grid of small 7x7 pattern slots (top half light-grey area with cyan/pink tiles), a wide combined display row (bottom dark-grey area), white cursor markers at row 48 col 45 and row 60 col 45. ACTION3 moves white markers left by 7 columns (exactly one slot width). ACTION2 changes the content/appearance of the currently selected slot's pattern. Step counter bar at row 63 shows off-white shrinking left-to-right."
+          },
+          {
+            "at": "2026-04-08T01:55:31.687513+00:00",
+            "evidence": "ACTION3 moves two white cursor markers 7 columns left each time. ACTION2 modifies slot content (pink pattern changes). The frame has a 4x3 grid of 7x7 slots (cyan=color10 bordered and pink=color7 bordered) in the upper light-grey area, with a wide combined display (rows 40-47 for cyan, rows 49-59 for pink) in the dark-grey area. Step counter (off-white bar) shrinks with each action."
+          },
+          {
+            "at": "2026-04-08T01:57:13.855464+00:00",
+            "evidence": "Frame has top half (light-grey, rows 0-31) with 3x2 grid of 7x7 pattern slots in cyan and pink, plus dark-grey bottom half (rows 32-63) with wide combined display row in cyan/pink. Two white markers move exactly 7 cols left per ACTION3, cycling across slot columns. Step counter (off-white bar) shrinks by 1 per ACTION3 press. ACTION2 changes pattern content within the currently selected slot (slot at col ~25 changed when ACTION2 used)."
+          },
+          {
+            "at": "2026-04-08T01:59:11.231620+00:00",
+            "evidence": "Frame has a 4x3 grid of 7x7 pattern slots (cyan=col1,2,4; pink=col1,2,4) in the top light-grey half. Bottom dark-grey half has two wide panels (cyan+pink rows 7h x 35w). Two white markers at rows 48 and 60 indicate active column. ACTION3 moves white markers left by 7 pixels each press. ACTION2 modifies pattern content in the selected slot (pink pixels shift). Step counter off-white bar at row 63 shrinks with each action."
+          },
+          {
+            "at": "2026-04-08T02:00:46.236187+00:00",
+            "evidence": "Frame shows 4x2 grid of 7x7 pattern slots (cyan=color10, pink=color7) in top light-grey area. Wide combined display in dark-grey area. White cursor markers (two white 5x2 objects) move left 7 cols per ACTION3. ACTION2 modifies slot content (pink pattern shifts). Step counter bar at row 63."
+          },
+          {
+            "at": "2026-04-08T02:06:05.067915+00:00",
+            "evidence": "Frame has a 4x2 grid of pattern slots in the top half (light-grey area, rows 0-34), a combined display in dark-grey area (rows 35-63), with cyan(10) and pink(7) patterns in 7x7 slot tiles. White markers at (48,17) and (60,17) indicate cursor position. Off-white bar at row 63 is the step counter. Dark-grey region contains two wide horizontal displays (cyan and pink). Black squares in center of each tile are markers. Two small bracket-like black shapes appear to mark the active slot column."
+          },
+          {
+            "at": "2026-04-08T02:06:47.762532+00:00",
+            "evidence": "Frame shows a 3x2 grid of 7x7 slots (cyan=10 bordered, pink=7 bordered) in top half (light-grey), a long combined display panel in dark-grey area, two white markers at bottom rows of the dark-grey region, and step counter bar at bottom. ACTION2 moved pink pattern content. ACTION3 moved white markers from row 17 to row 45 (cursor navigation between rows of the display)."
+          },
+          {
+            "at": "2026-04-08T02:08:19.562136+00:00",
+            "evidence": "Game has 4x3 grid of 7x7 pattern slots in the top half (light-grey area). Cyan slots on left, pink/cyan slots on right. The bottom dark-grey area has wider pattern rows. ACTION3 moves white cursor markers (disappeared from col 17, appeared at col 45). ACTION4 reversed the white markers back. ACTION2 slightly shifts pink pattern. Each action shrinks the step counter (off-white bar at bottom)."
+          },
+          {
+            "at": "2026-04-08T02:09:05.030679+00:00",
+            "evidence": "In tr87/level1: Top half shows a 3x4 grid of 7x7 pattern slots (cyan=color10, pink=color7). ACTION3 moves white cursor markers LEFT by 7 columns (one slot). ACTION4 moves white cursor markers RIGHT by 7 columns. ACTION1 transforms the pink pattern in the selected slot. ACTION2 transforms the pattern slightly. White markers at rows 48 and 60 indicate the selected column. Step counter (off-white bar at row 63) shrinks each action."
+          },
+          {
+            "at": "2026-04-08T02:10:50.729517+00:00",
+            "evidence": "Game has top light-grey area with 2x3 grid of 7x7 pattern slots (cyan/pink bordered), dark-grey bottom with combined display rows. White cursor markers (2 of them) move left 7px per ACTION3 and right 7px per ACTION4. ACTION1/ACTION2 modify slot patterns. Step counter at row 63 shrinks with each action."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T00:53:08.210788+00:00",
+      "updated_at": "2026-04-08T02:10:50.729517+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_36d9dade66c1",
+      "name": "pattern-matching-grid-with-rotation-correction",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Grid of slots with cyan/pink pattern tiles; cursor navigates slots; one action rotates the current tile; progress bar in bottom row",
+        "evidence": "64x64 frame shows top half with light-grey background containing 3x2 grid of 7x7 pattern tiles (cyan=target, pink=candidate). ACTION3 causes white markers to move left by 7px each call (cycling through slots). ACTION2 causes small pixel changes in the lower status bar region. ACTION4 moves white markers right by 7px."
+      },
+      "abstraction": {
+        "summary": "Game presents a grid of slots (left panel = cyan targets, right panel = pink candidates). ACTION2 cycles cursor through slots (moving selection indicator). ACTION3 rotates the candidate tile. ACTION4 moves in opposite direction. The goal is to match each pink candidate to its cyan target pattern by rotating.",
+        "hint": "Use ACTION3 to cycle slot selection and ACTION2 to rotate the current slot's pattern to match the target. Monitor white marker position to know which slot is selected."
+      },
+      "confidence": 0.5,
+      "provenance": {
+        "first_seen": {
+          "env_id": "tr87",
+          "level": 1,
+          "step": 17
+        },
+        "evidence_history": [
+          {
+            "evidence": "64x64 frame shows top half with light-grey background containing 3x2 grid of 7x7 pattern tiles (cyan=target, pink=candidate). ACTION3 causes white markers to move left by 7px each call (cycling through slots). ACTION2 causes small pixel changes in the lower status bar region. ACTION4 moves white markers right by 7px."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T00:53:53.286243+00:00",
+      "updated_at": "2026-04-08T00:53:53.286243+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_9a59af28f61b",
+      "name": "pattern_matching_grid_puzzle",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Grid of cells with inner patterns (black dots on colored background), two rows of cells (template vs candidate), step counter shrinking, actions cycle/select patterns",
+        "evidence": "In tr87: 6 cyan cells in top area (templates), 6 pink cells below (candidates with matching patterns), white markers move left/right with ACTION3/ACTION4 by 7 columns each step. ACTION1 causes large pink bar changes (submission attempt). Off-white step counter shrinks each action. Level has not advanced after 64 frames."
+      },
+      "abstraction": {
+        "summary": "Game presents a grid of pattern cells (cyan/pink bordered 7x7 cells with black dot patterns inside). ACTION3/ACTION4 cycle a selector (white markers) left/right across candidate cells. ACTION2 adjusts the pattern inside the selected slot. ACTION1 attempts submission. Off-white bar shrinks as steps are used. Off-black bar grows as wrong attempts accumulate.",
+        "hint": "Use ACTION3/ACTION4 to position white selector, ACTION2 to cycle pattern, match all slots to templates, then ACTION1 to submit."
+      },
+      "confidence": 0.6,
+      "provenance": {
+        "first_seen": {
+          "env_id": "tr87",
+          "level": 1,
+          "step": 18
+        },
+        "evidence_history": [
+          {
+            "evidence": "In tr87: 6 cyan cells in top area (templates), 6 pink cells below (candidates with matching patterns), white markers move left/right with ACTION3/ACTION4 by 7 columns each step. ACTION1 causes large pink bar changes (submission attempt). Off-white step counter shrinks each action. Level has not advanced after 64 frames."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T00:54:35.832867+00:00",
+      "updated_at": "2026-04-08T00:54:35.832867+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_67735738cded",
+      "name": "grid_pattern_matching_with_cursor",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Grid of pattern slots (cyan/pink bordered squares) with white cursor indicators moving left/right between slots; step counter shrinking",
+        "evidence": "ACTION3 moves white cursor indicators left by 7 columns each time; ACTION4 moves them right by 7 columns. The grid has 3 columns of 7x7 pattern slots. Pink patterns in bottom panel appear to be answer inputs; cyan patterns in top panel appear to be targets. ACTION1/ACTION2 cause pixel changes in specific slots (black/pink pixel swaps within slots)."
+      },
+      "abstraction": {
+        "summary": "Game shows a 3x3+ grid of pattern slots. Two rows: one row has cyan-bordered patterns (targets/locks), another has pink-bordered patterns (inputs to match). ACTION3 moves cursor left (-7c per step), ACTION4 moves cursor right (+7c). ACTION1/ACTION2 modify pattern contents in the current slot. A step counter tracks remaining moves.",
+        "hint": "Use ACTION3/ACTION4 to position cursor over desired slot column. Use ACTION1/ACTION2 to toggle/rotate the pattern contents. Match pink slot patterns to cyan slot targets to solve the puzzle."
+      },
+      "confidence": 0.65,
+      "provenance": {
+        "first_seen": {
+          "env_id": "tr87",
+          "level": 1,
+          "step": 21
+        },
+        "evidence_history": [
+          {
+            "evidence": "ACTION3 moves white cursor indicators left by 7 columns each time; ACTION4 moves them right by 7 columns. The grid has 3 columns of 7x7 pattern slots. Pink patterns in bottom panel appear to be answer inputs; cyan patterns in top panel appear to be targets. ACTION1/ACTION2 cause pixel changes in specific slots (black/pink pixel swaps within slots)."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T00:55:33.721271+00:00",
+      "updated_at": "2026-04-08T00:55:33.721271+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_1e28ddf0d8f1",
+      "name": "grid-pattern-rotation-puzzle",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Two halves of screen with grid patterns, one half has cyan cells and one has pink cells, with white slider indicators and step counter at bottom",
+        "evidence": "ACTION3 moves white markers left by 7 columns each press. ACTION4 moves right by 7. The marker selects which panel slot to operate on. ACTION1/ACTION2 cause pink pixel changes in the right section panels."
+      },
+      "abstraction": {
+        "summary": "Two sections each containing multiple 7x7 grid panels. Left section (cyan/light-grey) is reference. Right section (pink/dark-grey) needs to match. ACTION3 moves a white marker left by 7 per press (selecting which slot). ACTION4 moves marker right. ACTION1/ACTION2 cycle through rotation states of selected panel.",
+        "hint": "Use ACTION3/ACTION4 to navigate to the mismatched slot, then ACTION1/ACTION2 to rotate the pattern until it matches the reference."
+      },
+      "confidence": 0.6,
+      "provenance": {
+        "first_seen": {
+          "env_id": "tr87",
+          "level": 1,
+          "step": 23
+        },
+        "evidence_history": [
+          {
+            "evidence": "ACTION3 moves white markers left by 7 columns each press. ACTION4 moves right by 7. The marker selects which panel slot to operate on. ACTION1/ACTION2 cause pink pixel changes in the right section panels."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T00:56:22.546840+00:00",
+      "updated_at": "2026-04-08T00:56:22.546840+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_452e7a080431",
+      "name": "pattern_matching_grid_puzzle",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Grid of tiles with two display areas (top showing target patterns, bottom showing current patterns) and actions that shift/scroll items in the bottom area",
+        "evidence": "In tr87: top half has 4 fixed cyan/pink icon grids (targets). Bottom half has matching positions with black squares and white markers. ACTION3 moves white marker objects left by 7 columns per press. ACTION4 moves them right by 7 columns per press. ACTION1/ACTION2 cycle pink bar positions. Step counter decrements each action."
+      },
+      "abstraction": {
+        "summary": "Actions cycle through discrete states for pattern elements; the goal is to make all grid cells match a target pattern. Two objects (white markers) move left/right across slots to indicate position or selection. ACTION3 moves markers left, ACTION4 moves markers right.",
+        "hint": "Use ACTION3/ACTION4 to position markers over the target slot, then ACTION1/ACTION2 to cycle values until they match the target pattern shown in the top half."
+      },
+      "confidence": 0.65,
+      "provenance": {
+        "first_seen": {
+          "env_id": "tr87",
+          "level": 1,
+          "step": 24
+        },
+        "evidence_history": [
+          {
+            "evidence": "In tr87: top half has 4 fixed cyan/pink icon grids (targets). Bottom half has matching positions with black squares and white markers. ACTION3 moves white marker objects left by 7 columns per press. ACTION4 moves them right by 7 columns per press. ACTION1/ACTION2 cycle pink bar positions. Step counter decrements each action."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T00:57:08.383943+00:00",
+      "updated_at": "2026-04-08T00:57:08.383943+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_f5a701fb3353",
+      "name": "pattern_matching_grid_with_scrolling_selector",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Grid of 5x5 pattern cells (cyan/pink borders, black interior patterns) with a separate scrolling indicator panel and white marker squares that move left/right",
+        "evidence": "inspect_region shows 4 columns of 5x5 pattern grids (cyan and pink bordered) at rows 4-28. diff_last_frames shows ACTION3 moves white objects left 7c and ACTION4 moves them right 7c. ACTION1 moves pink bar left 1c, ACTION2 moves pink bar right 1c. Step counter shrinks each action."
+      },
+      "abstraction": {
+        "summary": "Game has a top grid of pattern tiles (cyan=reference, pink=target) and a bottom area with a horizontal scrolling element. ACTION3 moves white markers LEFT by 7 columns (one slot), ACTION4 moves them RIGHT by 7 columns. ACTION1/ACTION2 cycle a pink scrolling bar left/right by 1 column respectively. The step counter (off-white bar) decreases with each action. Goal appears to be aligning the white marker with the correct slot position to match patterns.",
+        "hint": "Use ACTION3/ACTION4 to navigate white marker to target slot, then ACTION1/ACTION2 to fine-tune the pink scrolling selector until patterns align."
+      },
+      "confidence": 0.7,
+      "provenance": {
+        "first_seen": {
+          "env_id": "tr87",
+          "level": 1,
+          "step": 29
+        },
+        "evidence_history": [
+          {
+            "evidence": "inspect_region shows 4 columns of 5x5 pattern grids (cyan and pink bordered) at rows 4-28. diff_last_frames shows ACTION3 moves white objects left 7c and ACTION4 moves them right 7c. ACTION1 moves pink bar left 1c, ACTION2 moves pink bar right 1c. Step counter shrinks each action."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T00:58:21.407849+00:00",
+      "updated_at": "2026-04-08T00:58:21.407849+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_40a74eb7047e",
+      "name": "pattern-matching grid with rotation mechanic",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Grid of symbol slots (cyan/pink bordered) in top half; reference pattern row in bottom half; cursor indicator between slots",
+        "evidence": "Frame shows 3x3 grid of cyan-bordered tiles (top-left) and pink-bordered tiles (right column), with a long reference band at rows 36-47 and 53-62 in dark-grey area. ACTION2 moved cursor right, ACTION3 changed white indicator position and shifted patterns."
+      },
+      "abstraction": {
+        "summary": "Game has a 3x2 or similar grid of symbol tiles (left panel) that must match a reference row of symbols (bottom panel). ACTION2 advances cursor to next slot; ACTION3 rotates/changes the pattern in the selected slot. Goal: make all slots match their reference.",
+        "hint": "Use ACTION2 to advance to next mismatched slot, ACTION3 to cycle the pattern until it matches the reference. Track which slot is selected via the pink/white indicator."
+      },
+      "confidence": 0.65,
+      "provenance": {
+        "first_seen": {
+          "env_id": "tr87",
+          "level": 1,
+          "step": 2
+        },
+        "evidence_history": [
+          {
+            "evidence": "Frame shows 3x3 grid of cyan-bordered tiles (top-left) and pink-bordered tiles (right column), with a long reference band at rows 36-47 and 53-62 in dark-grey area. ACTION2 moved cursor right, ACTION3 changed white indicator position and shifted patterns."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T01:00:26.862014+00:00",
+      "updated_at": "2026-04-08T01:00:26.862014+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_ff55352668f3",
+      "name": "symbol_matching_grid_puzzle",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Grid of symbol tiles (cyan/pink bordered) with black pixel patterns inside, alongside a palette/selector panel with cycle and rotate actions",
+        "evidence": "Frame shows 3x3 grid of cyan-bordered tiles (rows: 7,15,25; cols: 7,16,25) with black pixel glyphs inside, plus a pink-bordered selection panel on the right with matching/different symbols. ACTION2 shifts a pink indicator moving ~1 slot right (diff~11-15), ACTION3 swaps white bracket markers horizontally (diff~28-29) suggesting rotation toggle."
+      },
+      "abstraction": {
+        "summary": "Game has a grid of symbol tiles that need to be matched to target patterns. ACTION2 cycles through available symbol shapes in a selection slot; ACTION3 rotates the selected shape. A cursor/selector advances through slots in the grid.",
+        "hint": "Use ACTION2 to cycle to the correct symbol shape, ACTION3 to rotate it to match orientation. Track current slot position to know which cell is being edited."
+      },
+      "confidence": 0.6,
+      "provenance": {
+        "first_seen": {
+          "env_id": "tr87",
+          "level": 1,
+          "step": 5
+        },
+        "evidence_history": [
+          {
+            "evidence": "Frame shows 3x3 grid of cyan-bordered tiles (rows: 7,15,25; cols: 7,16,25) with black pixel glyphs inside, plus a pink-bordered selection panel on the right with matching/different symbols. ACTION2 shifts a pink indicator moving ~1 slot right (diff~11-15), ACTION3 swaps white bracket markers horizontally (diff~28-29) suggesting rotation toggle."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T01:01:17.644281+00:00",
+      "updated_at": "2026-04-08T01:01:17.644281+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_2a196e62f863",
+      "name": "grid_pattern_matching_puzzle",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Two halves of the screen show grids of symbol tiles; actions cycle through transformations/slots",
+        "evidence": "Top region (rows 0-33) shows 2x3 grid of 7x7 tiles in cyan (color 10) and pink (color 7), with black dot patterns inside. Bottom region (rows 34-63) shows larger cyan and pink band with matching patterns. ACTION2 shifts something in bottom-right region (diff ~8-17), ACTION3 shifts white markers left by 7 cols repeatedly. Off-white bar at row 63 shrinks each action; off-black grows."
+      },
+      "abstraction": {
+        "summary": "The game shows a top section with small symbol tiles (cyan/pink panels with black dot patterns) and a bottom section with larger corresponding patterns. ACTION2 cycles through symbol slots, ACTION3 applies rotation correction. Progress is tracked by a step counter (off-white bar shrinks, off-black grows).",
+        "hint": "Use ACTION3 to cycle through rotation states and ACTION2 to advance slots. Monitor which tile pattern in the top grid matches what's displayed in the bottom panel."
+      },
+      "confidence": 0.6,
+      "provenance": {
+        "first_seen": {
+          "env_id": "tr87",
+          "level": 1,
+          "step": 10
+        },
+        "evidence_history": [
+          {
+            "evidence": "Top region (rows 0-33) shows 2x3 grid of 7x7 tiles in cyan (color 10) and pink (color 7), with black dot patterns inside. Bottom region (rows 34-63) shows larger cyan and pink band with matching patterns. ACTION2 shifts something in bottom-right region (diff ~8-17), ACTION3 shifts white markers left by 7 cols repeatedly. Off-white bar at row 63 shrinks each action; off-black grows."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T01:02:22.690937+00:00",
+      "updated_at": "2026-04-08T01:02:22.690937+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_c65d11e271d6",
+      "name": "symbol_rotation_puzzle",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Grid of cyan (10) and pink (7) bordered cells containing black (5) patterns, with a progress bar at bottom",
+        "evidence": "ACTION3 consistently moves white markers left by 7 columns (slot width). ACTION2 causes small pixel changes (7-16 pixels) within symbol cells \u2014 pattern rotation. Off-white bar shrinks and off-black grows with each ACTION3, indicating slot progression."
+      },
+      "abstraction": {
+        "summary": "Puzzle has a grid of symbol cells in two colors (cyan=top half, pink=bottom half). ACTION2 rotates a symbol within the current slot. ACTION3 navigates to the next slot (moves selection left by 7 pixels). Progress tracked by off-white/off-black bar at row 63.",
+        "hint": "Use ACTION3 to navigate between slots, ACTION2 to rotate/fix the symbol in the current slot. Track the progress bar to know which slot is active."
+      },
+      "confidence": 0.7,
+      "provenance": {
+        "first_seen": {
+          "env_id": "tr87",
+          "level": 1,
+          "step": 13
+        },
+        "evidence_history": [
+          {
+            "evidence": "ACTION3 consistently moves white markers left by 7 columns (slot width). ACTION2 causes small pixel changes (7-16 pixels) within symbol cells \u2014 pattern rotation. Off-white bar shrinks and off-black grows with each ACTION3, indicating slot progression."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T01:03:18.567355+00:00",
+      "updated_at": "2026-04-08T01:03:18.567355+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_c67ada60dccb",
+      "name": "slot_cursor_navigation_with_step_counter",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "White marker/indicator moves left by fixed step (7 pixels) with each ACTION3; ACTION2 modifies slot content. Progress bar at bottom tracks moves remaining.",
+        "evidence": "ACTION3 repeatedly moves white markers at rows 48,60 left by exactly 7 columns each call. Step counter off-white bar size decreases by 1 per action. ACTION2 changes pink/black pixel patterns within a slot region."
+      },
+      "abstraction": {
+        "summary": "ACTION3 cycles a cursor (white marker) left across slots in steps of 7 columns. ACTION2 modifies/fixes the currently-selected slot's content. Step counter (off-white bar) shrinks with each action taken.",
+        "hint": "Count how many ACTION3 presses needed to reach target slot. Each ACTION3 = one step left (7 cols). Use ACTION2 once at target slot to fix it."
+      },
+      "confidence": 0.9000000000000001,
+      "provenance": {
+        "first_seen": {
+          "env_id": "tr87",
+          "level": 1,
+          "step": 15
+        },
+        "evidence_history": [
+          {
+            "evidence": "ACTION3 repeatedly moves white markers at rows 48,60 left by exactly 7 columns each call. Step counter off-white bar size decreases by 1 per action. ACTION2 changes pink/black pixel patterns within a slot region."
+          },
+          {
+            "at": "2026-04-08T01:56:21.790468+00:00",
+            "evidence": "ACTION3 moves two white cursor markers left by exactly 7 columns each press. White markers are at row 48 and row 60 (the two white 5x2 horizontal objects). They cycle through slots at columns 45\u219238\u219231\u219224\u219217\u2192wraps back to 45. Step counter (off-white bar) shrinks by 1 each action. ACTION2 modifies the slot content (pattern transformation in the dark-grey bottom half)."
+          },
+          {
+            "at": "2026-04-08T01:58:06.036633+00:00",
+            "evidence": "ACTION3 moves two white cursor markers left by exactly 7 columns each press. The cursor cycles through slot positions at columns ~31, ~38, ~45 etc. The off-white step bar shrinks by 1 unit per action. ACTION2 modifies/cycles the content of the currently selected slot (pink pattern changes)."
+          },
+          {
+            "at": "2026-04-08T01:59:58.927512+00:00",
+            "evidence": "ACTION3 moves two white markers left by exactly 7 columns each time. Currently markers are at column 17 (row 48 and 60). ACTION2 modifies the content of the currently-selected slot (pink pixels change pattern). Step counter (off-white bar) shrinks with each action."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T01:04:08.757273+00:00",
+      "updated_at": "2026-04-08T01:59:58.927512+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_e25839ab9d56",
+      "name": "pattern_matching_grid_puzzle",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Grid of small icon cells (cyan/pink bordered), a bottom panel with larger pattern blocks, a step counter shrinking from the right",
+        "evidence": "ACTION3 consistently moves white objects left by 7 columns (one slot width). ACTION2 changes pixel content in the bottom panel area near the current cursor position. Off-white bar shrinks left, off-black bar grows right, tracking steps used."
+      },
+      "abstraction": {
+        "summary": "The game shows a 3x2 grid of small pattern cells (top half) and a bottom panel with a row of larger reference patterns. ACTION3 cycles a cursor/selector left through slots (moves white markers left by 7px each step, wrapping), ACTION2 modifies the current slot's content. Step counter decreases as actions are taken.",
+        "hint": "Use ACTION3 to navigate to target slot (each press moves cursor left by one slot, wrapping), then ACTION2 to modify that slot's pattern."
+      },
+      "confidence": 0.7,
+      "provenance": {
+        "first_seen": {
+          "env_id": "tr87",
+          "level": 1,
+          "step": 19
+        },
+        "evidence_history": [
+          {
+            "evidence": "ACTION3 consistently moves white objects left by 7 columns (one slot width). ACTION2 changes pixel content in the bottom panel area near the current cursor position. Off-white bar shrinks left, off-black bar grows right, tracking steps used."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T01:04:53.773360+00:00",
+      "updated_at": "2026-04-08T01:04:53.773360+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_e4de79477223",
+      "name": "pattern_matching_grid_puzzle",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Grid of tiles with internal pixel patterns, two colors of tile (cyan/pink or similar), white selector objects cycling through positions",
+        "evidence": "Frame shows 3x2 grid of cyan tiles (top half) and 3x2 grid of pink tiles (bottom half), plus a wide banner area showing patterns. ACTION3 moves white selector objects 7 pixels left each press. ACTION1/ACTION2 change pixel patterns inside tiles (black pixels toggling inside tiles)."
+      },
+      "abstraction": {
+        "summary": "ACTION3 cycles white selector objects left/right through grid positions. ACTION1/ACTION2 modify the pattern inside the currently selected tile. The goal appears to be matching tile patterns to target patterns shown in a reference area.",
+        "hint": "Use ACTION3 to navigate to a tile, then ACTION1/ACTION2 to modify the pattern. Compare tile patterns to the reference banner/target."
+      },
+      "confidence": 0.55,
+      "provenance": {
+        "first_seen": {
+          "env_id": "tr87",
+          "level": 1,
+          "step": 21
+        },
+        "evidence_history": [
+          {
+            "evidence": "Frame shows 3x2 grid of cyan tiles (top half) and 3x2 grid of pink tiles (bottom half), plus a wide banner area showing patterns. ACTION3 moves white selector objects 7 pixels left each press. ACTION1/ACTION2 change pixel patterns inside tiles (black pixels toggling inside tiles)."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T01:05:43.175974+00:00",
+      "updated_at": "2026-04-08T01:05:43.175974+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_8940de2057be",
+      "name": "symbol_pattern_matching_grid",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Grid of symbol tiles with two distinct color regions (top=light, bottom=dark), each containing identical pattern variants, and a cursor/selector mechanism",
+        "evidence": "Frame shows 4 slots in top-half (light-grey background) with cyan-bordered tiles containing black patterns, and bottom-half (dark-grey) showing similar pink-bordered tiles. White 5x2 markers appear at column positions 48 and 60 (rows 48,60). ACTION3 moves white markers left by 7 columns each press, cycling through slot positions."
+      },
+      "abstraction": {
+        "summary": "Game has a top section showing pattern options (cyan/light-grey tiles with black symbols) and a bottom section showing targets to match. ACTION3 cycles a white cursor between slots horizontally. ACTION1/ACTION2 modify the selected slot's pattern. Progress tracked by off-white/off-black bar.",
+        "hint": "Use ACTION3 to select the correct slot, then ACTION1 or ACTION2 to cycle the pattern until it matches the target."
+      },
+      "confidence": 0.6,
+      "provenance": {
+        "first_seen": {
+          "env_id": "tr87",
+          "level": 1,
+          "step": 23
+        },
+        "evidence_history": [
+          {
+            "evidence": "Frame shows 4 slots in top-half (light-grey background) with cyan-bordered tiles containing black patterns, and bottom-half (dark-grey) showing similar pink-bordered tiles. White 5x2 markers appear at column positions 48 and 60 (rows 48,60). ACTION3 moves white markers left by 7 columns each press, cycling through slot positions."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T01:06:35.209551+00:00",
+      "updated_at": "2026-04-08T01:06:35.209551+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_b6e8137497c5",
+      "name": "symbol_matching_grid_puzzle",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Grid of symbol tiles in two colors (cyan/pink), white cursor markers on rows/columns, off-white progress bar at bottom",
+        "evidence": "Inspection shows 4 columns of 7x7 symbol tiles (2 rows \u00d7 4 cols), white markers move left/right by 7c per ACTION3/ACTION4. Off-white bar shrinks and off-black grows with each action, indicating step count. The bottom row has a large banner. White cursor at centroid (48,38) and (60,38)."
+      },
+      "abstraction": {
+        "summary": "The game shows a grid of symbol tiles. Two rows of tiles (cyan=top half, pink=bottom half) need to be matched. ACTION3/ACTION4 move a white cursor left/right by 7 columns per step. ACTION1/ACTION2 cycle symbol variants within the selected column. Progress tracked by off-white/off-black bar ratio.",
+        "hint": "ACTION3 moves cursor left, ACTION4 moves cursor right. ACTION1/ACTION2 modify the selected symbol. Match all symbols to solve the puzzle."
+      },
+      "confidence": 0.65,
+      "provenance": {
+        "first_seen": {
+          "env_id": "tr87",
+          "level": 1,
+          "step": 25
+        },
+        "evidence_history": [
+          {
+            "evidence": "Inspection shows 4 columns of 7x7 symbol tiles (2 rows \u00d7 4 cols), white markers move left/right by 7c per ACTION3/ACTION4. Off-white bar shrinks and off-black grows with each action, indicating step count. The bottom row has a large banner. White cursor at centroid (48,38) and (60,38)."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T01:07:20.853415+00:00",
+      "updated_at": "2026-04-08T01:07:20.853415+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_4fddfd06db44",
+      "name": "symbol_grid_rotation_puzzle",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Grid of symbol tiles (cyan/pink bordered squares with black dot patterns) in upper half, with a wider comparison strip in lower half; cursor selects tiles; actions rotate tile patterns",
+        "evidence": "Upper half has 3x2 grid of cyan/pink bordered tiles with black dot patterns. Lower half has a long cyan strip and a long pink strip - likely a combined reference pattern. ACTION3/4 move white indicators left/right by 7 columns (slot width). ACTION1 changes pixel patterns in bottom row (step counter shrinks, off-black grows = progress toward completion)."
+      },
+      "abstraction": {
+        "summary": "A puzzle where multiple symbol tiles need rotation to match a reference pattern. ACTION1/2 rotate individual tile patterns (CW/CCW), ACTION3/4 move cursor between slots. A progress bar (off-white/off-black strip at bottom) tracks completion.",
+        "hint": "Use ACTION3/4 to move cursor to target slot, then ACTION1/2 to rotate the tile pattern until it matches the reference."
+      },
+      "confidence": 0.6,
+      "provenance": {
+        "first_seen": {
+          "env_id": "tr87",
+          "level": 1,
+          "step": 28
+        },
+        "evidence_history": [
+          {
+            "evidence": "Upper half has 3x2 grid of cyan/pink bordered tiles with black dot patterns. Lower half has a long cyan strip and a long pink strip - likely a combined reference pattern. ACTION3/4 move white indicators left/right by 7 columns (slot width). ACTION1 changes pixel patterns in bottom row (step counter shrinks, off-black grows = progress toward completion)."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T01:08:06.596829+00:00",
+      "updated_at": "2026-04-08T01:08:06.596829+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_909c6194ab4b",
+      "name": "grid-pattern-rotation-puzzle",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Grid of 7x7 tile slots (cyan/pink bordered) with black dot patterns inside; bottom section shows a reference strip with white markers that can move left/right",
+        "evidence": "ACTION3 moves white markers left by 7 (one slot), ACTION4 moves them right by 7. ACTION1/ACTION2 cause small pixel changes in bounding box ~5x5 around a tile, rotating/changing black dot pattern. Off-white bar at row 63 shrinks as steps are used."
+      },
+      "abstraction": {
+        "summary": "Each tile slot shows a pattern via black dots on colored background. ACTION1/ACTION2 cycle through rotations of individual tiles (local changes in ~5x5 area). ACTION3/ACTION4 shift white marker(s) left/right by 7 units along a reference strip, selecting which slot to target. Step counter decrements with each action.",
+        "hint": "Use ACTION3/ACTION4 to select the target slot (white marker position), then ACTION1/ACTION2 to rotate until pattern matches target. Watch step counter."
+      },
+      "confidence": 0.7,
+      "provenance": {
+        "first_seen": {
+          "env_id": "tr87",
+          "level": 1,
+          "step": 32
+        },
+        "evidence_history": [
+          {
+            "evidence": "ACTION3 moves white markers left by 7 (one slot), ACTION4 moves them right by 7. ACTION1/ACTION2 cause small pixel changes in bounding box ~5x5 around a tile, rotating/changing black dot pattern. Off-white bar at row 63 shrinks as steps are used."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T01:09:09.259621+00:00",
+      "updated_at": "2026-04-08T01:09:09.259621+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_3a3dee3c336d",
+      "name": "dual_region_pattern_cursor_navigation",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Frame split into light-background top (grid of small 7x7 pattern slots in cyan/pink) and dark-background bottom (wide combined pattern display). Two white horizontal markers move together. Step counter bar shrinks each action.",
+        "evidence": "In this episode: ACTION3 consistently moved two white markers left by exactly 7 cols each time. ACTION4 moved them right by 7 cols. ACTION1 caused pink pixel changes in the indicated slot area. The bottom area shows a wide combined pattern (cyan+pink) while the top has individual 7x7 slots."
+      },
+      "abstraction": {
+        "summary": "ACTION3 moves two white cursor markers LEFT by 7 pixels (one slot width) each press. ACTION4 moves them RIGHT by 7 pixels. ACTION1 changes the pink pattern in the slot currently indicated (subtle pixel changes). ACTION2 also modifies the selected slot. Each action costs one step. The white markers indicate which column is active; target is to match the combined bottom display to the top slot patterns.",
+        "hint": "Use ACTION3/ACTION4 to navigate to the target slot (white markers show position), then ACTION1 or ACTION2 to cycle/modify the slot's pattern until it matches. Navigate slots in order of mismatch."
+      },
+      "confidence": 0.75,
+      "provenance": {
+        "first_seen": {
+          "env_id": "tr87",
+          "level": 1,
+          "step": 22
+        },
+        "evidence_history": [
+          {
+            "evidence": "In this episode: ACTION3 consistently moved two white markers left by exactly 7 cols each time. ACTION4 moved them right by 7 cols. ACTION1 caused pink pixel changes in the indicated slot area. The bottom area shows a wide combined pattern (cyan+pink) while the top has individual 7x7 slots."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T02:11:50.769987+00:00",
+      "updated_at": "2026-04-08T02:11:50.769987+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_7cce1860b0d0",
+      "name": "slider_align_to_target_pattern",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "A bordered box (target) shows a pattern; a separate movable object/slider with the same or similar pattern can be moved with actions; a step-counter bar tracks remaining moves.",
+        "evidence": "Frame shows: (1) bordered box at rows 8-16, cols 32-40 with a dark-grey pattern (color9) inside - the target. (2) A similar but larger pattern box at rows 51-63 with a color9 pattern. (3) The slider (blue/orange objects near row 46-48) sits on a wide dark-grey bar. Step counter (yellow) visible at row 62."
+      },
+      "abstraction": {
+        "summary": "The goal is to move the slider object until its pattern aligns with the target shown in the bordered reference box. Actions move the slider in cardinal directions.",
+        "hint": "Identify the target position shown in the bordered reference box, find the current slider position, calculate the offset, and use the appropriate directional actions to align them."
+      },
+      "confidence": 0.7,
+      "provenance": {
+        "first_seen": {
+          "env_id": "ls20",
+          "level": 1,
+          "step": 0
+        },
+        "evidence_history": [
+          {
+            "evidence": "Frame shows: (1) bordered box at rows 8-16, cols 32-40 with a dark-grey pattern (color9) inside - the target. (2) A similar but larger pattern box at rows 51-63 with a color9 pattern. (3) The slider (blue/orange objects near row 46-48) sits on a wide dark-grey bar. Step counter (yellow) visible at row 62."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T03:56:27.050644+00:00",
+      "updated_at": "2026-04-08T03:56:27.050644+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_44f294a5f220",
+      "name": "sliding_piece_cycle_action",
+      "domain": "arc-agi-3",
+      "kind": "action_effect",
+      "signature": {
+        "trigger": "Game with colored pieces (blue/orange) that slide horizontally and a pattern display box with a target grid",
+        "evidence": "ACTION3: blue moved left by -5c (centroid 36->31), orange moved left by -5c (centroid 36->31), diff=52. ACTION2: only yellow step counter shrunk by 1 unit, diff=2 (WALL equivalent)."
+      },
+      "abstraction": {
+        "summary": "ACTION3 cycles/shifts colored piece horizontally (moves blue and orange pieces left by 5 columns each call), while ACTION2 decrements a step counter with minimal effect",
+        "hint": "Use ACTION3 to cycle through piece positions. Match colored piece arrangement to target pattern shown in bordered box. ACTION4 not yet tried \u2014 may confirm/submit solution."
+      },
+      "confidence": 0.65,
+      "provenance": {
+        "first_seen": {
+          "env_id": "ls20",
+          "level": 1,
+          "step": 2
+        },
+        "evidence_history": [
+          {
+            "evidence": "ACTION3: blue moved left by -5c (centroid 36->31), orange moved left by -5c (centroid 36->31), diff=52. ACTION2: only yellow step counter shrunk by 1 unit, diff=2 (WALL equivalent)."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T03:57:16.126013+00:00",
+      "updated_at": "2026-04-08T03:57:16.126013+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_05c4611e8550",
+      "name": "sliding_tile_left_right_puzzle",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Two colored horizontal bars (blue/orange) that slide left (ACTION3) or right (ACTION4) by fixed increments; a step counter (yellow bar) shrinks with each action; a reference pattern shown in a bordered grid; a candidate pattern shown in a larger grid area.",
+        "evidence": "diff shows blue(color12) and orange(color9) move left by -5c on ACTION3, right by +5c on ACTION4. Yellow bar shrinks by 2px each action (step counter). Reference grid visible top-right; candidate grid at bottom-left shows matching pattern needed."
+      },
+      "abstraction": {
+        "summary": "ACTION3 shifts colored tile-pair left by 5 columns; ACTION4 shifts them right by 5 columns. Goal is to align the candidate pattern to match the reference grid. Yellow bar counts remaining steps.",
+        "hint": "Compare reference pattern to candidate pattern. Count offset difference in column units of 5, then apply ACTION3 (left) or ACTION4 (right) the correct number of times."
+      },
+      "confidence": 0.72,
+      "provenance": {
+        "first_seen": {
+          "env_id": "ls20",
+          "level": 1,
+          "step": 3
+        },
+        "evidence_history": [
+          {
+            "evidence": "diff shows blue(color12) and orange(color9) move left by -5c on ACTION3, right by +5c on ACTION4. Yellow bar shrinks by 2px each action (step counter). Reference grid visible top-right; candidate grid at bottom-left shows matching pattern needed."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T03:57:56.600946+00:00",
+      "updated_at": "2026-04-08T03:57:56.600946+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_bae99a62be99",
+      "name": "directional_slider_puzzle",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Grid with colored sliders (blue/orange) that move in 2D when directional actions are taken; a yellow progress bar decreases with each action; red markers at right edge",
+        "evidence": "ACTION1 moved blue+orange up by 5r. ACTION3 moved them left by 5c. ACTION4 moved them right by 5c. ACTION2 caused diff=2 (wall). Yellow bar shrinks each action. Frame shows two patterns: a bordered box (target) at top-right area with an off-black pattern inside, and the sliders in the main play area."
+      },
+      "abstraction": {
+        "summary": "Actions move colored slider objects (blue=color9, orange=color12) in the corresponding direction (ACTION1=up, ACTION3=left, ACTION4=right). A yellow bar tracks remaining moves. Goal appears to be aligning sliders with a target pattern shown in a bordered box. ACTION2 is WALL (no movement possible or blocked direction).",
+        "hint": "Match the slider pattern to the target pattern shown in the bordered box. Track the yellow bar to avoid running out of moves. ACTION2=down appears blocked; try ACTION1=up more to align vertically."
+      },
+      "confidence": 0.72,
+      "provenance": {
+        "first_seen": {
+          "env_id": "ls20",
+          "level": 1,
+          "step": 4
+        },
+        "evidence_history": [
+          {
+            "evidence": "ACTION1 moved blue+orange up by 5r. ACTION3 moved them left by 5c. ACTION4 moved them right by 5c. ACTION2 caused diff=2 (wall). Yellow bar shrinks each action. Frame shows two patterns: a bordered box (target) at top-right area with an off-black pattern inside, and the sliders in the main play area."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T03:58:41.769230+00:00",
+      "updated_at": "2026-04-08T03:58:41.769230+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_836e84bd0f3c",
+      "name": "directional_object_movement_actions",
+      "domain": "arc-agi-3",
+      "kind": "action_effect",
+      "signature": {
+        "trigger": "Game with colored objects on grid where actions move objects in cardinal directions by fixed step size",
+        "evidence": "In ls20: ACTION1=up(-5r), ACTION2=down(+5r), ACTION3=left(-5c), ACTION4=right(+5c) for blue+orange objects. Yellow bar shrinks by 2px width per action. Each action costs 1 step from a limited budget."
+      },
+      "abstraction": {
+        "summary": "Four actions map to four cardinal directions (up/down/left/right), moving the active object(s) by a fixed step (e.g., 5 pixels) each press. A progress/step counter (yellow bar) shrinks with each action used.",
+        "hint": "Map actions to directions first. Navigate object to target position. Minimize steps used as yellow bar depletes."
+      },
+      "confidence": 0.85,
+      "provenance": {
+        "first_seen": {
+          "env_id": "ls20",
+          "level": 1,
+          "step": 6
+        },
+        "evidence_history": [
+          {
+            "evidence": "In ls20: ACTION1=up(-5r), ACTION2=down(+5r), ACTION3=left(-5c), ACTION4=right(+5c) for blue+orange objects. Yellow bar shrinks by 2px width per action. Each action costs 1 step from a limited budget."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T03:59:23.803580+00:00",
+      "updated_at": "2026-04-08T03:59:23.803580+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_456176f2442b",
+      "name": "step_counter_yellow_bar",
+      "domain": "arc-agi-3",
+      "kind": "object_role",
+      "signature": {
+        "trigger": "Yellow horizontal bar at bottom of frame that shrinks by 2 pixels per action taken",
+        "evidence": "Yellow bar started at size=84 and has shrunk to size=60 over the course of multiple actions; decreases by exactly 2 per action regardless of wall or movement."
+      },
+      "abstraction": {
+        "summary": "Yellow bar tracks remaining steps/moves; it shrinks (loses 2px width) each action taken, functioning as a countdown step counter.",
+        "hint": "Monitor yellow bar size to estimate remaining budget; it shrinks by 2px per step taken."
+      },
+      "confidence": 0.85,
+      "provenance": {
+        "first_seen": {
+          "env_id": "ls20",
+          "level": 1,
+          "step": 12
+        },
+        "evidence_history": [
+          {
+            "evidence": "Yellow bar started at size=84 and has shrunk to size=60 over the course of multiple actions; decreases by exactly 2 per action regardless of wall or movement."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T04:00:09.002566+00:00",
+      "updated_at": "2026-04-08T04:00:09.002566+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_1365bd1b77cd",
+      "name": "dual_progress_bars_step_timer",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Yellow bar shrinks by 2px and dark-grey bar grows by 2px with every action taken; centroid along row 62",
+        "evidence": "Over 42+ actions, yellow bar shrank from size 84 to 48 (each action -2px width), dark-grey grew from size 2 to 36 correspondingly. Both run along row 62."
+      },
+      "abstraction": {
+        "summary": "A yellow bar acts as a decreasing step counter and a dark-grey bar acts as an increasing progress indicator. Each action consumes 2 units from yellow and adds 2 to dark-grey. When yellow is exhausted the level ends.",
+        "hint": "The yellow bar size divided by 2 gives remaining steps. Prioritize goal actions before yellow is depleted."
+      },
+      "confidence": 0.9,
+      "provenance": {
+        "first_seen": {
+          "env_id": "ls20",
+          "level": 1,
+          "step": 18
+        },
+        "evidence_history": [
+          {
+            "evidence": "Over 42+ actions, yellow bar shrank from size 84 to 48 (each action -2px width), dark-grey grew from size 2 to 36 correspondingly. Both run along row 62."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T04:00:55.128699+00:00",
+      "updated_at": "2026-04-08T04:00:55.128699+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    }
+  ]
+}

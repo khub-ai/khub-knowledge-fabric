@@ -148,10 +148,8 @@ def parse_args() -> argparse.Namespace:
 # Curated list of games we currently consider competition-ready, with budgets
 # tuned to known-good runs. Add games here as they reach competition quality.
 COMPETITION_GAMES: list[dict] = [
-    # TR87: visual slot solver clears all 6 levels deterministically in ~170 steps.
-    {"env_id": "tr87", "max_steps": 300, "max_cycles": 80, "episodes": 1},
-    # LS20: only level 1 is currently confirmed. Single best-effort attempt.
-    {"env_id": "ls20", "max_steps": 200, "max_cycles": 60, "episodes": 1},
+    # Smoke test: ls20 only, budget sized for level 1 (~13 BFS-optimal steps).
+    {"env_id": "ls20", "max_steps": 20, "max_cycles": 12, "episodes": 1},
 ]
 
 
@@ -168,6 +166,13 @@ async def _run_competition(arc, args, render_mode) -> None:
         f"Playlogs: {playlog_root or '(disabled)'}",
         title="Harness — Competition"
     ))
+
+    # Competition mode: exclude ALL per-game artifacts (LS20 BFS solver,
+    # TR87 slot-strip detector, hardcoded subplans). KF must solve every
+    # game using only game-agnostic primitives + concepts learned from
+    # training. Bespoke solvers remain available in training mode as
+    # ground-truth references.
+    ens.COMPETITION_MODE = True
 
     submission: list[dict] = []
     output_path = Path(args.output).with_name("competition_results.json")

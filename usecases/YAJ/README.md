@@ -249,6 +249,78 @@ This is much stronger than a vague "general assistant" demo.
 **Goal**:
 - demonstrate the bridge from learned user procedure to executable automation
 
+> Compilation is governed by the safety contract in §8a. It is not an optimization the system performs on its own; it is a deliberate user-approved promotion across a phase boundary.
+
+---
+
+## 8a. Safety Contract For Procedure Compilation
+
+Compilation is the point at which YAJ stops being a memory layer and starts being an automation layer. The safety properties of the system change discontinuously at that point: a Regime A artifact that produces a bad sentence is annoying; a Regime C artifact that mis-files a financial statement, overwrites a folder, or contacts a real person is not recoverable through the normal correction loop. This section defines the contract that governs that phase change.
+
+### Three regimes
+
+Every artifact in YAJ exists in one of three regimes. Default is A. Promotion is always explicit, reviewable, and reversible.
+
+- **Regime A — Suggestion.** Influences LLM output only. No tool calls, no writes, no network. Failure mode is bad output; recovery is the user's next correction. Preferences, conventions, judgments, and most boundaries live here.
+
+- **Regime B — Supervised action.** Drives tool calls, but each call passes through the assistant's normal in-loop reasoning and is visible in the session. Side effects happen, but under per-call LLM judgment, not under a pre-baked script. Procedures live here by default.
+
+- **Regime C — Compiled execution.** The artifact has been compiled into a tool or script that can run a sequence of side-effecting steps without per-step LLM review. This is the phase change. Promotion to C is never automatic.
+
+### Promotion gate (B → C)
+
+Promotion requires, in this order:
+
+1. **Provenance**: a complete trace of which sessions, corrections, and revision-triggers produced the procedure, presented to the user in human-readable form. Approval without provenance is approval of a black box and is refused.
+2. **Side-effect classification**: every tool call the compiled procedure can emit is tagged as `reversible`, `reversible-with-effort`, `socially-reversible`, or `irreversible`. The classification is shown at the gate.
+3. **Dry-run evidence**: at least one successful dry-run that prints intended side effects without performing them. For procedures with `irreversible` steps, dry-run is mandatory on every promotion and every staleness re-validation.
+4. **Scope binding**: the compiled tool inherits the union of its source artifacts' scopes and is structurally refused execution outside them.
+5. **Eligibility check**: the procedure does not touch any never-compile category (see below). If it does, promotion is refused and the procedure stays in Regime B.
+6. **Explicit user approval**: a deliberate one-time action, not a click-through.
+
+### Never-compile categories
+
+Some artifact scopes are **structurally ineligible** for Regime C, regardless of how stable or well-tested they appear. These stay in Regime B forever:
+
+- anything carrying a `boundary` artifact
+- anything touching credentials, secrets, or authentication flows
+- anything that writes to a financial system
+- anything that sends communication to an external recipient
+- anything tagged with a sensitive scope per `security.md`
+
+This list is intentionally rigid. The most compelling automation demos in this domain are exactly the ones whose failures are unrecoverable, and the only honest response is to refuse to compile them. They can still run in Regime B with full assistant supervision; they cannot run unattended.
+
+### Properties that hold inside Regime C
+
+Compiled tools that pass the gate must:
+
+- **Carry scope at runtime.** A tool compiled in `personal` refuses to run when the assistant is operating in `work`, even if the planner selects it.
+- **Resolve secrets at run time** from a vault. Secrets are never inlined into the compiled artifact.
+- **Be idempotent or carry an explicit rollback** for every `reversible` and `reversible-with-effort` step. Steps that are `socially-reversible` or `irreversible` cannot be batched without per-invocation confirmation.
+- **Honor a staleness budget.** Compiled tools expire on a schedule, and on observed environment change (e.g., a target site's structure shifts, an upstream API version changes). Expired tools require re-validation before next use, including a fresh dry-run.
+- **Log every invocation** in a user-inspectable audit log, with enough context to undo `reversible` actions after the fact.
+- **Respect a global kill switch.** A single user action disables all Regime C tools system-wide, immediately.
+
+### Composition boundary
+
+Two individually approved Regime C tools chained by the planner can produce a *composition* whose risk exceeds either component (e.g., download statements → summarize → email summary). When the planner chains compiled tools across a side-effect boundary, the **composition itself** requires confirmation, distinct from the per-tool approvals. Composition approvals are not cached across sessions.
+
+### The approval economy
+
+Confirmation is a finite resource. If the system asks "are you sure?" on every run, users click through and the safety layer becomes theater. The contract therefore budgets approval interruptions explicitly:
+
+- Promotion: always confirmed.
+- Staleness re-validation: always confirmed.
+- Scope or composition boundary crossing: always confirmed.
+- Routine invocation of an approved, in-budget, in-scope, non-stale Regime C tool whose steps are all `reversible`: **not** confirmed.
+- Any step classified `irreversible`: confirmed every time, no exceptions, no "remember this choice."
+
+Approval fatigue is treated as a safety failure mode in its own right, not as a UX nuisance.
+
+### What this costs
+
+This contract makes some demos impossible. A "YAJ sends my monthly summary email automatically" headline demo is precisely the thing the contract refuses. That is the intended outcome. The YAJ thesis is that explicit, user-owned personalization is more valuable *because* it is governed; a YAJ that optimizes for impressive autonomous side effects is a different product and should not borrow this one's safety story.
+
 ---
 
 ## 9. What Makes YAJ Distinctive Under KF
@@ -277,7 +349,7 @@ That is the core differentiator.
 
 ```json
 {
-  "artifact_type": "judgment",
+  "artifact_type": "preference",
   "scope": "writing_style",
   "condition": "When summarizing for the user",
   "action": "lead with the actionable takeaway, prefer bullets, minimize hedging",
@@ -289,7 +361,7 @@ That is the core differentiator.
 
 ```json
 {
-  "artifact_type": "semantic",
+  "artifact_type": "convention",
   "scope": "file_naming",
   "condition": "When saving monthly financial statements",
   "action": "use the format YYYY-MM-institution-account.pdf",
