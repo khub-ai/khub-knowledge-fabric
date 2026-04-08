@@ -130,6 +130,118 @@ KF is moving in a good product direction if it can show that:
 - provenance remains clear enough for audit and revision
 - knowledge can survive beyond a single model session or tool surface
 
+## Domains With Mass-Market Potential
+
+If KHUB wants KF to grow beyond expert-only adoption, it should look for domain variations where people enjoy improving their judgment, sharing what they know, and following trusted creators or communities.
+
+The most promising mass-market domains are likely to have:
+
+- a large enthusiast population rather than only professional users
+- visible skill improvement over time
+- a strong culture of comparing judgments and learning from examples
+- natural opportunities to publish, follow, fork, and remix knowledge packages
+- tolerable risk when users are not yet expert
+
+Strong candidates include:
+
+- birding and broader nature identification
+- plants, gardening, and mushrooms
+- investing and market research
+- sports analysis and fantasy-style reasoning
+- collectibles, appraisal, and enthusiast classification domains
+
+### Why These Domains Matter
+
+These domains are attractive because they combine utility with identity and community. Users do not just want an answer. They want to get better, compare how others reason, follow trusted voices, and build a recognizable style or specialty of their own.
+
+That makes them a better fit for a Knowledge Hub than domains where the user only wants a one-time prediction.
+
+### Birding And Nature ID
+
+Birding and related nature-identification domains may be the strongest bridge from expert-grade KF to mainstream KF.
+
+Why:
+
+- large enthusiast communities already exist
+- image classification is naturally useful
+- regional and species-specific knowledge is valuable
+- amateurs and experts can participate in the same ecosystem
+- people are already motivated to document sightings, compare judgments, and learn from corrections
+
+KF could support:
+
+- expert-following and regional packs
+- species-identification workbenches
+- explanation of judgment cues
+- community refinement of difficult species boundaries
+- reputation built around useful identification knowledge
+
+### Plants, Mushrooms, And Gardening
+
+This domain has similar strengths to birding, with an added mix of hobby, practical use, and local knowledge.
+
+Why:
+
+- image-based interaction is intuitive
+- local expertise matters a great deal
+- users often want more than a label; they want care advice, warnings, boundaries, and lookalike distinctions
+- communities already form around sharing observations and expertise
+
+KF could become a place where users publish and improve knowledge packages tied to local growing conditions, plant families, mushroom safety boundaries, or seasonal patterns.
+
+### Investing And Market Research
+
+This is less universal, but it may create a very strong following among motivated users because people actively want to improve their judgment and compare frameworks.
+
+Why:
+
+- users care about durable decision frameworks, not only one-off answers
+- there is a natural creator economy around theses, heuristics, and postmortems
+- evaluation can happen over time against real outcomes
+- users often enjoy following distinctive expert styles
+
+The main caution is that hype can outrun rigor, so trust, benchmarking, and provenance would matter especially strongly here.
+
+### Sports Analysis And Fantasy Reasoning
+
+This is a strong candidate for broad participation because users already enjoy debating, predicting, and refining heuristics in public.
+
+Why:
+
+- large recurring audience
+- constant feedback loop from real events
+- strong identity and community participation
+- natural demand for following trusted analysts and comparing models
+
+This could become one of the most socially active KF flavors if framed around learning and comparison rather than infrastructure.
+
+### Collectibles And Other Enthusiast Domains
+
+Domains such as watches, sneakers, trading cards, vintage goods, tea, coffee, or other specialist hobbies may also be strong candidates.
+
+Why:
+
+- users care about nuanced classification and judgment
+- enthusiasts often enjoy teaching and debating edge cases
+- there is room for creator reputation, niche specialization, and market-style exchange
+
+These domains are especially attractive because they can produce strong community dynamics without the regulatory burden of medical or legal fields.
+
+## Ecosystem Entry Points
+
+Different KF flavors may attract different user groups into the same broader ecosystem.
+
+Useful entry points include:
+
+- expert workbenches for serious domain users
+- enthusiast-oriented classification and learning tools
+- publishable knowledge packs for creators
+- importable starter packs for newcomers
+- benchmark and challenge environments for communities
+- team and private-hub versions for organizations
+
+The strategic goal is not to force all users into one product shape. It is to make different KF variations interoperable so that personal use, community learning, professional authoring, and Knowledge Hub participation reinforce one another.
+
 ## Naming And Positioning Note
 
 The repository filename is intentionally simple: `planning_notes.md`.
