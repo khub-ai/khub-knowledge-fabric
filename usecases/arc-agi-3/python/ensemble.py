@@ -1923,18 +1923,44 @@ async def run_episode(
             r.get("deprecated_reason", "") if r else "",
         )
 
+    # -- Hard-prune: physically remove provably useless rules -----------------
+    # Runs after auto_deprecate() so newly deprecated rules are included.
+    # co_occ_stale_tasks=20: co-occurrence candidates that have been evaluated
+    # 20+ times without ever firing are clearly not matching anything useful.
+    prune_counts = rule_engine.hard_prune(
+        remove_deprecated=True,
+        remove_stale_orphans=True,
+        co_occ_stale_tasks=20,
+    )
+    if prune_counts["total"] > 0:
+        ep_log._write(
+            f"[PRUNE] Hard-deleted {prune_counts['total']} rules: "
+            f"{prune_counts['deprecated']} deprecated, "
+            f"{prune_counts['orphans']} stale-orphan, "
+            f"{prune_counts['co_occ_stale']} stale co-occurrence"
+        )
+        log(
+            f"  [PRUNE] {prune_counts['total']} rules hard-deleted "
+            f"({prune_counts['deprecated']} depr, "
+            f"{prune_counts['orphans']} orphan, "
+            f"{prune_counts['co_occ_stale']} co-occ stale)"
+        )
+
     # -- Co-occurrence promotion: emit candidate rules for strong pairs -------
-    # min_count=3 so at least 3 steps of evidence before declaring a pattern.
-    # min_consistency=0.80 means the pair must co-occur in 80 % of steps where
-    # the subject changed.  These are loose thresholds because candidate rules
-    # still require independent confirmation before becoming active.
+    # Thresholds are intentionally strict:
+    #   min_count=8   — need 8 observations before calling it a pattern
+    #   min_consistency=0.90 — must co-occur in 90% of steps where subject fires
+    #   max_rules=20  — hard cap per episode to prevent burst bloat
+    # These pairs are still only candidates — they need independent confirmation
+    # across episodes before becoming active.
     ns_tag = rule_engine.dataset_tag or "arc-agi-3"
     co_new = co_registry.promote_to_rules(
         rule_engine,
-        min_count=3,
-        min_consistency=0.80,
+        min_count=8,
+        min_consistency=0.90,
         ns_tag=ns_tag,
         source_task=f"ep{episode_num:02d}",
+        max_rules=20,
     )
     if co_new:
         ids = [r["id"] for r in co_new]

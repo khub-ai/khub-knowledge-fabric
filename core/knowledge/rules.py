@@ -163,6 +163,27 @@ class RuleEngine:
         finally:
             _release_lock(lock_path)
 
+    def _save_direct(self) -> None:
+        """Write in-memory state directly to disk, bypassing merge-on-save.
+
+        Used by hard_prune() to ensure deletions are persisted.  The normal
+        save() re-reads the disk before writing so concurrent adds from other
+        processes aren't lost — that merge would silently resurrect deleted
+        rules.  _save_direct() holds the lock and overwrites unconditionally,
+        so it should only be called when no other process is writing (e.g.
+        during a maintenance prune, not mid-episode).
+        """
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        lock_path = self.path.with_suffix(".lock")
+        _acquire_lock(lock_path)
+        try:
+            tmp = self.path.with_suffix(".tmp")
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(self._data, f, indent=2)
+            os.replace(tmp, self.path)
+        finally:
+            _release_lock(lock_path)
+
     def reload(self) -> None:
         self._data = self._load()
 
@@ -628,6 +649,82 @@ class RuleEngine:
                     )
                     changed.append(r["id"])
         return changed
+
+    def hard_prune(
+        self,
+        remove_deprecated: bool = True,
+        remove_stale_orphans: bool = True,
+        co_occ_stale_tasks: int = 20,
+    ) -> dict:
+        """Hard-delete rules that are provably useless.
+
+        Unlike ``auto_deprecate()`` which soft-deletes (status='deprecated'),
+        this physically removes rules from the knowledge base.  Use after
+        ``auto_deprecate()`` has had a chance to mark dead rules, or call
+        periodically to reclaim space and keep matching fast.
+
+        Parameters
+        ----------
+        remove_deprecated
+            Remove all rules with status='deprecated' or 'archived'.
+        remove_stale_orphans
+            Remove candidate rules with tasks_seen==0 — created but never
+            evaluated against any game state.
+        co_occ_stale_tasks
+            Hard-delete co-occurrence candidate rules that have been seen
+            >= this many tasks without ever firing.  0 disables this check.
+            Co-occurrence rules accumulate quickly; purging stale ones
+            prevents unbounded growth while preserving pairs that do fire.
+
+        Returns
+        -------
+        dict with keys 'deprecated', 'orphans', 'co_occ_stale', 'total' —
+        counts of rules removed in each category.
+        """
+        def _total_fires(r: dict) -> int:
+            return sum(
+                ns.get("fires", 0)
+                for ns in r.get("stats_by_ns", {}).values()
+            )
+
+        to_remove: set[str] = set()
+        counts: dict[str, int] = {"deprecated": 0, "orphans": 0, "co_occ_stale": 0}
+
+        for r in self.rules:
+            rid    = r["id"]
+            status = r.get("status", "active")
+
+            if remove_deprecated and status in ("deprecated", "archived"):
+                to_remove.add(rid)
+                counts["deprecated"] += 1
+                continue
+
+            if remove_stale_orphans and status == "candidate" \
+                    and r.get("tasks_seen", 0) == 0:
+                to_remove.add(rid)
+                counts["orphans"] += 1
+                continue
+
+            if co_occ_stale_tasks > 0 \
+                    and "co-occurrence" in r.get("tags", []) \
+                    and status == "candidate" \
+                    and _total_fires(r) == 0 \
+                    and r.get("tasks_seen", 0) >= co_occ_stale_tasks:
+                to_remove.add(rid)
+                counts["co_occ_stale"] += 1
+                continue
+
+        if to_remove:
+            self._data["rules"] = [
+                r for r in self.rules if r["id"] not in to_remove
+            ]
+            # Use _save_direct() instead of save(): the merge-on-save used by
+            # save() re-reads the disk and re-adds rules from disk, which would
+            # silently resurrect everything we just deleted.
+            self._save_direct()
+
+        counts["total"] = len(to_remove)
+        return counts
 
     def edit_rule(self, rule_id: str, condition: str = "", action: str = "") -> None:
         """Human-driven edit of a rule's condition or action."""

@@ -261,20 +261,40 @@ class CoOccurrenceRegistry:
         min_consistency: float = 0.80,
         ns_tag: str = "",
         source_task: str = "",
+        max_rules: int = 30,
     ) -> list[dict]:
         """Emit candidate rules for all pairs that meet the thresholds.
 
         Returns the list of newly created rule dicts.
         Already-promoted pairs are skipped (no duplicates).
+
+        Parameters
+        ----------
+        min_count
+            Minimum number of co-occurrence observations required.
+        min_consistency
+            Minimum fraction of subject-fired steps where the object also
+            changed.  Higher = stricter; 0.90 recommended for noisy games.
+        max_rules
+            Maximum new rules emitted per call.  Candidates are ranked by
+            (consistency desc, count desc) so the strongest pairs are
+            promoted first.  0 means unlimited (not recommended).
         """
         new_rules: list[dict] = []
-        for key, rec in self._records.items():
-            if key in self._promoted:
-                continue
-            if rec.count < min_count:
-                continue
-            if rec.consistency < min_consistency:
-                continue
+
+        # Rank eligible pairs: strongest (consistency, then count) first.
+        # This ensures the cap retains the most-evidenced pairs.
+        eligible = [
+            (key, rec) for key, rec in self._records.items()
+            if key not in self._promoted
+            and rec.count >= min_count
+            and rec.consistency >= min_consistency
+        ]
+        eligible.sort(key=lambda kv: (-kv[1].consistency, -kv[1].count))
+
+        for key, rec in eligible:
+            if max_rules and len(new_rules) >= max_rules:
+                break
             condition, action = rec.to_rule_text()
             rule = rule_engine.add_rule(
                 condition=condition,
