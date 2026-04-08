@@ -37,10 +37,17 @@ Usage:
 from __future__ import annotations
 import argparse
 import asyncio
+import io
 import json
 import os
 import sys
 from pathlib import Path
+
+# Force UTF-8 stdout/stderr on Windows
+if hasattr(sys.stdout, "buffer"):
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "buffer"):
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
 _HERE    = Path(__file__).resolve().parent   # birds/python/
 _UC_DIR  = _HERE.parents[1]                # usecases/image-classification/
@@ -210,10 +217,10 @@ async def run_zero_shot_baseline(
             "reasoning": result.get("reasoning", ""),
             "duration_ms": ms,
         })
-        status = "[green]✓[/green]" if correct else "[red]✗[/red]"
+        status = "[green]OK[/green]" if correct else "[red]WRONG[/red]"
         console.print(
             f"  {status} [{pair_id}] {Path(img_path).name}: "
-            f"{ground_truth} → {prediction}"
+            f"{ground_truth} -> {prediction}"
         )
     return results
 
@@ -993,7 +1000,7 @@ async def main() -> None:
 
             if rerun["correct"]:
                 console.print(
-                    f"  [green]✓ FIXED[/green] — {args.cheap_model} now correctly "
+                    f"  [green]FIXED[/green] -- {args.cheap_model} now correctly "
                     f"identifies {failure['task_id']}"
                 )
             else:
