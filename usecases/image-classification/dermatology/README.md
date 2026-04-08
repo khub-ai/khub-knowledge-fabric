@@ -2,7 +2,7 @@
 
 > **For**: Clinicians, dermatologists, and medical educators curious about how AI can be corrected by domain experts without any programming or retraining.
 >
-> **Status**: Active experiment — first of three melanoma failures fully patched and confirmed. Second and third in progress.
+> **Status**: All three melanoma failures fully patched and confirmed (3/6 → 6/6, +50pp). BCC vs Benign Keratosis: one of two failures patched (precision=1.0). See [Results](#7-results).
 >
 > **Dataset**: HAM10000 (ISIC archive), 10,015 dermoscopic images across 7 diagnostic categories.
 >
@@ -27,8 +27,9 @@ No retraining. No programming. No data labeling pipeline. The fix was a written 
 5. [The Five Roles the Expert Plays](#5-the-five-roles-the-expert-plays)
 6. [Worked Example: Three Missed Melanomas](#6-worked-example-three-missed-melanomas)
 7. [Results](#7-results)
-8. [What Problems This Solves That Other Approaches Do Not](#8-what-problems-this-solves-that-other-approaches-do-not)
-9. [Limitations and Honest Caveats](#9-limitations-and-honest-caveats)
+8. [Second Use Case: BCC vs Benign Keratosis](#8-second-use-case-bcc-vs-benign-keratosis)
+9. [What Problems This Solves That Other Approaches Do Not](#9-what-problems-this-solves-that-other-approaches-do-not)
+10. [Limitations and Honest Caveats](#10-limitations-and-honest-caveats)
 
 ---
 
@@ -262,7 +263,16 @@ Qwen pattern-matched "dots → globules → benign mole" and stopped looking. Th
 
 **Topographic polarity insight (from contrastive analysis)**: During held-out pool testing, the rule fired on one benign mole. The contrastive analysis revealed a clear difference: in the melanoma true positives, the regression (white) areas were **central or diffuse throughout** the lesion; in the benign false positive, the white areas were **at the periphery only**, with a dark center. This inverted arrangement — pale rim, dark core — is characteristic of a halo nevus or inflamed benign mole, not of a regressing melanoma. This distinction was added as the Level 4 tightening condition.
 
-*Patching in progress — final outcome pending.*
+**Validation result**:
+
+| Pool | True Positives | False Positives | Precision | Result |
+|---|---|---|---|---|
+| Held-out (seed 42) — Level 2 | 3 | 0 | **1.00** | ✓ Pass |
+| Confirmation (seed 123) — Level 2 | 5 | 0 | **1.00** | ✓ Pass |
+
+Level 2 (the moderate version: regression + peppering, 2 conditions) achieved perfect precision. More specific levels were not needed.
+
+**Final outcome**: Rule registered. Qwen re-run on ISIC_0024333 with the rule active — **correctly predicted Melanoma**. ✓
 
 ---
 
@@ -286,7 +296,13 @@ The gray-blue areas are a textbook dermoscopic sign — they represent either a 
 
 > *When a pigmented lesion contains gray-blue or blue-gray structureless areas alongside brown pigmented components and shows asymmetric, multi-zone architecture — classify as Melanoma.*
 
-*Patching in progress — final outcome pending.*
+**What the precision gate found**: The held-out pool contained one benign mole that also showed gray-blue zones — a deep dermal nevus whose gray-blue color comes from a different physical mechanism (Tyndall scattering of densely packed deep melanocytes, not regression). All four spectrum levels failed the precision gate. The contrastive analysis identified an important distinction: in the melanoma true positives, the gray-blue area was a *lighter* intermediate zone against surrounding dark brown (regression tissue replacing destroyed tumor, producing a paler gray-blue against darker surviving melanin); in the false positive deep nevus, the gray-blue was the *darkest* zone in the lesion (Tyndall scattering produces deep pigmentation, not pale replacement). This brightness-polarity condition was added at Level 4, but the pool images were not reliably enough described for the AI validator to apply it consistently — the rule was ultimately rejected.
+
+**How it was fixed anyway**: The rule authored for Case 2 (regression + peppering) had already been registered. When Qwen was re-run on ISIC_0024400 with both rules active, the regression rule (r_002, from Case 2) fired on this image — correctly recognizing the regression component — and Qwen predicted **Melanoma**. ✓
+
+This is the *cross-pair generalization* the system is designed to detect: a rule taught for one failure turned out to describe a visual principle that applies more broadly. The expert's insight about regression patterns, captured once for Case 2, covered Case 3 automatically.
+
+**Final outcome**: Fixed by generalization from Case 2's rule. All three melanoma failures resolved. ✓
 
 ---
 
@@ -303,17 +319,107 @@ The gray-blue areas are a textbook dermoscopic sign — they represent either a 
 
 All three melanoma failures were in the same direction: every actual melanoma was called a benign mole. The benign moles were all called correctly.
 
-### After KF patching — failure 1 confirmed
+### After KF patching — melanoma vs mole (all three failures)
 
-| Case | Before KF | After KF |
-|---|---|---|
-| ISIC_0024315 (Melanoma) | ✗ Called benign mole | ✓ Correctly called Melanoma |
-| ISIC_0024333 (Melanoma) | ✗ Called benign mole | *in progress* |
-| ISIC_0024400 (Melanoma) | ✗ Called benign mole | *in progress* |
+| Case | Before KF | After KF | How fixed |
+|---|---|---|---|
+| ISIC_0024315 (Melanoma) | ✗ Called benign mole | ✓ Melanoma | r_001 (regression + peripheral globules, L1) |
+| ISIC_0024333 (Melanoma) | ✗ Called benign mole | ✓ Melanoma | r_002 (regression + peppering, L2) |
+| ISIC_0024400 (Melanoma) | ✗ Called benign mole | ✓ Melanoma | r_002 cross-pair generalization |
+
+**Mel/Nev final score: 3/6 → 6/6 (+50pp)**. Two rules registered; third failure fixed by the second rule generalizing.
+
+### Rules authored vs. accepted
+
+| Failure | Rule authored | Precision gate | Registered |
+|---|---|---|---|
+| ISIC_0024315 | regression + peripheral globules | 1.00 (L1) | ✓ r_001 |
+| ISIC_0024333 | regression + peppering + disorganized texture | 1.00 (L2) | ✓ r_002 |
+| ISIC_0024400 | gray-blue structureless + multi-zone asymmetry | 0.67 — rejected at all levels | ✗ (fixed by r_002) |
+
+The system correctly refused to register the gray-blue rule for ISIC_0024400 because it could not reliably distinguish the brightness-polarity difference between regression gray-blue (lighter zone) and Tyndall-effect gray-blue (darker zone) in pool validation. Registering it would have added a rule that fires one-in-three times on a benign deep nevus.
 
 ---
 
-## 8. What Problems This Solves That Other Approaches Do Not
+## 8. Second Use Case: BCC vs Benign Keratosis
+
+Basal Cell Carcinoma (BCC) is the most common skin cancer globally. It is highly treatable when caught early. In dermoscopy it has distinctive hallmarks — arborizing telangiectasias, blue-gray ovoid nests, leaf-like areas, spoke-wheel structures — that most experienced dermoscopists can recognize at a glance.
+
+The diagnostic challenge is the other direction: **mistaking a benign keratosis for BCC**. Seborrheic keratoses, lichenoid keratoses, and other benign keratoses occasionally show brown-pink pigmentation with enough visual complexity that an AI model trained on large mixed populations will hedge or guess wrong, particularly when the keratosis lacks the standard SK markers (milia-like cysts, comedo openings, sharp border) that would make it unambiguous.
+
+We ran the dialogic patching loop on two BCC/BKL failures from the same baseline test set.
+
+---
+
+### Case 4 — ISIC_0024336
+
+![ISIC_0024336](assets/ISIC_0024336.jpg)
+
+**Ground truth**: Benign Keratosis
+**AI's prediction**: Uncertain (refused to commit)
+**What the AI saw**: A mixed brown-pink-violaceous lesion with granular texture. No obvious BCC structures, but the internal complexity was enough to trigger indecision.
+
+**What a dermoscopist sees**: This is a lichenoid keratosis (LPLK) — a regressing seborrheic keratosis being attacked by the immune system. The key features are:
+
+- **Moth-eaten, finely granular internal texture** — the loose arrangement of brown granules with pinkish gaps is characteristic of a regressing SK, not the smooth pearlescent quality of BCC
+- **No arborizing telangiectasias** — the vessels present are a diffuse vascular blush, not the branching tree-like vessels that define BCC
+- **No blue-gray ovoid nests, no spoke-wheel, no leaf-like areas** — none of BCC's obligatory structural features
+
+**Rule authored**: When a lesion shows mixed brown-pink-violaceous granular texture without any BCC-specific structures (arborizing vessels, ovoid nests, leaf-like areas), classify as Benign Keratosis.
+
+**What the precision gate found**: The rule was tested against a held-out pool and achieved precision=0.75 — but with 2 false positives, which is above the maximum of 1 FP allowed. Two BCC images in the pool had a superficially similar brown granular zone that the rule was not able to exclude. The rule was **rejected**.
+
+This is the system working as designed: a rule that fires on BCC images 2 times in 8 fires is dangerous. The system declined to register it and flagged the case for further expert review. ISIC_0024336 remained unresolved — a correct conservative decision by the system given the evidence available.
+
+---
+
+### Case 5 — ISIC_0024420
+
+![ISIC_0024420](assets/ISIC_0024420.jpg)
+
+**Ground truth**: Benign Keratosis
+**AI's prediction**: Uncertain (refused to commit)
+**What the AI saw**: A small pigmented lesion set against a field of terminal hairs, with dark brown granular aggregates and a diffuse pinkish-red background. The AI could not confidently exclude BCC.
+
+**What a dermoscopist sees**: This is a small flat benign keratosis on hair-bearing skin. The key clinical reasoning is about **what is absent**:
+
+- **No arborizing (branching, tree-like) telangiectasias** — BCC's most reliable and characteristic vascular marker
+- **No blue-gray ovoid nests** — BCC's second most reliable structural marker
+- **No spoke-wheel or leaf-like areas**
+- **No ulceration, no shiny chrysalis structures**
+- The background shows a **diffuse vascular blush**, not focal arborizing vessels
+
+The brown granule cluster is a small comedo-like pigment aggregate — the kind seen in flat benign keratoses and lentigines, especially on hair-bearing skin. Nothing in this image requires BCC to be on the differential.
+
+**Rule authored**:
+
+> *When a small pigmented lesion on hair-bearing skin shows loosely clustered, moth-eaten or comedo-like brown granule aggregates, WITHOUT any of: arborizing telangiectasias, blue-gray ovoid nests, spoke-wheel structures, leaf-like areas, ulceration, or shiny white chrysalis structures — classify as Benign Keratosis.*
+
+**Validation result**:
+
+| Pool | True Positives | False Positives | Precision | Result |
+|---|---|---|---|---|
+| Held-out (seed 42) | 4 | 0 | **1.00** | ✓ Pass |
+| Confirmation (seed 123) | — | — | — | ✓ Registered |
+
+**Final outcome**: Rule registered. AI re-run with the rule active — **correctly classified as Benign Keratosis**. ✓
+
+**The teaching moment**: This rule is essentially a formalization of a principle every dermoscopist knows: *BCC requires at least one of its specific structural markers to be diagnosed on dermoscopy*. Absence of all markers should steer classification away from BCC. The AI had no explicit access to this reasoning — it only had its training distribution. The rule gives it that reasoning explicitly, in a testable form.
+
+---
+
+### BCC/BKL summary
+
+| Case | Before KF | After KF | Notes |
+|---|---|---|---|
+| ISIC_0024336 (Benign Keratosis) | ✗ Uncertain | ✗ Unresolved | Rule rejected — 2 FP on pool BCCs; system correctly declined to register |
+| ISIC_0024420 (Benign Keratosis) | ✗ Uncertain | ✓ Benign Keratosis | Rule registered (precision=1.0); fixed ✓ |
+
+One of two failures resolved. One correctly held back. This is the intended behavior: the system's conservative precision gate ensures that only rules it can confidently validate are deployed.
+
+---
+
+## 9. What Problems This Solves That Other Approaches Do Not
 
 ### Problem 1: The AI has blind spots the developer cannot see from outside
 
@@ -363,7 +469,7 @@ When a model is fine-tuned on additional melanoma examples, the result is change
 
 ---
 
-## 9. Limitations and Honest Caveats
+## 10. Limitations and Honest Caveats
 
 **This is a small experiment.** The results cover 18 images across three lesion pairs. This is sufficient to demonstrate proof of concept and observe failure modes, but not sufficient to make statistical claims about how KF would perform at clinical scale.
 
