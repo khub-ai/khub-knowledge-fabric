@@ -80,7 +80,7 @@ It does not try to demonstrate every KF capability, such as long-term accumulati
 **Jump links**
 
 - Jump to [Sub-Use-Case A: Birds](#3-sub-use-case-a-birds)
-- Jump to [Sub-Use-Case B: Dermatology (upcoming)](#4-sub-use-case-b-dermatology-upcoming)
+- Jump to [Sub-Use-Case B: Dermatology](#4-sub-use-case-b-dermatology)
 - Jump to [Cross-Use-Case Takeaways](#5-cross-use-case-takeaways)
 - Jump to [Why This Matters to VLM Vendors](#6-why-this-matters-to-vlm-vendors)
 
@@ -88,247 +88,47 @@ It does not try to demonstrate every KF capability, such as long-term accumulati
 
 ## 3. Sub-Use-Case A: Birds
 
-KF is meant to be a general tool for image classification, not a one-off birding demo. The bird domain is already implemented and evaluated in detail in this repo, which makes it the natural first worked example.
+> **Full write-up**: [birds/README.md](birds/README.md) — includes representative images, pair-by-pair results, experiment design, and key lessons. Written for ornithologists and naturalists.
 
-### 3.1 Birds: fine-grained species classification
+Fine-grained bird species identification is the first and most fully evaluated KF use case. Two experiments have been completed.
 
-### Why birds
+**The story in brief**: an ornithology professor sees an AI confuse a Bronzed Cowbird with a Shiny Cowbird. She explains that Bronzed has a ruff on the back of the neck and red eyes. KF turns that explanation into a rule, verifies it against known images, and applies it immediately — without retraining the model.
 
-Fine-grained visual classification of bird species is an ideal proving ground for this thesis:
+**Results at a glance**:
 
-1. **The gap is large and measurable**: CLIP zero-shot performance on CUB-200 is ~65%. Supervised SOTA (HERBS, 2023) is ~93%. The 28-percentage-point gap represents what expert discriminative knowledge is worth — and it is the space KF aims to close via natural-language patching rather than labeled training data.
+| Experiment | Model | Best pairs | Key lesson |
+|---|---|---|---|
+| Exp 1 — prompt injection | GPT-4o | Cormorant +10pp, Cowbird +10pp, Cuckoo +7pp | Correct rules help immediately; wrong rules cause systematic harm |
+| Exp 2 — structured observation | Claude Sonnet 4.6 | Brewer/Clay Sparrow 100%, Crow 83% | Making feature observations explicit before applying rules is the decisive step |
 
-2. **The hard cases are well-defined**: The ~7% error rate at SOTA is concentrated in confusable species pairs — Downy vs. Hairy Woodpecker, Herring vs. Thayer's Gull, Orchard vs. Baltimore Oriole. These are exactly the cases where expert verbal criteria ("the bill is shorter relative to head size") matter most and where visual training on aggregate statistics fails.
+For the full pair-by-pair breakdown, representative images, and technical architecture, see [birds/README.md](birds/README.md).
 
-3. **Expert NL reasoning is publicly available**: Field guides (Sibley, Kaufman, National Audubon), eBird species accounts, and ornithological literature contain precisely the discriminative reasoning KF needs as patch input — for every species, for every confusable pair. No live expert is required for the experiment; documented expertise substitutes.
-
-4. **The patch is believable**: "This is a Hairy Woodpecker rather than a Downy because the bill is as long as the head depth, not shorter" is a sentence a non-expert can read, understand, and verify. The knowledge is transparent.
-
-5. **Public benchmark with live leaderboard**: [Papers with Code — CUB-200](https://paperswithcode.com/sota/fine-grained-image-classification-on-cub-200) tracks ~70 published methods. Results are directly comparable.
-
-### Dataset: CUB-200-2011
-
-| Property | Value |
-|---|---|
-| Full name | Caltech-UCSD Birds-200-2011 |
-| Images | 11,788 (5,994 train / 5,794 test) |
-| Classes | 200 North American bird species |
-| Annotations | Labels + 312 binary attribute annotations + 10 per-image NL descriptions (Reed et al.) |
-| Access | Fully open — [Caltech download](https://data.caltech.edu/records/65de6-vp158) |
-| Leaderboard | [Papers with Code](https://paperswithcode.com/sota/fine-grained-image-classification-on-cub-200) |
-| CLIP zero-shot | ~65% |
-| Supervised SOTA | 93.1% (HERBS, 2023) |
-
-**Supplementary sources for expert patch material**:
-- Sibley Guide to Birds (standard ornithological reference — all 200 species covered)
-- eBird species accounts at allaboutbirds.org — free, per-species, include identification tips and confusion species
-- 312 binary attribute annotations (already in dataset) — structured visual criteria per species
-
-### KF features highlighted in the bird sub-use-case
-
-This bird experiment does **not** attempt to showcase every KF capability from §2. It mainly highlights the following parts of KF:
-
-- **Runtime learning / runtime patching**: the base VLM is left unchanged while the `model + KF` system is improved through external knowledge patches.
-- **Dialogic learning with experts**: in the intended workflow, an expert expresses discriminative field-mark knowledge in natural language and reviews extracted rules before they are stored.
-- **Human-readable knowledge artifacts**: the stored rules remain explicit and inspectable rather than disappearing into model weights.
-- **Verification and revision**: extracted rules can be confirmed, rejected, or corrected before they are relied on.
-- **Persistence and reuse**: once stored, a bird-identification patch can be reapplied to future images in the same confusion pair.
-- **Controlled application of knowledge**: the patch is applied only when the relevant confusable pair is under consideration rather than globally to every image task.
-
-The bird experiment touches only lightly, or not at all, on other KF capabilities such as long-term cross-session accumulation, organization-level governance workflows, procedural tool compilation, and the inner multi-agent structure. Those are part of KF more broadly, but they are not the main focus of this README.
-
-### Representative bird pairs discussed below
-
-The bird results later in this README discuss a small set of confusable pairs in detail. The images below are representative CUB-200-2011 examples copied into this repo to make those cases easier to follow while reading the analysis.
-
-**Pairs where KF helped**
-
-| Red-faced Cormorant | Pelagic Cormorant |
-|---|---|
-| ![Red-faced Cormorant](assets/birds/red_faced_cormorant.jpg) | ![Pelagic Cormorant](assets/birds/pelagic_cormorant.jpg) |
-
-| Bronzed Cowbird | Shiny Cowbird |
-|---|---|
-| ![Bronzed Cowbird](assets/birds/bronzed_cowbird.jpg) | ![Shiny Cowbird](assets/birds/shiny_cowbird.jpg) |
-
-| Black-billed Cuckoo | Yellow-billed Cuckoo |
-|---|---|
-| ![Black-billed Cuckoo](assets/birds/black_billed_cuckoo.jpg) | ![Yellow-billed Cuckoo](assets/birds/yellow_billed_cuckoo.jpg) |
-
-**Pairs that exposed patch-quality or task-limit issues**
-
-| American Crow | Fish Crow |
-|---|---|
-| ![American Crow](assets/birds/american_crow.jpg) | ![Fish Crow](assets/birds/fish_crow.jpg) |
-
-| Chipping Sparrow | Tree Sparrow |
-|---|---|
-| ![Chipping Sparrow](assets/birds/chipping_sparrow.jpg) | ![Tree Sparrow](assets/birds/tree_sparrow.jpg) |
-
-| Brewer Sparrow | Clay-colored Sparrow |
-|---|---|
-| ![Brewer Sparrow](assets/birds/brewer_sparrow.jpg) | ![Clay-colored Sparrow](assets/birds/clay_colored_sparrow.jpg) |
-
-### 3.2 Bird story in one view
-
-The implemented bird experiment is designed to produce a specific before/after story:
-
-**Before KF**: an ornithology professor wants a computer vision system to correctly distinguish a confusable pair of species. She knows nothing about machine learning. Her options appear to be more labeled data, a retraining cycle, or accepting the model's current mistakes.
-
-**With KF**: the professor opens a patching session and writes the same explanation she gives students. KF extracts her criteria, verifies them against examples, stores them as reusable rules, and applies them immediately to new cases.
-
-**What this shows**: the gap between "domain expert sees the mistake" and "the AI system stops making the mistake" can be narrowed with natural language, without ML expertise, without large-scale labeled retraining, and without changing model weights.
-
-> **Dialogic learning vs. batch simulation**
->
-> The "professor opens a patching session" scenario describes KF's intended interaction model. In the real workflow, the expert and the system exchange turns: KF proposes extracted rule candidates, the expert reviews each one and confirms, rejects, or rewrites it in natural language, and only approved rules are stored. The expert's corrections are themselves input that shapes what KF learns next. This is what "dialogic learning" means in this context — not a one-way upload of expertise, but a back-and-forth where the expert and the system jointly build a verified, revisable knowledge artifact.
->
-> Because no live ornithologist was available for this test, the experiment substitutes that interactive session with a batch import. The expert's discriminative knowledge was pre-encoded from published sources — Sibley's Guide, Kaufman's Field Guide, eBird/allaboutbirds.org species accounts, and the CUB-200-2011 dataset's own 312 binary attribute annotations — into per-pair Markdown source files in `teaching_sessions/`, then extracted into structured rule records in `knowledge_base/*.json` by GPT-4-turbo with `verified_by: "auto"`. Those files were then imported in bulk into the running system via `migrate_rules.py`. The `auto_accept` substitution is what made the Tree Sparrow patch error possible: in a real interactive session, the expert would have rejected the wrong rules immediately.
->
-> The same substitution applies to the upcoming dermatology test. Because no live clinician is available to run an interactive patching session, expert knowledge will be pre-encoded from ISIC 2018 Task 2 lesion-attribute annotations, dermoscopy references, and diagnostic teaching materials, then imported in batch. Both tests are deliberately designed to show that even a simulated expert session — documentation-sourced, batch-imported, without live review — already improves on zero-shot and few-shot baselines on targeted confusable pairs. The interactive dialogic workflow is expected to perform better still, because it allows the expert to catch annotation errors and adapt the knowledge base from feedback rather than auditing it in hindsight.
-
-The developer-facing protocol, implementation notes, and detailed evaluation
-mechanics for the bird case now live in
-[DESIGN.md](DESIGN.md#2-bird-experiments-cub-200-2011).
-
-### 3.3 Bird experiment setup at a glance
-
-- **Model**: GPT-4o (vision)
-- **Dataset**: CUB-200-2011, standard train/test split
-- **Task focus**: 15 confusable species pairs selected from CUB attributes
-- **Test images**: 20 per class per condition (40 images per pair)
-- **Patch source**: field-guide text, eBird-style species guidance, and other documented ornithological expertise
-- **Comparison conditions**: zero-shot, few-shot, and KF-patched
-
-The key experimental question is narrow and practical: can a domain expert's natural-language field-mark knowledge improve classification on targeted hard cases without retraining the base model?
-
-### 3.4 Bird results summary
-
-Two separate experiments are now recorded for the bird case study.
-
-**Experiment 1 (2026-03-29): single-pass prompt injection via GPT-4o (`src/` implementation)**
-
-This experiment used GPT-4o with expert rules injected as plain text into the system prompt. It established the baseline story and exposed the failure modes that motivated the redesign.
-
-| Condition | Accuracy |
-|---|---|
-| **Zero-shot** | 78.0% |
-| **Few-shot** | 82.8% |
-| **KF-patched (first run)** | 72.5% |
-| **KF-patched (after patch correction)** | 75.5% |
-
-The aggregate number understates the real lesson. The pair-level results split into three different stories:
-
-- **KF clearly helped** on Red-faced vs Pelagic Cormorant, Bronzed vs Shiny Cowbird, and Black-billed vs Yellow-billed Cuckoo, where the injected rules pointed to visible, stable, discriminative features.
-- **KF failed in a fixable way** on Chipping vs Tree Sparrow because the patch source text described the wrong species. Once corrected, performance recovered from `42%` back to `88%`.
-- **KF exposed a deeper design opportunity** on Brewer vs Clay-colored Sparrow: the originally reported score was confounded by a small label-normalization mismatch, so this pair should be treated as a hard exploratory stress test rather than as a clean `-32pp` failure. Follow-up probing still suggests that prompt-only patching is not enough here, while a stronger KF pattern based on human-verifiable intermediate feature claims is more promising.
-
-**Experiment 2 (2026-04-01): KF ensemble pipeline via Claude Sonnet 4.6 (`python/` implementation)**
-
-> **Scope and limitations of this result**
->
-> This is an encouraging pilot showing structured evidence observation is likely the right KF direction — not a mature benchmark claim. Three caveats apply:
->
-> 1. **Online adaptation, not a frozen benchmark.** Post-task rule learning was active during this run. The knowledge base grew from 112 to 139 rules across the 12 test images, with new rules extracted from labeled ground truth after each image. Later test images may have benefited from rules derived from earlier labeled test outcomes. For a clean held-out evaluation, run with `--mode test` (disables post-task learning); this pilot did not do that.
->
-> 2. **Confounded comparison.** Experiment 1 used GPT-4o with a single-pass prompt-injection design. Experiment 2 uses Claude Sonnet 4.6 with a multi-round pipeline plus a VERIFIER stage plus few-shot reference images. The reported gains cannot yet be attributed cleanly to KF architecture alone — they reflect a mix of model, decomposition, and few-shot grounding. Same-model baselines (Claude zero-shot, Claude few-shot) are needed for a fair architectural comparison.
->
-> 3. **Small sample.** 12 total test images across 2 pairs is enough to justify "encouraging pilot" but not enough to generalize to CUB-200 as a whole.
-
-This experiment implements the full 4-round KF ensemble pipeline described in
-[DESIGN.md](DESIGN.md#23-experiment-2-kf-ensemble-pipeline). Instead of
-injecting rules as plain text, the pipeline forces an explicit structured
-observation step: the model first records which visual features it can see and
-at what confidence, then applies the rules to those observations to reach a
-decision. This separates perception from classification.
-
-First-pass results (3 images per species per pair, 6 images per pair):
-
-| Pair | KF Ensemble (Experiment 2) | Zero-shot Exp 1 | Few-shot Exp 1 | KF-patched Exp 1 |
-|---|---|---|---|---|
-| American Crow vs Fish Crow | **83.3%** (5/6) | 68% | 68% | 68%* |
-| Brewer Sparrow vs Clay-colored Sparrow | **100.0%** (6/6) | 82% | 95% | see note* |
-
-Note: the Experiment 1 figures use GPT-4o; Experiment 2 uses Claude Sonnet 4.6. The numbers are not directly comparable without same-model baselines.
-
-The Brewer / Clay-colored result is the most notable: the pair that was the hardest exploratory stress test in Experiment 1 scored 6/6 in this pilot. The feature observation layer appears to have been the decisive factor — the OBSERVER consistently separated the two species on malar stripe definition, auricular patch outlining, median crown stripe presence, and lateral crown stripe contrast. This is promising but statistically fragile at n=6.
-
-The crow pair improved from zero-shot parity (68%) to 83% in this pilot. The one error was a Fish Crow image where the OBSERVER reported "large and robust bill, domed crown, heavy-bodied" — features that favor American Crow — leading to an incorrect decision. Whether this reflects a genuinely atypical individual, a difficult viewing angle, or a pipeline limitation is not confirmed.
-
-For the full technical architecture and per-round explanation, see
-[DESIGN.md](DESIGN.md#23-experiment-2-kf-ensemble-pipeline).
-
-For readers who want the detailed pair-level picture from Experiment 1 up front:
-
-| Pair | Similarity | Zero-shot | Few-shot | KF-patched | KF delta |
-|---|---|---|---|---|---|
-| American Crow vs Fish Crow | 0.996 | 68% | 68% | 68%* | 0pp |
-| Black-billed Cuckoo vs Yellow-billed Cuckoo | 0.967 | 78% | 88% | 85% | **+7pp** |
-| Brewer Sparrow vs Clay-colored Sparrow | 0.973 | 82% | 95% | see note* | — |
-| Bronzed Cowbird vs Shiny Cowbird | 0.961 | 88% | 95% | 98% | **+10pp** |
-| California Gull vs Herring Gull | — | 45% | 40% | 50% | +5pp |
-| Caspian Tern vs Elegant Tern | — | 85% | 92% | 88% | **+3pp** |
-| Chipping Sparrow vs Tree Sparrow | 0.962 | 88% | 90% | 88% | 0pp |
-| Common Raven vs White-necked Raven | 0.957 | 88% | 92% | 85% | −3pp |
-| Common Tern vs Forster's Tern | 0.968 | 42% | 68% | 38% | −5pp |
-| Herring Gull vs Ring-billed Gull | — | 87% | 93% | 87% | 0pp |
-| Indigo Bunting vs Blue Grosbeak | — | 90% | 95% | 88% | −3pp |
-| Least Flycatcher vs Western Wood-Pewee | — | 72% | 78% | 70% | −3pp |
-| Loggerhead Shrike vs Great Grey Shrike | 0.978 | 80% | 55% | 72% | −8pp |
-| Northern Waterthrush vs Louisiana Waterthrush | — | 75% | 72% | 75% | 0pp |
-| Red-faced Cormorant vs Pelagic Cormorant | 0.962 | 82% | 95% | 92% | **+10pp** |
-
-*\* For American Crow vs Fish Crow, the latest best KF result comes from a stricter structured-evidence patch with explicit feature gating, which recovered the pair to zero-shot parity (`68%`) and should replace the earlier prompt-injection score of `49%`.*  
-*\** The originally reported Brewer / Clay-colored KF score was confounded by a small label-normalization mismatch (`Brewer's Sparrow` vs `Brewer Sparrow`), so it should not be read as a clean `-32pp` regression.*
-
-So the bird use case is already useful even though it is not uniformly positive. It shows that runtime knowledge patching can help immediately on the right failure modes, that bad patches create systematic harm, and that difficult visual cases may require KF to externalize feature observations rather than only inject more expert text.
-
-For the full protocol, pair-by-pair breakdown, and failure analysis, see
-[DESIGN.md](DESIGN.md#2-bird-experiments-cub-200-2011).
-
-Prefer to skip the upcoming dermatology section? Jump to [Cross-Use-Case Takeaways](#5-cross-use-case-takeaways).
+For the developer-facing implementation notes, see [DESIGN.md](DESIGN.md#2-bird-experiments-cub-200-2011).
 
 ---
 
 ## 4. Sub-Use-Case B: Dermatology
 
-> **Status**: Implemented and piloted (2026-04-05). The KF ensemble pipeline runs end-to-end on HAM10000 dermoscopy images. Latest pilot (v4, Claude Sonnet 4.6): **13/18 overall (72%)** — melanoma vs nevus (67%), BCC vs benign keratosis (83%), actinic keratosis vs benign keratosis (67%). Cross-model zero-shot: GPT-4o 14/18 (78%), o4-mini 11/18 (61%). Improved from v1 50% via: expanded KB (36→52 rules), no-abstain MEDIATOR, VERIFIER scoped to hard contradictions, per-pair absence-checklist schema, and LPLK-specific KB rules.
->
-> **Reframing (2026-04-05)**: The 4-round ensemble pipeline is net-neutral to net-negative for already-strong VLMs — it adds cost without improving over their zero-shot baseline. KF's real value is the **dialogic patching loop**: a cheap VLM fails → a domain expert (or superior VLM) authors corrective rules with explicit pre-conditions → KF validates them against labeled training images → rules fire on future matching images. The dialogic loop is now implemented in `patch.py` and smoke-tested. A full comparative evaluation (cheap model zero-shot vs cheap model + expert-authored patch rules) is the next milestone.
->
-> For the full architecture, iteration history, and failure analysis see [DESIGN.md](DESIGN.md#3-dermatology-experiments-ham10000--isic).
+> **Full write-up**: [dermatology/README.md](dermatology/README.md) — includes dermoscopic images of the three failure cases, step-by-step walkthrough of the patching loop, and a plain-language explanation of what KF solves. Written for clinicians and medical educators.
 
-Dermatology is the strongest medical analogue to the bird use case. Like bird identification, it depends on subtle visual distinctions that experts can often explain in words: pigment network, asymmetry, border irregularity, color variation, streaks, dots, globules, regression structures, ulceration, and other dermoscopic criteria. It is therefore a strong fit for KF's runtime patching model.
+> **Status**: Active experiment — first of three melanoma failures fully patched and confirmed. Second and third in progress.
 
-Just as important, the public ISIC ecosystem gives us both hard classification tasks and expert-defined visual attributes. That makes dermatology unusually well suited for a KF demonstration because we can show all three layers at once: the image, the expert annotation, and the natural-language rule derived from it.
+Dermoscopy AI tools can achieve high accuracy on benchmark test sets, but systematic failure modes still cluster around subtle patterns that a specialist would immediately recognize. KF enables a clinician to correct those failures without retraining.
 
-| Resource | What it contributes | Why it matters to KF |
+**The story in brief**: Qwen3-VL-8B called three actual melanomas "benign moles." Each melanoma had a different dermoscopy pattern — regression + peripheral globules, regression + peppering, gray-blue structureless areas — that the model failed to read correctly. A senior dermoscopist (the Tutor) explained each failure, the system turned each explanation into a validated rule, and Qwen was re-tested. The first failure was fully corrected. The second and third are in progress.
+
+**Results at a glance**:
+
+| Case | Before KF | After KF |
 |---|---|---|
-| **HAM10000** ([paper](https://pmc.ncbi.nlm.nih.gov/articles/PMC6091241/)) | 10,015 dermoscopic images across 7 diagnostic categories, with diagnoses supported by histopathology, confocal microscopy, follow-up, or expert consensus | A strong fine-grained lesion benchmark with clinically meaningful labels |
-| **ISIC 2018 Task 2: Lesion Attribute Detection** ([challenge page](https://challenge.isic-archive.com/landing/2018/46/), [challenge overview](https://challenge.isic-archive.com/landing/2018/)) | Pixel-level masks for clinically meaningful dermoscopic attributes such as pigment network, negative network, streaks, milia-like cysts, and globules | The closest dermatology analogue to CUB's attribute annotations; ideal for grounding patch rules in expert-defined visual features |
-| **ISIC 2019 Challenge** ([challenge page](https://challenge.isic-archive.com/landing/2019/), [validation paper](https://pmc.ncbi.nlm.nih.gov/articles/PMC8484270/)) | Multiclass lesion diagnosis with image-only and image-plus-metadata tracks | A practical benchmark for testing whether `model + KF` improves difficult lesion confusions without retraining |
-| **SIIM-ISIC Melanoma Classification (2020)** ([official summary](https://siim.org/research-journal/siim-machine-learning-challenges/melanoma-kaggle-challenge/), [official dataset](https://challenge2020.isic-archive.com/), [dataset paper](https://doi.org/10.1038/s41597-021-00815-z)) | Kaggle-hosted melanoma challenge with 33,126 training images and patient context; SIIM reports 3,314 teams, 4,120 competitors, and 102,544 submissions | Proof that the domain is commercially relevant, technically hard, and familiar to VLM vendors and evaluators |
+| ISIC_0024315 — regression + peripheral globules | ✗ Called benign mole | ✓ Correctly called Melanoma |
+| ISIC_0024333 — regression + peppering | ✗ Called benign mole | *in progress* |
+| ISIC_0024400 — gray-blue structureless areas | ✗ Called benign mole | *in progress* |
 
-Strictly speaking, **HAM10000 is the foundational dataset, not the Kaggle competition itself**. The Kaggle competition was **SIIM-ISIC Melanoma Classification (2020)**, which drew on the ISIC archive and patient-contextual lesion images.
+For the full case walkthrough with images, the five roles the Tutor plays, and what problems this solves, see [dermatology/README.md](dermatology/README.md).
 
-**Planned dermatology story**:
+For the developer-facing pipeline details and iteration history, see [DESIGN.md](DESIGN.md#3-dermatology-experiments-ham10000--isic).
 
-- **Before KF**: a dermatologist or skin-cancer screening product team sees that a VLM repeatedly confuses classes such as melanoma vs nevus, or benign keratosis vs basal cell carcinoma, on borderline lesions.
-- **With KF (intended interactive workflow)**: the expert opens a patching session and writes the same visual criteria they would use in teaching or supervision. KF turns those criteria into explicit reusable rules, the expert reviews and corrects them, and the verified rules are applied at inference time.
-- **In this test (batch simulation)**: because no live clinician is available to run an interactive session, expert knowledge will be pre-encoded from ISIC 2018 Task 2 lesion-attribute annotations (the medical equivalent of CUB-200's 312 binary attributes) and dermoscopy reference materials, then imported in batch — the same substitution used in the bird experiment. This tests whether even a documentation-sourced, batch-imported knowledge base improves on zero-shot and few-shot baselines on targeted confusable lesion pairs.
-- **What this adds**: if the bird use case shows that KF can capture field-guide expertise, the dermatology use case shows that the same mechanism can transfer clinically meaningful visual expertise into a deployable image-classification system — and that the batch simulation result is a conservative lower bound on what an interactive expert session would achieve.
-
-At a high level, the dermatology track is deliberately parallel to the bird
-experiment rather than a separate thesis. It uses HAM10000 / ISIC-style lesion
-classification and attribute grounding to test whether dermatologist-authored
-visual criteria can be turned into explicit, reusable runtime patches. The
-intended claim is narrow: that `model + KF` can improve targeted lesion
-confusions over simpler post-deployment alternatives without retraining, not
-that it replaces a full clinical or supervised benchmark workflow.
-
-The more detailed experimental setup, implementation notes, and pilot analysis
-for dermatology now live in
-[DESIGN.md](DESIGN.md#3-dermatology-experiments-ham10000--isic).
 
 ---
 

@@ -62,6 +62,12 @@ from ls20_solver    import (                                 # noqa: E402
     state_from_game,
 )
 from rules          import RuleEngine, DEFAULT_PATH          # noqa: E402
+from tools          import ToolRegistry                          # noqa: E402
+from core.knowledge.game_knowledge  import GameKnowledgeRegistry   # noqa: E402
+from core.knowledge.goal_templates  import GoalTemplateRegistry    # noqa: E402
+
+_DEFAULT_GK_PATH  = _HERE / "game_knowledge.json"
+_DEFAULT_GT_PATH  = _HERE / "goal_templates.json"
 
 # ---------------------------------------------------------------------------
 # Colour palette (standard ARC-AGI, colours 0-9)
@@ -133,11 +139,23 @@ class BootstrapSession:
     only what can be seen in the frame, not internal game state.
     """
 
-    def __init__(self, env, game, engine: RuleEngine, dry_run: bool = False):
-        self.env      = env
-        self.game     = game
-        self.engine   = engine
-        self.dry_run  = dry_run
+    def __init__(
+        self,
+        env,
+        game,
+        engine: RuleEngine,
+        gk_registry:  "GameKnowledgeRegistry | None"  = None,
+        gt_registry:  "GoalTemplateRegistry | None"   = None,
+        tool_registry: "ToolRegistry | None"          = None,
+        dry_run: bool = False,
+    ):
+        self.env           = env
+        self.game          = game
+        self.engine        = engine
+        self.gk_registry   = gk_registry
+        self.gt_registry   = gt_registry
+        self.tool_registry = tool_registry
+        self.dry_run       = dry_run
         self._rules_written: list[dict] = []
         # Track principle tags emitted this session to avoid per-level duplicates.
         self._emitted_principles: set[tuple] = set()
@@ -277,7 +295,332 @@ class BootstrapSession:
         for r in rules:
             print(f"  [RULE] {r['id'] or '(dry)'}: {r['condition'][:70]}")
 
+        # ------------------------------------------------------------------
+        # Record positional facts in game_knowledge.json (not in rules)
+        # ------------------------------------------------------------------
+        self._record_game_knowledge(level, meta, events)
+
+        # ------------------------------------------------------------------
+        # Synthesise goal templates (backward-chaining decomposition)
+        # ------------------------------------------------------------------
+        self._synthesise_goal_templates(level, meta, events)
+
+        # ------------------------------------------------------------------
+        # Synthesise executor tools (arithmetic / state helpers)
+        # ------------------------------------------------------------------
+        self._synthesise_tools(level, meta, events)
+
         return rules
+
+    def _record_game_knowledge(
+        self,
+        level: int,
+        meta: dict,
+        events: list[dict],
+    ) -> None:
+        """Write per-level position facts to GameKnowledgeRegistry.
+
+        These are point facts (coordinates, player state) that are specific
+        to this (game, level) pair.  They are stored in game_knowledge.json
+        and injected into the MEDIATOR as context, NOT encoded as rules.
+        """
+        if self.gk_registry is None or self.dry_run:
+            if self.dry_run:
+                print("  [DRY RUN] Would write game_knowledge.json positional facts.")
+            return
+
+        # Collect changer events from the observational tour.
+        rot_changers:   list[dict] = []
+        color_changers: list[dict] = []
+        shape_changers: list[dict] = []
+        win_target:     dict | None = None
+        player_at_win:  dict | None = None
+
+        for ev in events:
+            hit = ev.get("key_hit")
+            if hit in ("rot_changer", "color_changer", "shape_changer"):
+                pos = {"x": ev["key_gx"], "y": ev["key_gy"]}
+                # Record dominant non-black nearby colors as a visual hint.
+                nbhd = ev.get("neighbourhood", {})
+                nearby = sorted(
+                    (c for c, cnt in nbhd.items() if c != 0 and cnt >= 2),
+                    key=lambda c: -nbhd[c],
+                )[:3]
+                pos["nearby_colors"] = nearby
+                if hit == "rot_changer":
+                    rot_changers.append(pos)
+                elif hit == "color_changer":
+                    color_changers.append(pos)
+                else:
+                    shape_changers.append(pos)
+
+            if ev.get("level_advanced"):
+                win_target = {"x": ev["player_x"], "y": ev["player_y"]}
+                player_at_win = {
+                    "rot_idx":   ev["rot_idx"],
+                    "color_idx": ev["color_idx"],
+                }
+
+        # Use level meta for start state — game is already at post-win state
+        # by the time _record_game_knowledge runs.
+        start = {
+            "rot_idx":   meta["start_rot"],
+            "color_idx": meta["start_color"],
+        }
+
+        self.gk_registry.record_level(
+            game_id="ls20",
+            level=level,
+            rot_changers=rot_changers,
+            color_changers=color_changers,
+            shape_changers=shape_changers,
+            win_target=win_target,
+            player_at_win=player_at_win,
+            step_budget=meta["step_counter"],
+            start_state=start,
+        )
+
+        print(f"  [GK] Wrote game_knowledge.json: level {level} "
+              f"rot_changers={len(rot_changers)} "
+              f"color_changers={len(color_changers)} "
+              f"win_target={win_target}")
+
+    # ------------------------------------------------------------------
+    # Goal template synthesis (backward-chaining decomposition)
+    # ------------------------------------------------------------------
+
+    def _synthesise_goal_templates(
+        self,
+        level: int,
+        meta: dict,
+        events: list[dict],
+    ) -> None:
+        """Write a goal decomposition tree for this level to goal_templates.json.
+
+        The tree is expressed in role/concept terms (TARGET, ROT_CHANGER, …)
+        so it generalises across episodes.  Variable values are baked in from
+        the observational tour so the MEDIATOR knows exactly what is required
+        for this level without needing to peek.
+        """
+        if self.gt_registry is None or self.dry_run:
+            if self.dry_run:
+                print("  [DRY RUN] Would write goal_templates.json decomposition.")
+            return
+
+        saw_rot    = any(e.get("key_hit") == "rot_changer"   for e in events)
+        saw_color  = any(e.get("key_hit") == "color_changer" for e in events)
+        saw_shape  = any(e.get("key_hit") == "shape_changer" for e in events)
+        saw_win    = any(e.get("level_advanced")              for e in events)
+
+        if not saw_win:
+            print(f"  [GT] Skipping goal template for level {level}: "
+                  f"level was not completed in this tour.")
+            return
+
+        start_rot   = meta["start_rot"]
+        goal_rot    = meta["goal_rot"]
+        start_color = meta["start_color"]
+        goal_color  = meta["goal_color"]
+
+        n_rot_visits   = sum(1 for e in events if e.get("key_hit") == "rot_changer")
+        n_color_visits = sum(1 for e in events if e.get("key_hit") == "color_changer")
+        n_shape_visits = sum(1 for e in events if e.get("key_hit") == "shape_changer")
+        step_budget    = meta["step_counter"]
+
+        variables = {
+            "game_id":       "ls20",
+            "level":         level,
+            "start_rot":     start_rot,
+            "goal_rot":      goal_rot,
+            "start_color":   start_color,
+            "goal_color":    goal_color,
+            "n_rot_visits":  n_rot_visits,
+            "n_color_visits":n_color_visits,
+            "n_shape_visits":n_shape_visits,
+            "step_budget":   step_budget,
+        }
+
+        # Build the goal tree.
+        # Root: overall level completion goal.
+        # Children: one sub-goal per required transformation, then TARGET.
+        nodes: list[dict] = []
+
+        # Build a readable summary of required transformations.
+        transform_parts = []
+        if start_rot != goal_rot:
+            transform_parts.append(
+                f"rot_idx {start_rot}→{goal_rot} ({n_rot_visits} ROT_CHANGER visit(s))"
+            )
+        if start_color != goal_color:
+            transform_parts.append(
+                f"color_idx {start_color}→{goal_color} ({n_color_visits} COLOR_CHANGER visit(s))"
+            )
+        if saw_shape:
+            transform_parts.append(
+                f"shape change ({n_shape_visits} SHAPE_CHANGER visit(s))"
+            )
+        transforms_str = (
+            "; ".join(transform_parts) if transform_parts else "no transformation needed"
+        )
+
+        nodes.append({
+            "id":       "root",
+            "parent":   None,
+            "priority": 1,
+            "description": (
+                "Complete {game_id} level {level} within {step_budget} steps: "
+                f"transform player state ({transforms_str}), then reach TARGET."
+            ),
+        })
+
+        # Sub-goals for each required changer type.
+        if saw_rot and start_rot != goal_rot:
+            nodes.append({
+                "id":       "rot-state",
+                "parent":   "root",
+                "priority": 2,
+                "description": (
+                    "Transform rotation: step onto ROT_CHANGER object "
+                    "{n_rot_visits} time(s) to advance rot_idx from "
+                    "{start_rot} to {goal_rot}."
+                ),
+            })
+            nodes.append({
+                "id":       "rot-navigate",
+                "parent":   "rot-state",
+                "priority": 2,
+                "description": (
+                    "Navigate to the ROT_CHANGER object (watch for orientation "
+                    "attribute change in object_tracker diff to confirm arrival)."
+                ),
+            })
+
+        if saw_color and start_color != goal_color:
+            nodes.append({
+                "id":       "color-state",
+                "parent":   "root",
+                "priority": 2,
+                "description": (
+                    "Transform color: step onto COLOR_CHANGER object "
+                    "{n_color_visits} time(s) to advance color_idx from "
+                    "{start_color} to {goal_color}."
+                ),
+            })
+            nodes.append({
+                "id":       "color-navigate",
+                "parent":   "color-state",
+                "priority": 2,
+                "description": (
+                    "Navigate to the COLOR_CHANGER object (watch for color "
+                    "attribute change in object_tracker diff to confirm arrival)."
+                ),
+            })
+
+        if saw_shape:
+            nodes.append({
+                "id":       "shape-state",
+                "parent":   "root",
+                "priority": 2,
+                "description": (
+                    "Transform shape: step onto SHAPE_CHANGER object "
+                    "{n_shape_visits} time(s) to reach required shape."
+                ),
+            })
+
+        # Final goal: reach the TARGET.
+        nodes.append({
+            "id":       "win-target",
+            "parent":   "root",
+            "priority": 3,
+            "description": (
+                "Navigate to TARGET object with player in goal state "
+                "(rot_idx={goal_rot}, color_idx={goal_color}). "
+                "Level advances when player occupies TARGET cell — confirmed "
+                "by obs.levels_completed increment."
+            ),
+        })
+
+        self.gt_registry.record_template(
+            game_id="ls20",
+            level=level,
+            nodes=nodes,
+            variables=variables,
+            source="bootstrap",
+        )
+        print(f"  [GT] Wrote goal_templates.json: level {level} "
+              f"({len(nodes)} nodes, variables={list(variables.keys())})")
+
+    # ------------------------------------------------------------------
+    # Tool synthesis (executor helpers)
+    # ------------------------------------------------------------------
+
+    def _synthesise_tools(
+        self,
+        level: int,
+        meta: dict,
+        events: list[dict],
+    ) -> None:
+        """Register reusable Python helpers derived from the bootstrap tour.
+
+        These tools encode mechanic arithmetic (rotation cycle, goal-state
+        predicate) that the MEDIATOR can call in its executor pseudo-code.
+        They are registered once with scope="global" so they apply to any
+        game that shares the rotation/color-changer mechanic.
+        """
+        if self.tool_registry is None or self.dry_run:
+            if self.dry_run:
+                print("  [DRY RUN] Would register executor tools.")
+            return
+
+        tools_to_emit = [
+            (
+                "count_changer_visits",
+                (
+                    "def count_changer_visits(start_idx, goal_idx, cycle_len=4):\n"
+                    "    \"\"\"\n"
+                    "    Return the minimum number of CHANGER visits needed to\n"
+                    "    advance from start_idx to goal_idx in a circular cycle\n"
+                    "    of length cycle_len (e.g. rotation or color index).\n"
+                    "    Returns 0 if already at goal.\n"
+                    "    Learned from ARC-AGI-3 bootstrap tour.\n"
+                    "    \"\"\"\n"
+                    "    return (goal_idx - start_idx) % cycle_len\n"
+                ),
+                "Return visits needed to advance from start_idx to goal_idx "
+                "in a circular changer cycle (e.g. rot or color index).",
+            ),
+            (
+                "player_at_goal_state",
+                (
+                    "def player_at_goal_state(rot_idx, color_idx, "
+                    "goal_rot, goal_color):\n"
+                    "    \"\"\"\n"
+                    "    True when the player's current rotation and color indices\n"
+                    "    match the level's goal state.\n"
+                    "    Learned from ARC-AGI-3 bootstrap tour.\n"
+                    "    \"\"\"\n"
+                    "    return rot_idx == goal_rot and color_idx == goal_color\n"
+                ),
+                "True when player rot_idx and color_idx match the level goal state.",
+            ),
+        ]
+
+        for name, code, description in tools_to_emit:
+            # Skip if already registered (tool is global; only needs writing once).
+            existing = self.tool_registry.get(name)
+            if existing:
+                print(f"  [TOOL] {name}: already registered, skipping.")
+                continue
+            self.tool_registry.register(
+                name=name,
+                code=code,
+                verified=True,
+                source_task=f"ls20_bootstrap_l{level}",
+                description=description,
+                scope="global",
+                tool_type="code",
+            )
+            print(f"  [TOOL] Registered: {name}")
 
     # ------------------------------------------------------------------
     # Key positions: (kind, game_x, game_y) tuples
@@ -455,62 +798,10 @@ class BootstrapSession:
                 self._emitted_principles.add(key)
                 print(f"  [PRINCIPLE] {r.get('id','dry')}: {mtype}")
 
-        # --- Tier 2: game-level instance hints (position memory, not conditions)
-        # Collect positions where key events were observed.
-        changer_hints: list[str] = []
-        for e in events:
-            kh = e.get("key_hit")
-            if kh:
-                px, py = e["key_gx"], e["key_gy"]
-                nb  = e["neighbourhood"]
-                col = [_color_name(c) for c, _ in nb.most_common(3)
-                       if c not in (3, 0)]  # skip green bg and black
-                changer_hints.append(
-                    f"{kh} last seen at approx (col {px}, row {py})"
-                    + (f" [nearby colours: {', '.join(col[:2])}]" if col else "")
-                )
-
-        win_hint = ""
-        adv_events = [e for e in events if e.get("level_advanced")]
-        if adv_events:
-            adv = adv_events[0]
-            nb  = adv["neighbourhood"]
-            col = [_color_name(c) for c, _ in nb.most_common(3)
-                   if c not in (3, 0)]
-            win_hint = (
-                f"Win target last seen at approx "
-                f"(col {adv['player_x']}, row {adv['player_y']}) "
-                f"with rot_idx={adv['rot_idx']}, color_idx={adv['color_idx']}"
-                + (f" [nearby colours: {', '.join(col[:2])}]" if col else "")
-            )
-
-        budget = meta["step_counter"]
-        dec    = meta["steps_dec"]
-
-        if changer_hints or win_hint:
-            cond = (
-                f"In {game} level {level}, navigating toward the win target"
-            )
-            action_parts = []
-            if changer_hints:
-                action_parts.append(
-                    "POSITION HINTS (from bootstrapped guided tour — confirm by "
-                    "observation; positions may shift between game instances): "
-                    + "; ".join(changer_hints)
-                )
-            if win_hint:
-                action_parts.append(win_hint)
-            action_parts.append(
-                f"Step budget: {budget} units, depletes {dec}/step "
-                f"= {budget // dec} actions max."
-            )
-            rules.append(self._emit(
-                cond,
-                "  ".join(action_parts),
-                level, ns,
-                ["instance-hint", "navigation", game, f"level-{level}"],
-                scope="dataset",
-            ))
+        # Tier-2 position memory is intentionally NOT stored as rules.
+        # Rules are for generalizable patterns; coordinates for a specific
+        # game level are point facts. They are written to game_knowledge.json
+        # by the caller (BootstrapSession.run_level) after this method returns.
 
         return rules
 
@@ -592,7 +883,19 @@ def _main(args: argparse.Namespace) -> None:
 
     levels = args.levels or list(range(1, 4))   # default: first 3 levels
 
-    session = BootstrapSession(env, game, engine, dry_run=args.dry_run)
+    gk_registry  = None if args.dry_run else GameKnowledgeRegistry(path=args.gk_path)
+    gt_registry  = None if args.dry_run else GoalTemplateRegistry(path=args.gt_path)
+    tool_reg     = None if args.dry_run else ToolRegistry(
+        path=args.tools_path, dataset_tag="arc-agi-3"
+    )
+
+    session = BootstrapSession(
+        env, game, engine,
+        gk_registry=gk_registry,
+        gt_registry=gt_registry,
+        tool_registry=tool_reg,
+        dry_run=args.dry_run,
+    )
 
     all_rules = []
     for lvl in levels:
@@ -605,10 +908,15 @@ def _main(args: argparse.Namespace) -> None:
         all_rules.extend(rules)
 
     print(f"\n=== Bootstrap complete ===")
-    print(f"  Rules written: {len(all_rules)}")
-    print(f"  Rules are tagged source='bootstrap' and status='candidate'.")
-    print(f"  They are expressed in observable terms and can be confirmed")
-    print(f"  independently by the OBSERVER without peeking at env._game.")
+    print(f"  Rules written:       {len(all_rules)}  → {args.rules_path}")
+    print(f"    Tagged source='bootstrap', status='candidate'.")
+    print(f"    Observable terms only — no coordinates, no game names.")
+    print(f"  Positional memory:   → {args.gk_path}")
+    print(f"    Inject via GameKnowledgeRegistry.context_for(game_id, level).")
+    print(f"  Goal templates:      → {args.gt_path}")
+    print(f"    Instantiate via GoalTemplateRegistry + push_template_into_manager().")
+    print(f"  Executor tools:      → {args.tools_path}")
+    print(f"    Loaded at startup via ToolRegistry.load_into_executor().")
     if args.dry_run:
         print(f"  [DRY RUN -- nothing written to disk]")
 
@@ -628,6 +936,15 @@ def main() -> None:
                          "before writing new ones")
     ap.add_argument("--rules-path", type=Path, default=DEFAULT_PATH,
                     help=f"Path to rules.json (default: {DEFAULT_PATH})")
+    ap.add_argument("--gk-path", type=Path, default=_DEFAULT_GK_PATH,
+                    help=f"Path to game_knowledge.json "
+                         f"(default: {_DEFAULT_GK_PATH})")
+    ap.add_argument("--gt-path", type=Path, default=_DEFAULT_GT_PATH,
+                    help=f"Path to goal_templates.json "
+                         f"(default: {_DEFAULT_GT_PATH})")
+    ap.add_argument("--tools-path", type=Path,
+                    default=_HERE / "tools.json",
+                    help="Path to tools.json (default: arc-agi-3/python/tools.json)")
     args = ap.parse_args()
     _main(args)
 

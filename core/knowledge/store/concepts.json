@@ -266,11 +266,15 @@
           {
             "at": "2026-04-08T02:10:00.027430+00:00",
             "evidence": "Game tr87 level 1: ACTION3 moves white cursor LEFT by 7 columns per press, ACTION4 moves it RIGHT by 7 columns per press. Step counter (off-white bar) shrinks each action. Grid of 7x7 pattern slots (cyan=top region, pink=bottom region) visible with small black dots inside. A wide bottom display shows a combined pattern target."
+          },
+          {
+            "at": "2026-04-08T12:24:00.721172+00:00",
+            "evidence": "Confirmed: blue(color12) and orange(color9) slider moves exactly 5 cells per action: ACTION1=up, ACTION2=down, ACTION3=left, ACTION4=right. Yellow bar shrinks 2px per action as step counter."
           }
         ]
       },
       "created_at": "2026-04-07T22:45:13.694065+00:00",
-      "updated_at": "2026-04-08T02:10:00.027430+00:00",
+      "updated_at": "2026-04-08T12:24:00.721172+00:00",
       "deprecated": false,
       "deprecation_reason": null
     },
@@ -1289,6 +1293,533 @@
       },
       "created_at": "2026-04-08T04:00:55.128699+00:00",
       "updated_at": "2026-04-08T04:00:55.128699+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_cadef9411455",
+      "name": "slider_pattern_match_two_displays",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Frame has: upper-right bordered box with dark-orange pattern (target), lower-left bordered box with orange/cyan pattern (current state), a vertical column of dark-grey blocks (step counter?), and a bottom progress bar. Actions move a slider or rotate patterns.",
+        "evidence": "Frame shows upper-right bordered 9x8 box (rows 8-16, cols 32-40) with color-9 marks at specific positions. Lower-left bordered box (rows 53-63, cols 0-11) has color-9 marks. Also a vertical dark-grey column and bottom yellow/red bar."
+      },
+      "abstraction": {
+        "summary": "Two pattern displays \u2014 one is a target (upper right, bordered with dark-grey frame, contains orange/cyan marks), one is current state (lower left, bordered, contains similar marks). A vertical column on the right may track progress. Bottom bar is a step counter. Goal is to match current to target.",
+        "hint": "Compare target pattern (upper right box) to current pattern (lower left box). Determine which cells differ and use actions to transform current \u2192 target."
+      },
+      "confidence": 0.55,
+      "provenance": {
+        "first_seen": {
+          "env_id": "ls20",
+          "level": 1,
+          "step": 0
+        },
+        "evidence_history": [
+          {
+            "evidence": "Frame shows upper-right bordered 9x8 box (rows 8-16, cols 32-40) with color-9 marks at specific positions. Lower-left bordered box (rows 53-63, cols 0-11) has color-9 marks. Also a vertical dark-grey column and bottom yellow/red bar."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T12:01:55.244335+00:00",
+      "updated_at": "2026-04-08T12:01:55.244335+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_ca7880610d73",
+      "name": "slider_pattern_matching",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Two panels visible: one with a pattern (target) and one with a moveable object showing same colors; step counter tracks moves",
+        "evidence": "ACTION1 moved blue+orange piece up by 5r, ACTION4 moved it right by 5c. Target panel shows a fixed dark pattern with off-black(color9) pixels in specific positions. Yellow bar is step counter shrinking by 1 each move."
+      },
+      "abstraction": {
+        "summary": "Move a slider (blue+orange or similar colored piece) on a grid to align it with a target pattern shown in another panel. ACTION1=up, ACTION4=right based on movement directions observed.",
+        "hint": "Compare slider position vs target position. Move up/down/left/right to align colors. Use ACTION1=up, ACTION2=down(?), ACTION3=left(?), ACTION4=right."
+      },
+      "confidence": 0.7,
+      "provenance": {
+        "first_seen": {
+          "env_id": "ls20",
+          "level": 1,
+          "step": 2
+        },
+        "evidence_history": [
+          {
+            "evidence": "ACTION1 moved blue+orange piece up by 5r, ACTION4 moved it right by 5c. Target panel shows a fixed dark pattern with off-black(color9) pixels in specific positions. Yellow bar is step counter shrinking by 1 each move."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T12:02:21.903414+00:00",
+      "updated_at": "2026-04-08T12:02:21.903414+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_cd878d6fca4f",
+      "name": "sliding_piece_to_target_pattern",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "A movable colored piece and a separate target pattern displayed elsewhere in the frame; actions move the piece by fixed increments",
+        "evidence": "Blue (color9) and orange (color12) move together 5px per action in all 4 directions. A 9x9 bordered target box at rows 8-16 cols 32-40 shows a blue+orange pattern. Yellow bar shrinks by 2px per action (step counter). Red indicators at bottom-right suggest remaining steps."
+      },
+      "abstraction": {
+        "summary": "Player controls a sliding piece (blue+orange) that moves 5px per action in all 4 directions. A target pattern is shown in a bordered box. Goal is to align the piece with the target. A yellow step-counter shrinks with each move.",
+        "hint": "Compare current piece position to target pattern position and navigate to align them. Count steps: yellow bar width / 2 = steps remaining."
+      },
+      "confidence": 0.75,
+      "provenance": {
+        "first_seen": {
+          "env_id": "ls20",
+          "level": 1,
+          "step": 4
+        },
+        "evidence_history": [
+          {
+            "evidence": "Blue (color9) and orange (color12) move together 5px per action in all 4 directions. A 9x9 bordered target box at rows 8-16 cols 32-40 shows a blue+orange pattern. Yellow bar shrinks by 2px per action (step counter). Red indicators at bottom-right suggest remaining steps."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T12:03:16.499863+00:00",
+      "updated_at": "2026-04-08T12:03:16.499863+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_80c102421bff",
+      "name": "step_counter_yellow_bar",
+      "domain": "arc-agi-3",
+      "kind": "object_role",
+      "signature": {
+        "trigger": "A yellow horizontal bar that shrinks by 1-2 pixels per action taken",
+        "evidence": "In ls20 level 1, the yellow bar starts at size ~84 and decreases by 2 per action (ACTION1,2,3,4 all caused yellow to shrink). At step 64 it's size 70, implying ~7 more moves possible before bar depletes."
+      },
+      "abstraction": {
+        "summary": "Yellow bar acts as a step counter \u2014 it shrinks with each action, indicating remaining moves until failure/timeout.",
+        "hint": "Monitor yellow bar size to count remaining safe actions. Prioritize alignment actions."
+      },
+      "confidence": 0.85,
+      "provenance": {
+        "first_seen": {
+          "env_id": "ls20",
+          "level": 1,
+          "step": 7
+        },
+        "evidence_history": [
+          {
+            "evidence": "In ls20 level 1, the yellow bar starts at size ~84 and decreases by 2 per action (ACTION1,2,3,4 all caused yellow to shrink). At step 64 it's size 70, implying ~7 more moves possible before bar depletes."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T12:03:56.426052+00:00",
+      "updated_at": "2026-04-08T12:03:56.426052+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_9a9ddac407ce",
+      "name": "slider_pattern_matching_with_gap",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "A large dark-grey playing field with a slider piece (color0/black+color1/blue pattern) that can move through a gap in an inner wall; target pattern shown in a bordered box in upper region; step counter bar at bottom",
+        "evidence": "Frame shows: bordered box (rows 8-16, cols 32-40) with target pattern (color9/dark-yellow dots), a large dark-grey playing field with inner walls creating gaps (rows 29-32 empty cols 29-33), and a small cross-shaped slider (color0+color1, rows 30-33, cols 20-22) currently in the field. Yellow bar at row 62 is step counter."
+      },
+      "abstraction": {
+        "summary": "A slider piece (small cross/L-shaped pattern in dark colors) must be moved to align with a target position. The playing field has inner walls with gaps that constrain movement. Target pattern visible in bordered box. Yellow bar = step counter.",
+        "hint": "Move slider through gaps in inner walls to align it with target destination. Count steps needed and conserve budget."
+      },
+      "confidence": 0.6,
+      "provenance": {
+        "first_seen": {
+          "env_id": "ls20",
+          "level": 1,
+          "step": 0
+        },
+        "evidence_history": [
+          {
+            "evidence": "Frame shows: bordered box (rows 8-16, cols 32-40) with target pattern (color9/dark-yellow dots), a large dark-grey playing field with inner walls creating gaps (rows 29-32 empty cols 29-33), and a small cross-shaped slider (color0+color1, rows 30-33, cols 20-22) currently in the field. Yellow bar at row 62 is step counter."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T12:05:34.575848+00:00",
+      "updated_at": "2026-04-08T12:05:34.575848+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_5e2f79bc35f3",
+      "name": "5-cell_slider_with_grouped_pieces",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Two colored objects (blue+orange stacked) move together in 5-cell steps; yellow shrinks as steps counter; dark-grey grows as position tracker",
+        "evidence": "ACTION1 moved blue(color12) and orange(color9) up by -5r. ACTION4 moved both right by +5c. Yellow shrank by 2px width each action. Dark-grey grew from size 2 to 4."
+      },
+      "abstraction": {
+        "summary": "Player controls a paired blue+orange piece that slides exactly 5 cells per action (up/down/left/right). Yellow bar tracks remaining moves (shrinks per step). A dark-grey counter tracks steps taken.",
+        "hint": "Navigate paired piece to target in minimum moves. Each action costs 1 step. Track remaining steps via yellow bar width."
+      },
+      "confidence": 0.8,
+      "provenance": {
+        "first_seen": {
+          "env_id": "ls20",
+          "level": 1,
+          "step": 2
+        },
+        "evidence_history": [
+          {
+            "evidence": "ACTION1 moved blue(color12) and orange(color9) up by -5r. ACTION4 moved both right by +5c. Yellow shrank by 2px width each action. Dark-grey grew from size 2 to 4."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T12:06:02.071067+00:00",
+      "updated_at": "2026-04-08T12:06:02.071067+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_a6101452a9ae",
+      "name": "slider_puzzle_4action_grid",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Game with blue+orange slider objects moving in 4 directions by 5 pixels per step, a white/off-white target marker, and a yellow step counter shrinking with each action.",
+        "evidence": "ACTION1 moves blue+orange up by 5r. ACTION3 moves left by 5c. ACTION4 moves right by 5c. ACTION3 hit wall when at limit. White marker visible at ~(row32,col21). Slider currently at centroid ~(row23,col36) for blue, (row20,col36) for orange."
+      },
+      "abstraction": {
+        "summary": "ACTION1=up, ACTION3=left, ACTION4=right moves the blue/orange slider 5 pixels per step. Target is a small white cross/marker. Slider must be navigated to overlap target. Yellow bar is a step counter (shrinks each action). ACTION2 is the only untried action and is likely down.",
+        "hint": "Calculate delta from slider centroid to white target. Use ACTION1(up), ACTION2(down?), ACTION3(left), ACTION4(right). Each move = 5 pixels. Plan fewest steps to reach target."
+      },
+      "confidence": 0.8,
+      "provenance": {
+        "first_seen": {
+          "env_id": "ls20",
+          "level": 1,
+          "step": 8
+        },
+        "evidence_history": [
+          {
+            "evidence": "ACTION1 moves blue+orange up by 5r. ACTION3 moves left by 5c. ACTION4 moves right by 5c. ACTION3 hit wall when at limit. White marker visible at ~(row32,col21). Slider currently at centroid ~(row23,col36) for blue, (row20,col36) for orange."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T12:06:51.184974+00:00",
+      "updated_at": "2026-04-08T12:06:51.184974+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_dc13ef1e4353",
+      "name": "slider_piece_directional_actions",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "2D slider puzzle where blue+orange pieces move together in 4 directions, yellow bar shrinks as steps-remaining countdown, white target exists",
+        "evidence": "Accumulated action effects confirm: ACTION1 moves color9(blue) and color12(orange) up by delta_r=-5; ACTION2 moves them down delta_r=+5; ACTION3 moves left delta_c=-5; ACTION4 moves right delta_c=+5. Yellow bar width decreases by 1 each action (step counter)."
+      },
+      "abstraction": {
+        "summary": "ACTION1=UP moves blue+orange up by 5 rows. ACTION2=DOWN moves them down by 5 rows. ACTION3=LEFT moves them left by 5 cols. ACTION4=RIGHT moves them right by 5 cols. Yellow bar shrinks each step (steps counter). Goal is to align blue/orange with white target.",
+        "hint": "Find white target position, calculate current blue/orange position, compute steps needed in each direction (each action = 5 units). Plan route with fewest actions."
+      },
+      "confidence": 0.9,
+      "provenance": {
+        "first_seen": {
+          "env_id": "ls20",
+          "level": 1,
+          "step": 13
+        },
+        "evidence_history": [
+          {
+            "evidence": "Accumulated action effects confirm: ACTION1 moves color9(blue) and color12(orange) up by delta_r=-5; ACTION2 moves them down delta_r=+5; ACTION3 moves left delta_c=-5; ACTION4 moves right delta_c=+5. Yellow bar width decreases by 1 each action (step counter)."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T12:07:35.359791+00:00",
+      "updated_at": "2026-04-08T12:07:35.359791+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_21d569b66f6f",
+      "name": "blue_orange_player_pair_movement",
+      "domain": "arc-agi-3",
+      "kind": "object_role",
+      "signature": {
+        "trigger": "Blue and orange objects moving together in same direction by equal magnitude each action",
+        "evidence": "In ls20 level1: blue and orange consistently move together \u00b15 units per action. ACTION1 moves both UP, ACTION2 moves both DOWN, ACTION3 moves both LEFT, ACTION4 moves both RIGHT. Yellow bar shrinks by 2 each step (step counter)."
+      },
+      "abstraction": {
+        "summary": "Blue (color9) and orange (color12) are a player pair that move together. ACTION1=UP, ACTION2=DOWN, ACTION3=LEFT, ACTION4=RIGHT. Yellow bar is a step counter shrinking with each move.",
+        "hint": "Track blue/orange centroid positions; target is white/off-white object at col21. Use ACTION3 (LEFT) to reach target column."
+      },
+      "confidence": 0.9,
+      "provenance": {
+        "first_seen": {
+          "env_id": "ls20",
+          "level": 1,
+          "step": 17
+        },
+        "evidence_history": [
+          {
+            "evidence": "In ls20 level1: blue and orange consistently move together \u00b15 units per action. ACTION1 moves both UP, ACTION2 moves both DOWN, ACTION3 moves both LEFT, ACTION4 moves both RIGHT. Yellow bar shrinks by 2 each step (step counter)."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T12:08:35.018406+00:00",
+      "updated_at": "2026-04-08T12:08:35.018406+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_0c0bef134daa",
+      "name": "2d_slider_target_alignment_with_gap",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Frame has a bordered box with a pattern (target), a movable object (player) in a larger dark-grey region, and a yellow step bar. The player position has a gap/opening in the region wall where the player must enter.",
+        "evidence": "Frame shows: bordered box (rows 8-16, cols 32-40) with dark-grey (color 3) pattern containing color 9 pixels in specific positions. A large dark-grey region in the middle with a gap at cols 29-33. Player appears to be a small object (blue+orange) at centroid (46,36). Yellow bar at bottom tracks steps."
+      },
+      "abstraction": {
+        "summary": "Player (blue/orange object) must be moved to align with a target pattern shown in a bordered box. The dark-grey region has an opening/gap where the player can navigate through. Actions 1-4 = up/down/left/right movement.",
+        "hint": "Identify player position, target position in bordered box, and calculate movement needed. Check if player needs to navigate through gap in region wall."
+      },
+      "confidence": 0.6,
+      "provenance": {
+        "first_seen": {
+          "env_id": "ls20",
+          "level": 1,
+          "step": 0
+        },
+        "evidence_history": [
+          {
+            "evidence": "Frame shows: bordered box (rows 8-16, cols 32-40) with dark-grey (color 3) pattern containing color 9 pixels in specific positions. A large dark-grey region in the middle with a gap at cols 29-33. Player appears to be a small object (blue+orange) at centroid (46,36). Yellow bar at bottom tracks steps."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T12:21:49.871977+00:00",
+      "updated_at": "2026-04-08T12:21:49.871977+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_77384adcc9e6",
+      "name": "slider_target_pattern_match",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "A bordered box shows a target pattern with colored pixels (e.g. orange/off-black) on a light background; a movable slider object exists elsewhere; large dark-grey area acts as the playing field with a yellow step-counter bar.",
+        "evidence": "Frame shows: bordered 9x9 box (rows 8-16, cols 32-40) with a target pattern of orange/9 pixels showing a specific shape. A large dark-grey playing field (rows 24-51) contains a slider with blue/orange pixels at centroid (35,35). A yellow step-counter bar exists at row 62. The slider needs to move into position matching the target."
+      },
+      "abstraction": {
+        "summary": "A slider (blue+orange or similar) must be navigated onto a target region matching a pattern shown in a bordered box. The target zone is visually distinct (bordered box with inner pattern). The player object slides in 4 directions via ACTION1-4.",
+        "hint": "Read the target pattern from the bordered box. Calculate the offset between the slider centroid and the target region centroid. Use ACTION1(up)/ACTION2(down)/ACTION3(left)/ACTION4(right) to move slider into alignment."
+      },
+      "confidence": 0.6,
+      "provenance": {
+        "first_seen": {
+          "env_id": "ls20",
+          "level": 1,
+          "step": 0
+        },
+        "evidence_history": [
+          {
+            "evidence": "Frame shows: bordered 9x9 box (rows 8-16, cols 32-40) with a target pattern of orange/9 pixels showing a specific shape. A large dark-grey playing field (rows 24-51) contains a slider with blue/orange pixels at centroid (35,35). A yellow step-counter bar exists at row 62. The slider needs to move into position matching the target."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T12:23:38.442014+00:00",
+      "updated_at": "2026-04-08T12:23:38.442014+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_0e5869f59e0c",
+      "name": "slider_puzzle_alignment",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Game with a movable object (blue+orange slider) that must align with a target region shown in the board",
+        "evidence": "In ls20 level 1: ACTION1 moves blue+orange up by 5 rows, ACTION2 moves them down 5, ACTION3 left 5, ACTION4 right 5. Yellow bar width shrinks by ~2px each action. White box appeared after successful positioning."
+      },
+      "abstraction": {
+        "summary": "Player controls a slider (blue+orange object) using directional actions. ACTION1=up(-5r), ACTION2=down(+5r), ACTION3=left(-5c), ACTION4=right(+5c). The target region shows where the slider pattern must align. A step counter (yellow bar shrinking) tracks remaining moves.",
+        "hint": "Calculate required row/col delta divided by 5 to determine how many of each action to take. Each action uses 1 step from the step counter."
+      },
+      "confidence": 0.85,
+      "provenance": {
+        "first_seen": {
+          "env_id": "ls20",
+          "level": 1,
+          "step": 11
+        },
+        "evidence_history": [
+          {
+            "evidence": "In ls20 level 1: ACTION1 moves blue+orange up by 5 rows, ACTION2 moves them down 5, ACTION3 left 5, ACTION4 right 5. Yellow bar width shrinks by ~2px each action. White box appeared after successful positioning."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T12:24:45.098301+00:00",
+      "updated_at": "2026-04-08T12:24:45.098301+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_a7ea878fa9e0",
+      "name": "pattern_target_matching_with_slider",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Frame shows: a bordered box (dark-grey border, color3) containing a pattern of colored pixels (color9) as TARGET; a separate movable/controllable pattern; a step counter yellow bar at bottom; possible player piece (blue/orange) to navigate",
+        "evidence": "Frame shows: bordered box at rows 8-16, cols 32-41 with a pattern of color9 pixels (target); another pattern at bottom-left (rows 53-61, cols 1-11) with color9 pixels in different arrangement; a large dark-grey region (rows 26-50, cols 14-53) possibly a main game area; yellow bar at row 62 as step counter; blue/orange objects suggesting a slider mechanic"
+      },
+      "abstraction": {
+        "summary": "The game shows a target pattern in a bordered box (upper-right area) and a current/player pattern elsewhere. The goal is to make the movable pattern match the target. Actions likely move/adjust the player pattern. Yellow bar tracks remaining budget.",
+        "hint": "Identify the target pattern in the bordered box, compare to the movable/current pattern, and find actions that transform the current pattern toward the target."
+      },
+      "confidence": 0.6,
+      "provenance": {
+        "first_seen": {
+          "env_id": "ls20",
+          "level": 1,
+          "step": 0
+        },
+        "evidence_history": [
+          {
+            "evidence": "Frame shows: bordered box at rows 8-16, cols 32-41 with a pattern of color9 pixels (target); another pattern at bottom-left (rows 53-61, cols 1-11) with color9 pixels in different arrangement; a large dark-grey region (rows 26-50, cols 14-53) possibly a main game area; yellow bar at row 62 as step counter; blue/orange objects suggesting a slider mechanic"
+          }
+        ]
+      },
+      "created_at": "2026-04-08T12:29:36.351477+00:00",
+      "updated_at": "2026-04-08T12:29:36.351477+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_6f3359877691",
+      "name": "slider_move_5_cells",
+      "domain": "arc-agi-3",
+      "kind": "action_effect",
+      "signature": {
+        "trigger": "Object moves exactly 5 cells per action in a directional game with slider mechanics",
+        "evidence": "ACTION1 moved blue/orange up by delta_r=-5; ACTION2 moved them down by +5; ACTION3 moved them left by -5. Yellow bar shrunk from 84->82->80->78 (2 per action). Target appears to be at centroid row~55, col~5 based on the grid pattern."
+      },
+      "abstraction": {
+        "summary": "Each action moves the slider object (blue+orange pair) exactly 5 cells in the corresponding cardinal direction. Yellow bar shrinks by 2 pixels per action (step counter). A separate target pattern exists in a box.",
+        "hint": "Calculate current position vs target position; divide distance by 5 to determine action count needed. With 17 steps remaining plan efficiently."
+      },
+      "confidence": 0.9,
+      "provenance": {
+        "first_seen": {
+          "env_id": "ls20",
+          "level": 1,
+          "step": 3
+        },
+        "evidence_history": [
+          {
+            "evidence": "ACTION1 moved blue/orange up by delta_r=-5; ACTION2 moved them down by +5; ACTION3 moved them left by -5. Yellow bar shrunk from 84->82->80->78 (2 per action). Target appears to be at centroid row~55, col~5 based on the grid pattern."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T12:30:09.593445+00:00",
+      "updated_at": "2026-04-08T12:30:09.593445+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_6ba6ea6bd36f",
+      "name": "2d_slider_target_alignment",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Game has a movable object (slider) and a fixed target pattern; each action moves slider exactly 5 cells in one direction",
+        "evidence": "In ls20, blue+orange slider moves exactly 5 cells per action (confirmed for all 4 directions). Yellow bar shrinks by 2px per action (step counter). There's a fixed target region with an off-black pattern around rows 8-16, cols 32-40."
+      },
+      "abstraction": {
+        "summary": "The player controls a slider that moves 5 cells per action in 4 directions. Goal is to align the slider pattern with a target region. A step counter (yellow bar) shrinks with each move.",
+        "hint": "Calculate offset between slider centroid and target centroid, then divide by 5 to get number of moves needed. Plan the minimum sequence of actions."
+      },
+      "confidence": 0.85,
+      "provenance": {
+        "first_seen": {
+          "env_id": "ls20",
+          "level": 1,
+          "step": 4
+        },
+        "evidence_history": [
+          {
+            "evidence": "In ls20, blue+orange slider moves exactly 5 cells per action (confirmed for all 4 directions). Yellow bar shrinks by 2px per action (step counter). There's a fixed target region with an off-black pattern around rows 8-16, cols 32-40."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T12:30:49.532877+00:00",
+      "updated_at": "2026-04-08T12:30:49.532877+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_59cdba27a41a",
+      "name": "slider_to_target_alignment",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "A colored slider object (blue+orange) moves in 4 directions, needs to align with a fixed target symbol/pattern. Steps counter decrements each move.",
+        "evidence": "diff data confirms: ACTION1 moves blue/orange UP by 5 rows, ACTION2 moves DOWN 5r, ACTION3 moves LEFT 5c, ACTION4 moves RIGHT 5c. Yellow bar shrinks by 2px width per action (step counter). Blue centroid now at row 33, orange at row 30. Target black square visible at row 12 col 36."
+      },
+      "abstraction": {
+        "summary": "ACTION1=up(-5r), ACTION2=down(+5r), ACTION3=left(-5c), ACTION4=right(+5c) moves slider by 5 grid units. Goal is to align slider with target. Step counter (yellow bar) shrinks with each action.",
+        "hint": "Calculate remaining distance to target and use minimum moves. Each action = 5 units. Plan path to align slider (blue+orange) with target."
+      },
+      "confidence": 0.85,
+      "provenance": {
+        "first_seen": {
+          "env_id": "ls20",
+          "level": 1,
+          "step": 7
+        },
+        "evidence_history": [
+          {
+            "evidence": "diff data confirms: ACTION1 moves blue/orange UP by 5 rows, ACTION2 moves DOWN 5r, ACTION3 moves LEFT 5c, ACTION4 moves RIGHT 5c. Yellow bar shrinks by 2px width per action (step counter). Blue centroid now at row 33, orange at row 30. Target black square visible at row 12 col 36."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T12:31:36.668139+00:00",
+      "updated_at": "2026-04-08T12:31:36.668139+00:00",
+      "deprecated": false,
+      "deprecation_reason": null
+    },
+    {
+      "id": "c_a72e70793b80",
+      "name": "directional_slider_with_target_alignment",
+      "domain": "arc-agi-3",
+      "kind": "mechanic",
+      "signature": {
+        "trigger": "Blue+orange object pair moves 5px per action in 4 directions; a fixed dark-grey target zone nearby; step counter decreases",
+        "evidence": "In ls20 level 1: ACTION1 moves blue+orange up 5 rows, ACTION2 moves down 5 rows, ACTION3 moves left 5 cols, ACTION4 moves right 5 cols. Yellow bar shrinks by 2px each step (step counter). Dark-grey target at ~row 11, col 36."
+      },
+      "abstraction": {
+        "summary": "Blue (color9) and orange (color12) form a slider that moves 5px per ACTION press. ACTION1=up, ACTION2=down, ACTION3=left, ACTION4=right. Goal is to align slider with a static target shape (dark-grey, color3). Step counter (yellow, color11) decreases by 2px width each action.",
+        "hint": "Calculate distance from slider centroid to target centroid; divide by 5 to get number of action presses needed. Minimize steps used."
+      },
+      "confidence": 0.85,
+      "provenance": {
+        "first_seen": {
+          "env_id": "ls20",
+          "level": 1,
+          "step": 10
+        },
+        "evidence_history": [
+          {
+            "evidence": "In ls20 level 1: ACTION1 moves blue+orange up 5 rows, ACTION2 moves down 5 rows, ACTION3 moves left 5 cols, ACTION4 moves right 5 cols. Yellow bar shrinks by 2px each step (step counter). Dark-grey target at ~row 11, col 36."
+          }
+        ]
+      },
+      "created_at": "2026-04-08T12:32:11.984310+00:00",
+      "updated_at": "2026-04-08T12:32:11.984310+00:00",
       "deprecated": false,
       "deprecation_reason": null
     }

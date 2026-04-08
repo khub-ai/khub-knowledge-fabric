@@ -28,8 +28,9 @@ _KF_ROOT = Path(__file__).resolve().parents[3]
 if str(_KF_ROOT) not in sys.path:
     sys.path.insert(0, str(_KF_ROOT))
 
-from core.knowledge.state import StateManager
-from core.knowledge.goals import GoalManager
+from core.knowledge.state          import StateManager
+from core.knowledge.goals          import GoalManager
+from core.knowledge.goal_templates import GoalTemplateRegistry, push_template_into_manager
 from core.pipeline.agents import (
     reset_cost_tracker,
     get_cost_tracker,
@@ -113,6 +114,11 @@ SKIP_OBSERVER_FOR_PUZZLES = True
 # enabled so they can be used as ground-truth references for the generalized
 # layer under development.
 COMPETITION_MODE = False
+
+# In competition mode, execute at most this many actions per MEDIATOR plan
+# before breaking and letting the MEDIATOR re-evaluate with fresh observations.
+# Keeps the MEDIATOR from committing to a long wrong plan without feedback.
+COMPETITION_MAX_PLAN_CHUNK = 3
 
 # Known action sequences to pre-solve (skip) levels that are already mastered.
 # Keys are env_id strings.  Values are ordered action names.
@@ -591,14 +597,34 @@ def _inject_initial_goals(
     goal_manager: GoalManager,
     env_id: str,
     episode: int,
+    gt_registry: "GoalTemplateRegistry | None" = None,
 ) -> str:
-    """Push the standard top-level goals at the start of an episode."""
+    """Push goals at episode start.
+
+    If a GoalTemplateRegistry is supplied and contains a template for
+    (env_id, level=1), that template is instantiated and pushed — giving
+    the MEDIATOR a bootstrap-derived, role-based decomposition immediately.
+
+    Falls back to generic hardcoded goals when no template is available
+    (e.g. first run on an unknown game).
+    """
+    # Always push the top-level game-win goal.
     top = goal_manager.push(
         description=f"Win the {env_id} game (advance through all levels)",
         priority=1,
     )
     goal_manager.activate(top.id)
 
+    # Try to instantiate a bootstrap-derived goal tree for level 1.
+    if gt_registry is not None:
+        nodes = gt_registry.instantiate(env_id, level=1)
+        if nodes:
+            # Attach tree under the top goal by re-rooting: set the root
+            # node's parent to top.id before pushing.
+            push_template_into_manager(goal_manager, nodes, activate_first=True)
+            return top.id
+
+    # Fallback: generic goals when no template exists yet.
     level_goal = goal_manager.push(
         description=f"Complete level 1 of {env_id}",
         priority=2,
@@ -624,7 +650,7 @@ def _inject_initial_goals(
     )
     goal_manager.activate(explore_goal.id)
 
-    return top.id  # caller may use to create further subgoals
+    return top.id
 
 
 def _update_level_goals(
@@ -632,19 +658,34 @@ def _update_level_goals(
     env_id: str,
     new_level: int,
     top_goal_id: str,
+    gt_registry: Optional["GoalTemplateRegistry"] = None,
 ) -> None:
-    """Resolve current level goal and push the next one when a level advances."""
-    # Resolve any active goal whose description mentions the previous level
+    """Resolve current level goals and push goals for the next level.
+
+    Uses bootstrap-derived goal templates if available, else a generic goal.
+    """
     prev_level = new_level - 1
+
+    # Resolve all open goals that belong to the previous level.
     for g in goal_manager._goals:
-        if (g.status == "active"
-                and f"level {prev_level}" in g.description.lower()):
+        if g.status in ("active", "pending") and (
+            f"level {prev_level}" in g.description.lower()
+            or f"level{prev_level}" in g.description.lower()
+        ):
             goal_manager.resolve(
                 g.id,
                 result=f"Level {prev_level} completed at step transition",
             )
 
-    # Push new level goal
+    # Push goals for the new level — from template if available.
+    _gt = gt_registry or _load_default_gt_registry()
+    if _gt is not None:
+        nodes = _gt.instantiate(env_id, level=new_level)
+        if nodes:
+            push_template_into_manager(goal_manager, nodes, activate_first=True)
+            return
+
+    # Fallback: single generic level goal.
     new_g = goal_manager.push(
         description=f"Complete level {new_level} of {env_id}",
         priority=2,
@@ -783,12 +824,17 @@ async def _match_rules(
     if not active:
         return []
 
-    # Pre-filter: only send rules tagged with the current environment to the LLM.
-    # This cuts the rule set from ~3000 to ~900 for a typical environment.
+    # Pre-filter: send env-specific rules + global mechanic-principle rules.
+    # mechanic-principle rules (bootstrap) are tagged arc-agi-3, not per-env,
+    # so they must be included explicitly — the env_id filter would drop them.
     if env_id:
         env_rules = [r for r in active if env_id in r.get("tags", [])]
-        if env_rules:
-            active = env_rules
+        global_principles = [r for r in active
+                             if "mechanic-principle" in r.get("tags", [])
+                             and r not in env_rules]
+        combined = env_rules + global_principles
+        if combined:
+            active = combined
 
     frame = obs_frame(obs)
     grid_str = frame_to_str(frame)
@@ -815,6 +861,29 @@ async def _match_rules(
 
 
 # ---------------------------------------------------------------------------
+# Default goal-template registry loader (reads alongside rules.json)
+# ---------------------------------------------------------------------------
+
+_GT_REGISTRY_CACHE: Optional["GoalTemplateRegistry"] = None
+
+def _load_default_gt_registry() -> Optional["GoalTemplateRegistry"]:
+    """Return a shared GoalTemplateRegistry loaded from the default path.
+
+    Cached after first load so repeated episode calls don't re-read disk.
+    Returns None if goal_templates.json does not exist yet (pre-bootstrap).
+    """
+    global _GT_REGISTRY_CACHE
+    if _GT_REGISTRY_CACHE is not None:
+        return _GT_REGISTRY_CACHE
+    _HERE_ENS = Path(__file__).resolve().parent
+    gt_path = _HERE_ENS / "goal_templates.json"
+    if not gt_path.exists():
+        return None
+    _GT_REGISTRY_CACHE = GoalTemplateRegistry(path=gt_path)
+    return _GT_REGISTRY_CACHE
+
+
+# ---------------------------------------------------------------------------
 # Main episode orchestrator
 # ---------------------------------------------------------------------------
 
@@ -824,6 +893,7 @@ async def run_episode(
     env_id: str,
     rule_engine: Optional[RuleEngine] = None,
     tool_registry: Optional[ToolRegistry] = None,
+    gt_registry: Optional["GoalTemplateRegistry"] = None,
     max_steps: int = MAX_STEPS,
     max_cycles: int = MAX_CYCLES,
     verbose: bool = True,
@@ -858,7 +928,11 @@ async def run_episode(
     goal_manager  = GoalManager(task_id=task_id, dataset_tag="arc-agi-3")
 
     # -- Inject initial goals ------------------------------------------------
-    top_goal_id = _inject_initial_goals(goal_manager, env_id, episode_num)
+    # Load bootstrap-derived goal template if available (gt_registry),
+    # else fall back to hardcoded generic goals.
+    _gt = gt_registry or _load_default_gt_registry()
+    top_goal_id = _inject_initial_goals(goal_manager, env_id, episode_num,
+                                        gt_registry=_gt)
 
     # -- Playlog directory ---------------------------------------------------
     playlog_dir: Optional[Path] = None
@@ -1091,7 +1165,7 @@ async def run_episode(
             tuple(_curr_frame[0]) if _curr_frame else (),
             tuple(_curr_frame[_h_f // 2]) if _curr_frame else (),
             tuple(_curr_frame[-1]) if _curr_frame else (),
-            tuple(sorted(concept_bindings.keys())) if concept_bindings else (),
+            tuple(sorted(str(k) for k in concept_bindings.keys())) if concept_bindings else (),
         )
         if _frame_sig != _last_structural_frame_sig:
             structural_str = format_structural_context(
@@ -1508,9 +1582,17 @@ async def run_episode(
         ]
         state_snap = dict(state_manager._data)
 
+        _plan_chunk_count = 0
         for step_spec in action_plan:
             if step_count >= max_steps:
                 log(f"  [ACTOR] Step limit ({max_steps}) reached, stopping")
+                break
+            # In competition mode, limit plan execution to a small chunk so the
+            # MEDIATOR re-evaluates with fresh observations rather than blindly
+            # executing a long stale plan.
+            if COMPETITION_MODE and _plan_chunk_count >= COMPETITION_MAX_PLAN_CHUNK:
+                log(f"  [ACTOR] Competition plan-chunk limit "
+                    f"({COMPETITION_MAX_PLAN_CHUNK}) reached — re-evaluating")
                 break
 
             action_name = step_spec["action"]
@@ -1529,8 +1611,9 @@ async def run_episode(
             frame_before  = obs_frame(obs)
             levels_before = obs_levels_completed(obs)
             obs = env.step(action_obj, data=data)
-            step_count    += 1
-            _plan_step_idx += 1
+            step_count      += 1
+            _plan_step_idx  += 1
+            _plan_chunk_count += 1
 
             levels_after = obs_levels_completed(obs)
             state_after  = obs_state_name(obs)
@@ -1840,7 +1923,8 @@ async def run_episode(
                     if isinstance(ck, int) and isinstance(cv, dict):
                         cv["level_obs"] = 0
                 _update_level_goals(
-                    goal_manager, env_id, levels_after, top_goal_id
+                    goal_manager, env_id, levels_after, top_goal_id,
+                    gt_registry=_gt,
                 )
                 log(f"  [goals] {goal_manager.format_for_prompt()}")
                 # Promote candidate rules that fired this cycle — level advance
