@@ -1,16 +1,22 @@
-# Planning Notes: Dialogic Learning Productization
+# Planning Notes: KF Productization Direction
 
 As of April 8, 2026.
 
 ## Purpose
 
-This note captures the current product-planning view of Dialogic Learning in the context of Knowledge Fabric (KF). It is meant to guide prioritization, product positioning, and design tradeoffs as KF evolves from concept work toward a more productized implementation.
+This note captures the current product-planning view of Knowledge Fabric (KF) as it evolves toward a more productized implementation. It is meant to guide prioritization, product positioning, and design tradeoffs, with Dialogic Learning treated as one of KF's most important differentiating capabilities rather than as the product itself.
 
-This is not the main technical specification. It is a planning companion to the deeper Dialogic Learning materials already in the repository.
+This is not the main technical specification. It is a planning companion to the deeper design and Dialogic Learning materials already in the repository.
 
 ## Working Definition
 
 In KF, Dialogic Learning is the process by which an AI system learns reusable know-how through structured dialogue with a human expert or a stronger model. The goal is not only to remember what was said, but to convert teaching interactions into governed knowledge artifacts such as procedures, judgments, boundaries, revision triggers, and failure cases.
+
+## Role Of Dialogic Learning Within KF
+
+KF should be framed as a broader knowledge layer for AI systems: a way to capture, structure, govern, reuse, and eventually transfer learned knowledge across sessions, workflows, and agents.
+
+Within that broader product vision, Dialogic Learning matters because it is one of the strongest ways for KF to acquire high-value knowledge that is otherwise difficult to extract from documents or ordinary memory systems. It is therefore a core feature and a likely differentiator, but not the full scope of KF.
 
 ## Why This Matters Now
 
@@ -24,9 +30,9 @@ The market signal appears strong even if the category name is still emerging.
 
 The practical gap is clear: many systems can store context, summarize chat, or retrieve documents, but fewer systems are designed to turn expert dialogue into reusable, inspectable, portable capability.
 
-## Market Need Assessment
+## Market Need Assessment For KF
 
-Dialogic Learning appears most valuable where knowledge is:
+KF appears most valuable where knowledge is:
 
 - tacit rather than fully documented
 - judgment-heavy rather than purely factual
@@ -45,9 +51,9 @@ Likely high-value settings include:
 - technical support and expert troubleshooting
 - internal analyst and operator training
 
-## Potential Benefits
+## Potential Benefits For KF
 
-If KF executes this well, Dialogic Learning could offer the following advantages:
+If KF executes this well, the combination of artifact-based knowledge capture, governed memory, and Dialogic Learning could offer the following advantages:
 
 - Capture tacit expert knowledge that would otherwise remain trapped in individuals or teams.
 - Turn one-off teaching into reusable knowledge assets.
@@ -60,7 +66,7 @@ If KF executes this well, Dialogic Learning could offer the following advantages
 
 ## Things To Watch Out For
 
-Dialogic Learning is promising, but it is not automatically beneficial.
+Dialogic Learning is promising, but it is only one part of whether KF becomes a strong product.
 
 - Human-AI collaboration does not always outperform the better of human-only or AI-only performance.
 - Experts can teach outdated practices, local biases, or overconfident heuristics.
@@ -76,11 +82,12 @@ Dialogic Learning is promising, but it is not automatically beneficial.
 
 The product opportunity is not "an AI that chats with experts." The stronger framing is:
 
-KF can become infrastructure for turning expert dialogue into reusable, auditable, portable know-how.
+KF can become a knowledge infrastructure layer that helps AI systems accumulate reusable, auditable, portable know-how.
 
 That suggests several product implications:
 
 - The primary unit of value should be the knowledge artifact, not the transcript.
+- KF should support multiple knowledge acquisition paths, with Dialogic Learning as a flagship path rather than the only path.
 - Provenance, scope, revision, and review should be first-class features.
 - The system should reward learning quality, not just conversation smoothness.
 - Dialogic sessions should be explicit workflows with clear objectives and outputs.
@@ -91,18 +98,20 @@ That suggests several product implications:
 
 For KF's next planning horizon, the most defensible direction appears to be:
 
-1. Focus on expert-facing and high-accountability workflows before broad consumer positioning.
-2. Treat image-classification and similar use cases as proving grounds for a more general learning pattern.
-3. Standardize the session loop so teaching produces consistent artifact types and metadata.
-4. Build review and correction into the learning flow so artifacts can be challenged and revised.
-5. Preserve model-agnosticism where possible so KF remains a knowledge layer rather than a model-locked feature.
-6. Plan for portability early, even if full cross-agent packaging arrives later.
+1. Focus KF on high-value workflows where governed reusable knowledge matters more than generic chat convenience.
+2. Use Dialogic Learning as a flagship capability for acquiring tacit expert knowledge, especially in expert-facing and high-accountability workflows.
+3. Treat image-classification and similar use cases as proving grounds for a broader KF learning and governance pattern.
+4. Standardize the session loop so teaching produces consistent artifact types and metadata.
+5. Build review and correction into the learning flow so artifacts can be challenged and revised.
+6. Preserve model-agnosticism where possible so KF remains a knowledge layer rather than a model-locked feature.
+7. Plan for portability early, even if full cross-agent packaging arrives later.
 
 ## Questions That Should Guide Productization
 
-These questions should stay active as design checkpoints:
+These questions should stay active as design checkpoints for KF productization:
 
-- What is the smallest repeatable Dialogic Learning workflow that clearly beats ordinary chat plus notes?
+- What is the smallest repeatable KF workflow that clearly beats ordinary chat plus notes?
+- Which KF capabilities besides Dialogic Learning need to mature in parallel for the product to feel complete?
 - Which artifact types create the most value first: procedures, judgments, boundaries, or revision triggers?
 - How should KF distinguish "raw teaching transcript" from "accepted learned knowledge"?
 - What evidence threshold should be required before a candidate rule is promoted?
@@ -113,7 +122,7 @@ These questions should stay active as design checkpoints:
 
 ## Early Success Criteria
 
-Dialogic Learning is moving in a good product direction if KF can show that:
+KF is moving in a good product direction if it can show that:
 
 - repeated sessions produce reusable artifacts rather than isolated chat logs
 - learned artifacts improve performance on later tasks in the same domain
@@ -125,10 +134,10 @@ Dialogic Learning is moving in a good product direction if KF can show that:
 
 The repository filename is intentionally simple: `planning_notes.md`.
 
-Within the document, the clearest title for now is "Planning Notes: Dialogic Learning Productization" because it signals three things at once:
+Within the document, the clearest title for now is "Planning Notes: KF Productization Direction" because it signals three things at once:
 
 - this is a planning document rather than a final spec
-- the topic is specifically Dialogic Learning
+- the topic is KF productization overall
 - the purpose is to guide productization decisions inside KF
 
 ## Related Documents
