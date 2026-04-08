@@ -327,6 +327,7 @@ The three BKL images used in the AK/BKL pair (ISIC_0024336, _0024420, _0024495) 
 | Larger sample | Run full test sets per pair (`--max-per-class 10+`) |
 | Remaining AK/BKL failures | Two LPLK images still default to AK in total feature absence; may require LPLK subclass or prior-based tiebreak |
 | Cross-pair rule generalization | Confirm or reject cross-pair rule firings detected by `patch.py`; update rule pre-conditions or promote to general rules |
+| **Pupil teachability screening** | Before running a full patch loop on any new pupil VLM, run the teachability entrance exam (§3.9) to confirm the model is correctable — GPT-4o proved unteachable; Qwen3-VL-8B proved correctable |
 
 ### 3.8 Dialogic patching loop (patch.py)
 
@@ -585,6 +586,45 @@ It breaks down when:
 - The FP and TP images are genuinely visually similar at the schema level (ontology problem)
 
 The validator's observations are text summaries, not structured feature records. Using the OBSERVER's full feature records (instead of the RULE_VALIDATOR's brief observations) for contrastive analysis would likely improve recall — but at higher cost since it requires running the full OBSERVER pipeline on each training image.
+
+### 3.9 Pupil teachability screening (prerequisite)
+
+**A pupil VLM must be screened for teachability before committing to a full patch run.**
+
+The dialogic patching loop (§3.8) is expensive: a complete session involves rule authoring, rule completion, semantic validation, pool validation across three independent image pools, and confirmation. If the candidate pupil is unteachable — meaning it cannot act on the patch rules even when they are correctly authored, validated, and injected — the entire expert budget is wasted.
+
+#### What "unteachable" means in practice
+
+A teachable pupil: when a validated patch rule is injected and the rule's pre-conditions are met by the target image, the pupil's prediction changes from wrong to correct on rerun.
+
+An unteachable pupil: the rule is injected and pre-conditions are met, but the model does not act on the rule. It produces a prediction consistent with its prior bias rather than the injected rule. The model effectively hallucinates past its own rule text.
+
+**Known examples:**
+
+| Pupil VLM | Teachable? | Evidence |
+|---|---|---|
+| GPT-4o | **No** | Rules registered and injected; model never altered predictions based on rule pre-conditions — hallucinated past them on rerun |
+| Qwen3-VL-8B | **Yes** | Single-failure POC (ISIC_0024315, mel/nev): rule injected, pre-conditions confirmed present, prediction flipped Nevus→Melanoma |
+
+These are preliminary single-experiment observations. GPT-4o unteachability may be pair-specific or version-specific and should be retested before being treated as a global property.
+
+#### Teachability entrance exam (design, not yet built)
+
+Before running a full patch loop on a new pupil VLM, run a lightweight screening test:
+
+1. **Probe set**: a small fixed set of image-rule pairs where the correct answer is known and the rule has already been validated independently. Each probe consists of one image the pupil is known to misclassify, plus a validated patch rule with explicit pre-conditions that should flip the prediction.
+2. **Pass criterion**: the pupil's prediction changes from wrong to correct on at least N of M probe pairs when the rule is injected. A model that reads rules but ignores them scores 0/M.
+3. **Rejection criterion**: if the pass rate is below threshold, reject the candidate pupil and do not proceed to the full patch loop. Report the failure for investigation (prompt engineering, model version, injection format, etc.).
+
+**Key metric**: not "did the rule pass the held-out gate" (that's about rule quality, not pupil behavior) but "did the rule fire and flip the prediction on rerun" (that's about pupil receptiveness to injected rules).
+
+**Suggested probe size**: 3–5 pairs, using existing validated patch rules from the dermatology mel/nev session. The ISIC_0024315 Level-1 rule (2 pre-conditions, precision=1.0) is an ideal first probe.
+
+#### Why the concept matters architecturally
+
+KF's patching mechanism assumes the pupil can learn from rules at inference time. This is not universally true. Some VLMs are so confident in their internal representations that they override explicit rule text. Others comply with structured pre-condition checklists even when their priors disagree. Teachability is therefore a **pre-condition for the entire KF patching approach** — not a secondary optimization.
+
+Analogically: before a master commits effort to teaching a student, it is reasonable to verify the student can act on corrections rather than repeat the same error regardless of instruction.
 
 #### Token budget for reasoning models (o4-mini)
 
