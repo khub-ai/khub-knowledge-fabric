@@ -1,0 +1,45 @@
+{
+  "ls20:1": {
+    "game_id": "ls20",
+    "level": 1,
+    "source": "bootstrap",
+    "variables": {
+      "game_id": "ls20",
+      "level": 1,
+      "start_rot": 270,
+      "goal_rot": 0,
+      "start_color": 9,
+      "goal_color": 9,
+      "n_rot_visits": 1,
+      "n_color_visits": 0,
+      "n_shape_visits": 0,
+      "step_budget": 42
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "parent": null,
+        "priority": 1,
+        "description": "Complete {game_id} level {level} within {step_budget} steps: transform player state (rot_idx 270\u21920 (1 ROT_CHANGER visit(s))), then reach TARGET."
+      },
+      {
+        "id": "rot-state",
+        "parent": "root",
+        "priority": 2,
+        "description": "Transform rotation: step onto ROT_CHANGER object {n_rot_visits} time(s) to advance rot_idx from {start_rot} to {goal_rot}."
+      },
+      {
+        "id": "rot-navigate",
+        "parent": "rot-state",
+        "priority": 2,
+        "description": "Navigate to the ROT_CHANGER using this 2-phase strategy: PHASE 1 \u2014 go LEFT (ACTION3) repeatedly from the STARTING ROW (row=45) until blocked by a wall. Do NOT go UP before completing Phase 1. PHASE 2 \u2014 from the leftmost position (col=19, row=45), go UP (ACTION1) repeatedly. The ROT_CHANGER is at (col=19, row=30): reaching it takes exactly 3 UP presses. When player steps onto ROT_CHANGER, pixel diff will be > 100 (labeled [*** LARGE DIFF \u2014 possible CHANGER visited ***] in action history). IMPORTANT: Once you see this large-diff UP step, the ROT_CHANGER HAS BEEN VISITED. Immediately switch to the win-target path: UP once more (to row=25), then RIGHT\u00d73, then UP\u00d73."
+      },
+      {
+        "id": "win-target",
+        "parent": "root",
+        "priority": 3,
+        "description": "Navigate to WIN TARGET at game coord (col=34, row=10) with player in goal state (rot_idx={goal_rot}, color_idx={goal_color}). EXACT path from ROT_CHANGER at (col=19, row=30): (1) Go UP (ACTION1) ONCE to reach (col=19, row=25). (2) Go RIGHT (ACTION4) THREE times to reach (col=34, row=25). (3) Go UP (ACTION1) THREE times to reach (col=34, row=10) = WIN TARGET. WARNING: Going RIGHT directly from row=30 is blocked by a wall \u2014 you MUST go UP to row=25 first. Level advances when player occupies TARGET cell \u2014 confirmed by obs.levels_completed increment."
+      }
+    ]
+  }
+}

@@ -260,9 +260,16 @@ class _LoopContext:
                         diff += 1
         lines = [f"pixel delta vs previous frame: {diff}"]
         if self.action_effects:
-            lines.append("accumulated action effects this episode:")
-            for act, eff in sorted(self.action_effects.items()):
-                lines.append(f"  {act}: {eff}")
+            # Use the formatted summary which includes *** ATTRIBUTE CHANGE *** markers
+            # to surface orientation/color/shape changes that indicate CHANGER cells.
+            try:
+                from object_tracker import summarize_action_effects
+                lines.append("accumulated action effects this episode:")
+                lines.append(summarize_action_effects(self.action_effects))
+            except Exception:
+                lines.append("accumulated action effects this episode:")
+                for act, eff in sorted(self.action_effects.items()):
+                    lines.append(f"  {act}: {eff}")
         else:
             lines.append("no action effects recorded yet")
         return "\n".join(lines)

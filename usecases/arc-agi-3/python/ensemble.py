@@ -31,6 +31,7 @@ if str(_KF_ROOT) not in sys.path:
 from core.knowledge.state          import StateManager
 from core.knowledge.goals          import GoalManager
 from core.knowledge.goal_templates import GoalTemplateRegistry, push_template_into_manager
+from core.knowledge.game_knowledge import GameKnowledgeRegistry
 from core.pipeline.agents import (
     reset_cost_tracker,
     get_cost_tracker,
@@ -883,6 +884,59 @@ def _load_default_gt_registry() -> Optional["GoalTemplateRegistry"]:
     return _GT_REGISTRY_CACHE
 
 
+_GK_REGISTRY_CACHE: Optional[GameKnowledgeRegistry] = None
+
+def _load_default_gk_registry() -> Optional[GameKnowledgeRegistry]:
+    """Return a shared GameKnowledgeRegistry loaded from the default path.
+
+    Cached after first load so repeated episode calls don't re-read disk.
+    Returns None if game_knowledge.json does not exist yet.
+    """
+    global _GK_REGISTRY_CACHE
+    if _GK_REGISTRY_CACHE is not None:
+        return _GK_REGISTRY_CACHE
+    _HERE_ENS = Path(__file__).resolve().parent
+    gk_path = _HERE_ENS / "game_knowledge.json"
+    if not gk_path.exists():
+        return None
+    _GK_REGISTRY_CACHE = GameKnowledgeRegistry(path=gk_path)
+    return _GK_REGISTRY_CACHE
+
+
+def _build_game_knowledge_section(gk_registry: Optional[GameKnowledgeRegistry],
+                                  game_id: str, level: int) -> str:
+    """Build a MEDIATOR-ready string with known positional facts for this level."""
+    if gk_registry is None:
+        return ""
+    entry = gk_registry.get_level(game_id, level)
+    if not entry:
+        return ""
+    lines = [f"Positional memory for {game_id} level {level}:"]
+    for pos in entry.get("rot_changers", []):
+        nearby = pos.get("nearby_colors", [])
+        color_note = f" (nearby colors: {nearby})" if nearby else ""
+        lines.append(
+            f"  Rotation changer last seen at game coord "
+            f"(col={pos['x']}, row={pos['y']}){color_note}."
+        )
+    for pos in entry.get("color_changers", []):
+        nearby = pos.get("nearby_colors", [])
+        color_note = f" (nearby colors: {nearby})" if nearby else ""
+        lines.append(
+            f"  Color changer last seen at game coord "
+            f"(col={pos['x']}, row={pos['y']}){color_note}."
+        )
+    wt = entry.get("win_target")
+    if wt:
+        lines.append(
+            f"  Win target (TARGET cell) at game coord "
+            f"(col={wt['x']}, row={wt['y']})."
+        )
+    if len(lines) == 1:
+        return ""  # only the header — nothing useful
+    return "\n".join(lines)
+
+
 # ---------------------------------------------------------------------------
 # Main episode orchestrator
 # ---------------------------------------------------------------------------
@@ -1273,6 +1327,25 @@ async def run_episode(
                 except Exception:
                     pass
 
+            # Build a compact section from active mechanic-principle rules so
+            # the OBSERVER agent has game-mechanic context even before calling
+            # recall_concepts. This prevents it from defaulting to a visual
+            # hypothesis that contradicts known ARC-AGI-3 mechanics.
+            _mp_rules = [
+                r for r in rule_engine.active_rules()
+                if "mechanic-principle" in r.get("tags", [])
+            ]
+            _mp_lines: list[str] = []
+            for _r in _mp_rules[:6]:
+                _if  = (_r.get("condition", "") or "").strip()[:200]
+                _then = (_r.get("action", "") or "").strip()[:200]
+                _mp_lines.append(f"  IF: {_if}\n  THEN: {_then}")
+            _mp_str = (
+                "## Known ARC-AGI-3 mechanics (from rule base — treat as ground truth)\n"
+                + "\n\n".join(_mp_lines)
+                + "\n\n"
+            ) if _mp_lines else ""
+
             _user_ctx = (
                 f"## Current game state\n"
                 f"env_id: {env_id}\n"
@@ -1281,13 +1354,15 @@ async def run_episode(
                 f"steps_remaining: {max_steps - step_count}\n"
                 f"actions_tried: {_tried}\n"
                 f"actions_untried: {', '.join(_untried_actions) or '(none)'}\n\n"
+                f"{_mp_str}"
                 f"{_stuck_block}"
-                f"## Prior hypothesis (from last cycle — refine, do not discard)\n"
+                f"## Prior hypothesis (from last cycle — verify against known mechanics above before accepting)\n"
                 f"{_prior_hypo}\n\n"
                 f"## Recent action outcomes (most recent last)\n"
                 f"{_recent_str}\n\n"
                 f"Use your tools to verify or refine the hypothesis. "
                 f"If a recent action hit a wall, do NOT plan to repeat it. "
+                f"If the prior hypothesis contradicts a known mechanic above, REPLACE it. "
                 f"Start with recall_concepts."
             )
             obs_text, _observer_ms, _agent_stats = await run_observer_agent(
@@ -1461,6 +1536,11 @@ async def run_episode(
         # frame; sending structural_str to MEDIATOR again is double-billing.
         _mediator_struct = "" if COMPETITION_MODE else structural_str
 
+        _gk = _load_default_gk_registry()
+        _game_knowledge_str = _build_game_knowledge_section(
+            _gk, env_id, levels_now + 1
+        )
+
         action_plan, med_text, _med_ms = await run_mediator(
             obs_text,
             rules_section=rules_section,
@@ -1470,6 +1550,7 @@ async def run_episode(
             state_section=_gs,
             action_directions=action_directions if action_directions else None,
             structural_context_str=_mediator_struct,
+            game_knowledge_section=_game_knowledge_str,
             verbose=verbose,
         )
         _mediator_ms = int((time.time() - _t0) * 1000)
@@ -1507,7 +1588,11 @@ async def run_episode(
         # Extract candidate rules proposed by MEDIATOR (exploration + planning).
         # All arc-agi-3 rules start as "candidate" — they must be independently
         # confirmed (level advance or win) before being promoted to "active".
-        if med_text:
+        # In COMPETITION_MODE, skip rule proposals to prevent feedback loops
+        # from accumulating incorrect game-specific coordinate rules.
+        if COMPETITION_MODE:
+            pass
+        elif med_text:
             rule_changes = rule_engine.parse_mediator_rule_updates(
                 med_text, task_id, source_level=levels_now + 1
             )

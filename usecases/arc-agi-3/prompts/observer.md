@@ -51,6 +51,30 @@ Not all games are navigation puzzles. Some are **pattern-matching** or **transfo
 - **Match verification**: the structural context includes `Content matches` and `Content mismatches`. After performing an action, check if the mismatch count decreased. If a slot now shows `MATCH`, that slot is correct — move the cursor to the next slot.
 - **Action roles**: in transformation puzzles, some actions modify the current slot's content (rotate, cycle) while others navigate the cursor (left, right). Determine which is which by observing what changes after each action.
 
+## State-transformation games (CRITICAL — read before forming hypotheses)
+
+Some ARC-AGI-3 games are **interactive state-transformation** games where:
+
+1. **The player piece has a STATE** (orientation, color, or shape) that must **match a goal state** before reaching the win target will advance the level.
+2. **A GOAL INDICATOR** (usually a small bordered box in a corner of the frame) shows the **required player state** — NOT a navigation target. Aligning the player with this box does NOTHING. It is a reference display only.
+3. **CHANGER CELLS** are specific locations in the play field where **stepping on them transforms the player's state** (e.g., rotates the player piece from horizontal to vertical). They are invisible — identified only by **what changes when the player occupies that cell**.
+4. **The WIN TARGET** is a separate cell elsewhere on the play field. The level advances only when the player occupies the win target AND the player's current state matches the goal state.
+
+**How to detect a CHANGER cell:**  
+Look at the object_tracker diff provided in "Observed action effects". If you see a line like  
+`CHANGED color12: orientation horizontal→vertical` or `CHANGED player_piece: color red→blue`  
+**in the same step the player moved to a new cell**, that cell is a CHANGER. Report it prominently as:  
+`[CHANGER DETECTED] Player orientation/color/shape changed after moving to cell (~row, ~col). This cell is a CHANGER.`
+
+**Warning — common misidentification:** A bordered box displaying a small blue/orange/colored pattern in the corner of the frame is almost always the GOAL INDICATOR (player state reference), NOT a navigation target. The player cannot "win" by moving to this bordered box.
+
+**How to distinguish GOAL INDICATOR from WIN TARGET:**
+- GOAL INDICATOR: static, bordered, usually in a corner, never changes when the player moves near it, contains a small representative pattern
+- WIN TARGET: when the player (with correct state) occupies it, `obs.levels_completed` increments immediately
+
+**If the player reached what looks like the target but the level did NOT advance:**  
+The player's current state (orientation/color/shape) does not match the goal state shown in the GOAL INDICATOR. Do NOT keep navigating to the same position. Instead, explore unexplored directions looking for CHANGER cells that will transform the player's state to match the goal.
+
 ## Output format
 
 Respond with a single JSON block (inside ```json fences):

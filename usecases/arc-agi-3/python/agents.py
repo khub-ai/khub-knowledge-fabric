@@ -194,10 +194,14 @@ def format_action_history(history: list[dict], last_n: int = 12) -> str:
     lines = []
     for i, h in enumerate(recent):
         data_str = f" {h['data']}" if h.get("data") else ""
+        diff = h.get("diff", -1)
+        diff_str = f" diff={diff}" if diff >= 0 else ""
+        # Flag abnormally large diffs — may indicate a CHANGER cell was visited
+        changer_flag = " [*** LARGE DIFF — possible CHANGER visited ***]" if diff > 80 else ""
         lines.append(
             f"  Step {offset + i + 1}: "
             f"{h['action']}{data_str}"
-            f" → levels={h['levels']} state={h['state']}"
+            f" → levels={h['levels']} state={h['state']}{diff_str}{changer_flag}"
         )
     return "\n".join(lines)
 
@@ -415,6 +419,7 @@ async def run_mediator(
     state_section: str = "",
     action_directions: Optional[dict] = None,
     structural_context_str: str = "",
+    game_knowledge_section: str = "",
     verbose: bool = True,
 ) -> tuple[list[dict], str, int]:
     """
@@ -447,6 +452,12 @@ async def run_mediator(
             "THESE ARE ALREADY KNOWN. DO NOT SPEND ANY STEPS RE-CHARACTERIZING THEM.\n"
             "Ignore any rules that suggest re-testing these actions.\n"
             f"  {',  '.join(_parts)}\n\n"
+        )
+
+    if game_knowledge_section:
+        user_message += (
+            "## Bootstrapped game knowledge\n\n"
+            f"{game_knowledge_section}\n\n"
         )
 
     if structural_context_str:

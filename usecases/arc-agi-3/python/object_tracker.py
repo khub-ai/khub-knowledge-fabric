@@ -482,45 +482,76 @@ def _consensus_object_summary(obj_obs: list[dict]) -> str:
     """
     Given a list of per-step object observations, produce a consensus summary.
 
-    Looks for the most frequently-moved non-background object and describes
-    the typical direction and magnitude.
+    Reports both the most-consistent movement pattern AND any attribute changes
+    (orientation, color, shape) observed — these are critical for detecting
+    CHANGER cells in state-transformation games.
     """
     if not obj_obs:
         return "(no object observations)"
 
     # Count moves per (color, direction)
     move_counts: dict[tuple[int, str], list[float]] = {}
+    # Count attribute changes per (color, attr, before_val, after_val)
+    attr_counts: dict[tuple, int] = {}
     no_change_count = 0
 
     for obs in obj_obs:
         moved = obs.get("moved", [])
-        if not moved and not obs.get("appeared") and not obs.get("disappeared"):
+        attrs = obs.get("attribute_changes", [])
+        appeared = obs.get("appeared", [])
+        disappeared = obs.get("disappeared", [])
+
+        if not moved and not attrs and not appeared and not disappeared:
             no_change_count += 1
             continue
+
         for m in moved:
             if m.get("is_background"):
                 continue
             key = (m["color"], m["direction"])
             move_counts.setdefault(key, []).append(m.get("magnitude", 0))
 
-    if not move_counts:
-        if no_change_count == len(obj_obs):
-            return "no object movement observed (all calls had no effect)"
-        return "changes detected but no clear object movement pattern"
+        for ac in attrs:
+            color = ac.get("color", -1)
+            changed = ac.get("changed", [])
+            before = ac.get("before", {})
+            after  = ac.get("after", {})
+            for attr in changed:
+                bv = before.get(attr, "?")
+                av = after.get(attr, "?")
+                key = (color, attr, str(bv), str(av))
+                attr_counts[key] = attr_counts.get(key, 0) + 1
 
-    # Find the most frequent move pattern
-    best_key = max(move_counts, key=lambda k: len(move_counts[k]))
-    color, direction = best_key
-    magnitudes = move_counts[best_key]
-    avg_mag = sum(magnitudes) / len(magnitudes)
-    freq = len(magnitudes)
-    total = len(obj_obs)
+    parts: list[str] = []
 
-    return (
-        f"{color_name(color)} object moves {direction} "
-        f"~{avg_mag:.1f} cells/call  "
-        f"(observed {freq}/{total} calls)"
-    )
+    if move_counts:
+        best_key = max(move_counts, key=lambda k: len(move_counts[k]))
+        color, direction = best_key
+        magnitudes = move_counts[best_key]
+        avg_mag = sum(magnitudes) / len(magnitudes)
+        freq = len(magnitudes)
+        total = len(obj_obs)
+        parts.append(
+            f"{color_name(color)} object moves {direction} "
+            f"~{avg_mag:.1f} cells/call  "
+            f"(observed {freq}/{total} calls)"
+        )
+    elif no_change_count == len(obj_obs):
+        parts.append("no object movement observed (all calls had no effect)")
+    else:
+        parts.append("changes detected but no clear object movement pattern")
+
+    # Surface attribute changes — these reveal CHANGER cells
+    for (color, attr, bv, av), count in sorted(attr_counts.items(),
+                                                key=lambda x: -x[1]):
+        total = len(obj_obs)
+        parts.append(
+            f"*** ATTRIBUTE CHANGE: {color_name(color)} {attr} "
+            f"{bv}->{av}  (observed {count}/{total} calls) "
+            f"-- possible CHANGER cell visited ***"
+        )
+
+    return "\n    ".join(parts) if parts else "(no object observations)"
 
 
 def summarize_current_objects(frame: list, concept_bindings: dict | None = None) -> str:
