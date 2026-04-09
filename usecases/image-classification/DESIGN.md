@@ -202,39 +202,44 @@ precision gate, same specificity spectrum — with only prompt vocabulary change
    and flags if REVISE; rule proceeds regardless — semantic validation is advisory.
 5. Held-out gate: pool of 8 images (4 per class), min precision 0.75 and FP ≤ 1.
    If the completed rule fails but the pre-completion rule passes, run 4-level spectrum.
-6. Accepted rules are registered in-memory and written to `patch_rules_birds_test.json`.
+6. Accepted rules are registered in-memory and written to `patch_rules_dialogic_r2.json`.
 7. Rerun: all 4 failures re-classified with registered rules active.
+8. Round 2 (dialogic, `--max-rounds 2`): for cases still failing after round 1, assemble
+   a prior-context block (which rules were active, which fired, pupil's reasoning, per-
+   precondition validator observations on the trigger image) and re-engage the expert.
+   Expert authors a new rule targeting a different feature. Same validation pipeline runs.
 
-#### Results
+#### Results (2 rounds, `--max-rounds 2`)
 
 | Phase | Correct | Accuracy |
 |---|---|---|
 | Zero-shot (Qwen3-VL-8B) | 2/6 | 33.3% |
-| After KF patching | 4/6 | 66.7% |
-| Delta | +2 | +33pp |
-| Rules authored / accepted / registered | 4 / 2 / 2 | |
+| After round 1 | 4/6 | 66.7% |
+| After round 2 (dialogic) | 5/6 | 83.3% |
+| Delta (total) | +3 | +50pp |
+| Rules authored / accepted / registered | 6 / 4 / 4 | |
+| Round 1 rules | 4 authored / 3 registered | |
+| Round 2 rules (dialogic) | 2 authored / 1 registered | |
 
-**r_001** (red iris + thick decurved bill → Bronzed Cowbird): held-out TP=1 FP=0 precision=1.00. Registered.  
-**r_002** (bull-necked profile + heavy bill + matte/dull gloss → Bronzed Cowbird): spectrum Level 3 (5 preconditions) TP=2 FP=0 precision=1.00. Registered.
+**r_001** (red iris + thick bill → Bronzed Cowbird): TP=2 FP=0 precision=1.00. Fixed Bronzed_0019.  
+**r_002** (red iris + thick bill, authored from 0061 → Bronzed Cowbird): TP=4 FP=0 precision=1.00. Fixed Bronzed_0061.  
+**r_003** (bull-necked silhouette + heavy bill → Bronzed Cowbird): spectrum pre-completion TP=4 FP=0. Registered but pupil does not fire at inference on Bronzed_0081.  
+**r_004** (domed head + stubby bill, round 2 dialogic → Bronzed Cowbird): spectrum pre-completion TP=4 FP=0. Registered but pupil still fails on Bronzed_0081.
 
-Two rules were rejected: one failed to fire on any held-out trigger image (over-tightened by
-completer), one fired but precision=0.00.
+Two rules were rejected (both for Shiny Cowbird): validator TP=0 on held-out pool in both rounds.
 
-#### Cross-rule generalization
+#### Cross-class anchoring
 
-r_001 fixed Bronzed_0061 (not the image it was authored from).  
-r_002 fixed Bronzed_0019 (not the image it was authored from).  
-Both rules generalized beyond their trigger image — the expected behavior when a rule
-captures a class-level discriminator rather than an image-specific artifact.
+Shiny_0080 was fixed in round 2 without a dedicated Shiny rule. After 4 Bronzed Cowbird rules
+were registered, none fired on the all-brown Shiny specimen, causing the pupil to correctly
+default. Accumulated Bronzed knowledge implicitly defined the class boundary.
 
-#### Remaining failures
+#### Remaining failure
 
-- **Bronzed_0081**: no rule fires. Diagnostic features (red iris, bull-neck) not
-  reliably visible in this particular shot. A third rule with a different trigger
-  feature is needed.
-- **Shiny_0080**: r_002 fires as a false positive (a subdued-plumage female whose
-  bill/head proportions resemble Bronzed). The precision gate caught FP ≤ 1 on the
-  held-out pool but this specific FP image was not in the pool. Expected edge case.
+- **Bronzed_0081**: 2 dedicated rules registered (r_003 round 1, r_004 round 2); both pass
+  validation (precision=1.00, TP=4) but the pupil does not fire them at inference on this
+  specific image. Structural gestalt features (bill depth, head proportions) appear
+  insufficiently salient or ambiguous in this particular CUB shot.
 
 ### 2.7 What is needed before a bird benchmark claim
 

@@ -430,10 +430,14 @@ async def run_patch_loop(
     min_precision: float,
     dry_run: bool,
     validator_model: str = "",
+    _override_first_rule: dict | None = None,
 ) -> list[dict]:
     """Author, validate, and register rules for each failure.
 
     validator_model: model for pool validation. Defaults to expert_model.
+    _override_first_rule: if set, skip Step 1a (expert authoring) and use this
+      rule as the candidate directly. Used by run_dialogic_rounds to inject a
+      rule already authored with prior-round context.
     Returns list of patch records.
     """
     _val_model = validator_model or expert_model
@@ -463,15 +467,19 @@ async def run_patch_loop(
             "test_label": correct,
         }
 
-        # --- Step 1a: Expert rule authoring ---
-        console.print(f"  Calling expert VLM ({expert_model}) to author rule...")
-        candidate_rule, _ = await agents.run_expert_rule_author(
-            task=task,
-            wrong_prediction=wrong,
-            correct_label=correct,
-            model_reasoning=failure.get("reasoning", ""),
-            model=expert_model,
-        )
+        # --- Step 1a: Expert rule authoring (or use override from prior round) ---
+        if _override_first_rule is not None:
+            candidate_rule = _override_first_rule
+            console.print("  Using pre-authored rule from prior dialogic round.")
+        else:
+            console.print(f"  Calling expert VLM ({expert_model}) to author rule...")
+            candidate_rule, _ = await agents.run_expert_rule_author(
+                task=task,
+                wrong_prediction=wrong,
+                correct_label=correct,
+                model_reasoning=failure.get("reasoning", ""),
+                model=expert_model,
+            )
         console.print(f"  Rule: [italic]{candidate_rule.get('rule', '')[:120]}[/italic]")
         console.print(
             f"  Favors: {candidate_rule.get('favors')} | "
@@ -872,6 +880,295 @@ def _surface_to_expert(active_rule, validation, pair_info, task_id):
     )
 
 
+def _build_prior_context(
+    failure: dict,
+    rerun: dict,
+    active_rules: list[dict],
+    validator_observations: list[dict] | None,
+) -> str:
+    """Assemble the pupil's expressed confusion into a plain-language context block
+    for the tutor in a subsequent round.
+
+    This is the 'pupil question' step: we synthesise from the rerun result
+    (what the pupil said, which rules fired, why it still predicted wrong) and
+    from the per-precondition validator observations on the trigger image.
+    """
+    lines: list[str] = []
+
+    # Which rules were active and what the pupil did with them
+    if active_rules:
+        lines.append("RULES THAT WERE ACTIVE IN THE PREVIOUS ROUND:")
+        for r in active_rules:
+            lines.append(f"  {r['id']}: {r.get('rule_text', r.get('action', ''))[:160]}")
+        fired = rerun.get("rule_fired")
+        if fired:
+            lines.append(f"\nThe pupil reported that rule '{fired}' fired.")
+        else:
+            lines.append("\nThe pupil reported that NO rule fired — it used its own judgment.")
+    else:
+        lines.append("(No rules were active in the previous round — first round.)")
+
+    # Pupil's expressed reasoning after seeing the rules
+    pupil_reasoning = rerun.get("reasoning", "")
+    if pupil_reasoning:
+        lines.append(
+            f"\nPUPIL'S REASONING (after rules were injected, still wrong):\n"
+            f"  \"{pupil_reasoning[:500]}\""
+        )
+
+    # Per-precondition validator observations on the trigger image
+    if validator_observations:
+        lines.append("\nWHAT THE VALIDATOR FOUND ON THE TRIGGER IMAGE (per precondition):")
+        for obs in validator_observations:
+            met = "MET" if obs.get("met") else "NOT MET"
+            lines.append(
+                f"  [{met}] {obs.get('precondition', '')[:120]}\n"
+                f"         Observation: {obs.get('observation', '')[:120]}"
+            )
+
+    # The pupil's implicit question
+    lines.append(
+        f"\nEFFECTIVE PUPIL QUESTION: Given the above, what feature or field mark "
+        f"SHOULD I have been looking for in this image that would allow me to correctly "
+        f"identify it as {failure['correct_label']}? The features I tried "
+        f"(from the rules above) were either not visible, ambiguous, or not reliably "
+        f"detectable in this specific photograph."
+    )
+
+    return "\n".join(lines)
+
+
+async def _get_validator_observations_on_trigger(
+    candidate_rule: dict,
+    img_path: str,
+    ground_truth: str,
+    model: str,
+) -> list[dict]:
+    """Run the rule validator on the trigger image and return per-precondition detail."""
+    result, _ = await agents.run_rule_validator_on_image(
+        image_path=img_path,
+        ground_truth=ground_truth,
+        candidate_rule=candidate_rule,
+        model=model,
+    )
+    # If the validator returns structured precondition detail, use it;
+    # otherwise wrap the single observations string.
+    per_cond = result.get("per_precondition", [])
+    if per_cond:
+        return per_cond
+    # Fallback: build synthetic list from the preconditions + single observation
+    preconditions = candidate_rule.get("preconditions", [])
+    obs_text = result.get("observations", "")
+    return [
+        {"precondition": pc, "met": result.get("precondition_met", False),
+         "observation": obs_text}
+        for pc in preconditions
+    ]
+
+
+async def run_dialogic_rounds(
+    still_failing: list[dict],
+    ds: CUBDataset,
+    cheap_model: str,
+    expert_model: str,
+    validator_model: str,
+    max_val_per_class: int,
+    max_authoring_per_class: int,
+    max_confirm_per_class: int,
+    min_precision: float,
+    dry_run: bool,
+    max_rounds: int,
+    round_number: int,
+    patch_rules_path: Path,
+    effective_validator: str,
+    args,
+    all_round_records: list[dict],
+) -> tuple[list[dict], list[dict]]:
+    """Outer dialogic loop: re-engage the tutor for cases that are still failing
+    after a prior round, with the pupil's expressed confusion as context.
+
+    Returns (updated still_failing, new_patch_records_this_round).
+    """
+    if not still_failing or round_number > max_rounds:
+        return still_failing, []
+
+    console.rule(
+        f"[bold]Dialogic Round {round_number}[/bold] — "
+        f"{len(still_failing)} case(s) still failing"
+    )
+
+    new_records: list[dict] = []
+    next_still_failing: list[dict] = []
+
+    for rerun_result in still_failing:
+        task_id = rerun_result["task_id"]
+        img_path = rerun_result["image_path"]
+        correct = rerun_result["correct_label"]
+        wrong = rerun_result["predicted_label"]
+        pair_id = rerun_result["pair_id"]
+
+        console.rule(
+            f"[bold]Round {round_number} / {task_id}[/bold]", style="yellow"
+        )
+
+        # Find the last round's patch record for this task to get the rules that fired
+        prior_records = [
+            r for r in all_round_records if r.get("task_id") == task_id
+        ]
+        last_record = prior_records[-1] if prior_records else {}
+
+        # Active rules at the time of the rerun (all registered so far at that point)
+        active_rules = [r for r in _registered_rules
+                        if pair_id in r.get("condition", "")]
+
+        # Get per-precondition validator observations on the trigger image
+        # using the most recently registered rule (or the last candidate)
+        last_candidate = last_record.get("candidate_rule", {})
+        validator_obs: list[dict] = []
+        if last_candidate and last_candidate.get("preconditions"):
+            console.print(
+                "  [dim]Getting validator observations on trigger image...[/dim]"
+            )
+            validator_obs = await _get_validator_observations_on_trigger(
+                candidate_rule=last_candidate,
+                img_path=img_path,
+                ground_truth=correct,
+                model=validator_model or expert_model,
+            )
+
+        # Build the prior context — the pupil's implicit question to the tutor
+        prior_ctx = _build_prior_context(
+            failure=rerun_result,
+            rerun=rerun_result,
+            active_rules=active_rules,
+            validator_observations=validator_obs,
+        )
+
+        console.print(
+            f"  [cyan]Pupil context for tutor (round {round_number}):[/cyan]"
+        )
+        for line in prior_ctx.splitlines()[:8]:
+            console.print(f"    {line}")
+        if prior_ctx.count('\n') > 8:
+            console.print("    ...")
+
+        # Re-engage the expert with the pupil's expressed confusion as context
+        cp = _pair_by_id(pair_id)
+        if not cp:
+            console.print(f"  [yellow]Pair not found: {pair_id}[/yellow]")
+            next_still_failing.append(rerun_result)
+            continue
+        pi = _pair_info(cp)
+        task = {
+            "class_a": pi["class_a"],
+            "class_b": pi["class_b"],
+            "pair_id": pair_id,
+            "test_image_path": img_path,
+            "test_label": correct,
+        }
+
+        console.print(
+            f"  Calling expert ({expert_model}) — round {round_number} authoring..."
+        )
+        candidate_rule, _ = await agents.run_expert_rule_author(
+            task=task,
+            wrong_prediction=wrong,
+            correct_label=correct,
+            model_reasoning=rerun_result.get("reasoning", ""),
+            model=expert_model,
+            prior_context=prior_ctx,
+        )
+        console.print(
+            f"  New rule: [italic]{candidate_rule.get('rule', '')[:120]}[/italic]"
+        )
+        console.print(
+            f"  Favors: {candidate_rule.get('favors')} | "
+            f"Confidence: {candidate_rule.get('confidence')}"
+        )
+        for pc in candidate_rule.get("preconditions", []):
+            console.print(f"    Pre-condition: {pc}")
+
+        # Run the same validation pipeline as round 1
+        records = await run_patch_loop(
+            failures=[{
+                "task_id": task_id,
+                "pair_id": pair_id,
+                "image_path": img_path,
+                "correct_label": correct,
+                "predicted_label": wrong,
+                "reasoning": rerun_result.get("reasoning", ""),
+            }],
+            ds=ds,
+            cheap_model=cheap_model,
+            expert_model=expert_model,
+            max_val_per_class=max_val_per_class,
+            max_authoring_per_class=max_authoring_per_class,
+            max_confirm_per_class=max_confirm_per_class,
+            min_precision=min_precision,
+            dry_run=dry_run,
+            validator_model=validator_model,
+            _override_first_rule=candidate_rule,
+        )
+        new_records.extend(records)
+        all_round_records.extend(records)
+
+        # Tag record with round number
+        if records:
+            records[-1]["dialogic_round"] = round_number
+
+        # Re-test with updated rules
+        rerun2 = await rerun_with_patch_rules(
+            failure={
+                "task_id": task_id,
+                "pair_id": pair_id,
+                "image_path": img_path,
+                "correct_label": correct,
+            },
+            all_registered_rules=_registered_rules,
+            cheap_model=cheap_model,
+        )
+
+        if rerun2["correct"]:
+            console.print(
+                f"  [green]FIXED in round {round_number}[/green] — "
+                f"{task_id}"
+            )
+        else:
+            console.print(
+                f"  [red]Still failing after round {round_number}[/red] — "
+                f"{task_id}"
+            )
+            next_still_failing.append(rerun2)
+
+        _save_patch_rules(patch_rules_path)
+        _save_session(args, all_round_records, -1, [], effective_validator)
+
+    # Recurse into next round if cases remain
+    if next_still_failing and round_number < max_rounds:
+        _, deeper_records = await run_dialogic_rounds(
+            still_failing=next_still_failing,
+            ds=ds,
+            cheap_model=cheap_model,
+            expert_model=expert_model,
+            validator_model=validator_model,
+            max_val_per_class=max_val_per_class,
+            max_authoring_per_class=max_authoring_per_class,
+            max_confirm_per_class=max_confirm_per_class,
+            min_precision=min_precision,
+            dry_run=dry_run,
+            max_rounds=max_rounds,
+            round_number=round_number + 1,
+            patch_rules_path=patch_rules_path,
+            effective_validator=effective_validator,
+            args=args,
+            all_round_records=all_round_records,
+        )
+        new_records.extend(deeper_records)
+        next_still_failing = []   # handled by recursion
+
+    return next_still_failing, new_records
+
+
 def parse_args():
     p = argparse.ArgumentParser(description="KF bird dialogic patching loop")
     p.add_argument("--cheap-model",      dest="cheap_model",
@@ -899,6 +1196,10 @@ def parse_args():
     p.add_argument("--skip-rerun",       dest="skip_rerun", action="store_true")
     p.add_argument("--rerun-only",       dest="rerun_only", action="store_true",
                    help="Load --patch-rules and re-classify --failures-from; no patching.")
+    p.add_argument("--max-rounds",       dest="max_rounds", type=int, default=1,
+                   help="Number of dialogic rounds. Round 1 is the standard patch loop. "
+                        "Rounds 2+ re-engage the expert for cases still failing after "
+                        "round 1, with the pupil's expressed confusion as context.")
     return p.parse_args()
 
 
@@ -913,6 +1214,7 @@ async def main() -> None:
     console.print(f"  Expert model:     [cyan]{args.expert_model}[/cyan]")
     console.print(f"  Validator model:  [cyan]{effective_validator}[/cyan]")
     console.print(f"  Held-out pool/class: {args.max_val_per_class}")
+    console.print(f"  Dialogic rounds:  {args.max_rounds}")
     console.print(f"  Dry-run:          {args.dry_run}")
 
     console.print(f"\n[dim]Loading CUB-200-2011 from {args.data_dir}...[/dim]")
@@ -1054,27 +1356,54 @@ async def main() -> None:
                     if not registered_now
                     else "rule registered but cheap model still failed"
                 )
-                console.print(f"  [red]✗ STILL FAILING[/red] — {reason}")
-                if i < len(failures):
-                    console.print(
-                        f"  [yellow]Stopping before remaining {len(failures) - i} "
-                        f"failure(s). Review rule and re-run with --failures-from.[/yellow]"
-                    )
-                    # Save and exit
-                    _save_patch_rules(patch_rules_path)
-                    _save_session(args, patch_records, total, failures,
-                                  effective_validator, stopped_early=True,
-                                  stop_reason=reason)
-                    return
+                console.print(f"  STILL FAILING — {reason}")
 
         # Save incremental state
         _save_patch_rules(patch_rules_path)
         _save_session(args, patch_records, total, failures, effective_validator)
 
+    # --- Dialogic rounds 2+ ---
+    # Collect cases still failing after round 1 and re-engage the expert
+    # with the pupil's expressed confusion as context.
+    all_round_records = list(patch_records)
+    if args.max_rounds > 1 and not args.skip_rerun and not args.dry_run:
+        still_failing_after_r1 = [r for r in all_rerun_tasks if not r["correct"]]
+        if still_failing_after_r1:
+            _, extra_records = await run_dialogic_rounds(
+                still_failing=still_failing_after_r1,
+                ds=ds,
+                cheap_model=args.cheap_model,
+                expert_model=args.expert_model,
+                validator_model=args.validator_model,
+                max_val_per_class=args.max_val_per_class,
+                max_authoring_per_class=args.max_authoring_per_class,
+                max_confirm_per_class=args.max_confirm_per_class,
+                min_precision=args.min_precision,
+                dry_run=args.dry_run,
+                max_rounds=args.max_rounds,
+                round_number=2,
+                patch_rules_path=patch_rules_path,
+                effective_validator=effective_validator,
+                args=args,
+                all_round_records=all_round_records,
+            )
+            patch_records.extend(extra_records)
+
     # Final summary
-    n_accepted   = sum(1 for r in patch_records if r["accepted"])
-    n_registered = sum(1 for r in patch_records if r["registered"])
-    after_correct = before_correct + sum(1 for t in all_rerun_tasks if t["correct"])
+    n_accepted   = sum(1 for r in all_round_records if r["accepted"])
+    n_registered = sum(1 for r in all_round_records if r["registered"])
+
+    # For multi-round runs, do a final pass over all original failures with all
+    # registered rules to compute the true post-all-rounds accuracy.
+    if args.max_rounds > 1 and not args.skip_rerun and not args.dry_run and failures:
+        console.print("\n  [bold]Final accuracy pass[/bold] — re-running all failures with all registered rules...")
+        after_correct = before_correct
+        for failure in failures:
+            rerun_final = await rerun_with_patch_rules(failure, _registered_rules, args.cheap_model)
+            if rerun_final["correct"]:
+                after_correct += 1
+    else:
+        after_correct = before_correct + sum(1 for t in all_rerun_tasks if t["correct"])
 
     console.rule("[bold]Patch Summary[/bold]")
     t = Table(show_header=True)
@@ -1088,11 +1417,18 @@ async def main() -> None:
         t.add_row("Delta", f"+{after_correct-before_correct}", "")
     t.add_row("Failures patched", f"{len(failures)}/{len(failures)}", "")
     t.add_row("Rules authored/accepted/registered",
-              f"{len(patch_records)}/{n_accepted}/{n_registered}", "")
+              f"{len(all_round_records)}/{n_accepted}/{n_registered}", "")
+    if args.max_rounds > 1:
+        r1_count = sum(1 for r in all_round_records if r.get("dialogic_round", 1) == 1
+                       or "dialogic_round" not in r)
+        for rn in range(2, args.max_rounds + 1):
+            rn_count = sum(1 for r in all_round_records if r.get("dialogic_round") == rn)
+            if rn_count:
+                t.add_row(f"  Round {rn} rules authored", str(rn_count), "")
     console.print(t)
 
     _save_patch_rules(patch_rules_path)
-    _save_session(args, patch_records, total, failures, effective_validator)
+    _save_session(args, all_round_records, total, failures, effective_validator)
     console.print(f"\nSession saved to [cyan]{args.output}[/cyan]")
 
 

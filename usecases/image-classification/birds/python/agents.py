@@ -272,10 +272,13 @@ async def run_expert_rule_author(
     correct_label: str,
     model_reasoning: str = "",
     model: str = "",
+    prior_context: str = "",
 ) -> tuple[dict, int]:
     """Call the expert VLM with a failure case and ask it to author a corrective rule.
 
     task must have: class_a, class_b, test_image_path
+    prior_context: optional string summarising what the pupil said/did in a prior
+      round after a rule was active — used for multi-round dialogic exchanges.
     Returns (candidate_rule_dict, duration_ms).
     """
     class_a = task["class_a"]
@@ -283,24 +286,42 @@ async def run_expert_rule_author(
     image_path = task["test_image_path"]
     reasoning_snippet = model_reasoning[:400] if model_reasoning else "(not available)"
 
+    if prior_context:
+        # Multi-round: tutor sees what the pupil said/did after the previous rule
+        preamble = (
+            f"You are the TUTOR in an ongoing teaching dialogue with a PUPIL VLM.\n\n"
+            f"In a previous round you gave the pupil a rule, but the pupil "
+            f"STILL got the identification wrong. Below is a record of what happened:\n\n"
+            f"{prior_context}\n\n"
+            f"Your task now is to author a NEW or REVISED rule that addresses the "
+            f"specific gap the pupil expressed — the feature it could not see or the "
+            f"reasoning step it got wrong this time. Do not simply repeat the previous "
+            f"rule. The new rule must target a DIFFERENT observable feature that is "
+            f"visible in this photograph and not covered by any prior rule."
+        )
+    else:
+        preamble = (
+            f"You are the TUTOR. A weaker PUPIL VLM just looked at this bird "
+            f"photograph and got the identification wrong. Your job is to (a) notice "
+            f"exactly where the pupil went off track, and (b) give the pupil a "
+            f"corrective visual rule it can apply to this and similar future cases."
+        )
+
     content = [
         _image_block(image_path),
         {
             "type": "text",
             "text": (
-                f"You are the TUTOR. A weaker PUPIL VLM just looked at this bird "
-                f"photograph and got the identification wrong. Your job is to (a) notice "
-                f"exactly where the pupil went off track, and (b) give the pupil a "
-                f"corrective visual rule it can apply to this and similar future cases.\n\n"
+                f"{preamble}\n\n"
                 f"Species pair: {class_a} vs {class_b}\n"
                 f"Ground truth: {correct_label}\n"
-                f"Pupil's prediction: {wrong_prediction}  ← WRONG\n"
+                f"Pupil's prediction: {wrong_prediction}  <- WRONG\n"
                 f"Pupil's stated reasoning: {reasoning_snippet}\n\n"
                 "First, look at the photograph carefully and diagnose the pupil's mistake:\n"
-                "  • Did the pupil hallucinate field marks that aren't actually visible "
+                "  - Did the pupil hallucinate field marks that aren't actually visible "
                 "(e.g. a wing bar or eye ring that doesn't exist in this photo)?\n"
-                "  • Did the pupil overweight an ambiguous or shared feature?\n"
-                "  • Did the pupil miss a salient field mark that would have flipped "
+                "  - Did the pupil overweight an ambiguous or shared feature?\n"
+                "  - Did the pupil miss a salient field mark that would have flipped "
                 "the identification?\n\n"
                 "Then author a corrective visual rule that:\n"
                 f"  1. Would have led to the correct identification ('{correct_label}')\n"

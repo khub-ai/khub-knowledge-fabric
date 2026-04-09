@@ -3,7 +3,7 @@
 
 ---
 
-> **Status**: Research prototype — birds: dialogic loop validated (Cowbird 33%→67%, 2 rules registered); dermatology: dialogic loop completed (Mel/Nev 50%→100%, BCC/BKL 1 of 2 failures patched)
+> **Status**: Research prototype — birds: 2-round dialogic loop validated (Cowbird 33%→83%, 4 rules registered); dermatology: dialogic loop completed (Mel/Nev 50%→100%, BCC/BKL 1 of 2 failures patched)
 > **Theme**: [Knowledge Fabric (KF)](../../docs/what-is-kf.md) as a local-first knowledge authoring tool for domain experts with no AI expertise
 > **Last updated**: 2026.04.09
 
@@ -94,7 +94,7 @@ Fine-grained bird species identification is a clean proving ground for the KF th
 
 **The story in brief**: an AI model (Qwen3-VL-8B) confuses every Bronzed Cowbird with a Shiny Cowbird. An ornithologist explains that Bronzed has a conspicuous red iris and a thick decurved bill — features Qwen wasn't checking. KF turns that explanation into explicit rules, validates them against known images, and injects them back into Qwen. Qwen is re-tested and correctly identifies the previously misclassified birds.
 
-**Result**: Qwen3-VL-8B zero-shot **33%** → after KF dialogic patching **67%** (+33pp). 2 rules registered; both generalized to images they were not authored from.
+**Result**: Qwen3-VL-8B zero-shot **33%** → after 2-round KF dialogic patching **83%** (+50pp). 4 rules registered across 2 rounds; Shiny_0080 resolved by cross-class anchoring (no direct rule needed).
 
 For the step-by-step walkthrough, failure images, rule text, and full analysis, see [birds/README.md](birds/README.md).
 

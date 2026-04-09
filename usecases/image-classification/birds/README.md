@@ -2,7 +2,7 @@
 
 > **For**: Ornithologists, naturalists, and field biologists curious about how AI can be corrected by domain experts without any programming or retraining.
 >
-> **Status**: Experiment completed — Bronzed Cowbird vs Shiny Cowbird: Qwen3-VL-8B zero-shot 33% → 67% after KF dialogic patching (+33pp). 2 of 4 failures resolved; 2 rules registered.
+> **Status**: Experiment completed — Bronzed Cowbird vs Shiny Cowbird: Qwen3-VL-8B zero-shot 33% → 83% after 2-round KF dialogic patching (+50pp). 3 of 4 failures resolved; 4 rules registered.
 >
 > **Dataset**: CUB-200-2011, 200 North American bird species, 11,788 images.
 >
@@ -12,7 +12,7 @@
 
 ## The One-Line Summary
 
-An AI model confused Bronzed Cowbirds with Shiny Cowbirds. An ornithologist explained, in plain language, the field marks that distinguish them. The system turned those explanations into explicit rules, tested them against known images, and applied them — improving accuracy from 33% to 67% without retraining the model.
+An AI model confused Bronzed Cowbirds with Shiny Cowbirds. An ornithologist explained, in plain language, the field marks that distinguish them. The system turned those explanations into explicit rules, tested them against known images, and applied them. When failures persisted, the pupil's confusion was fed back to the tutor for a second round. Accuracy improved from 33% to 83% without retraining the model.
 
 ---
 
@@ -200,7 +200,7 @@ If the completed rule fails the precision gate (too many false positive fires on
 
 Qwen defaulted to Shiny Cowbird for every all-dark cowbird it saw. It identified the all-dark plumage — a feature shared by both species — and stopped there, without checking the features that actually distinguish them.
 
-The patching loop processed each of the 4 failures in turn.
+The patching loop processed each of the 4 failures in turn across two rounds.
 
 ---
 
@@ -223,7 +223,7 @@ The patching loop processed each of the 4 failures in turn.
 |---|---|---|---|---|---|
 | Held-out (8 images) | Yes | 1 | 0 | **1.00** | Pass |
 
-Rule registered as **r_001**.
+Rule registered as **r_001**. Re-run: **FIXED**.
 
 ---
 
@@ -238,11 +238,15 @@ Rule registered as **r_001**.
 
 **Expert's corrective rule** (authored independently for this image):
 
-> *When a stocky, all-dark cowbird shows a distinctly red iris (visible as a bright red or orange-red eye), a notably thick-based heavy bill, and prominent neck ruff or hackle texture (feathers appearing raised around the neck/upper breast creating a hunched, bull-necked profile) — identify as Bronzed Cowbird.*
+> *When a black cowbird shows a distinctly red or orange-red iris visible at normal photographic distance, combined with a noticeably thick-based, heavy bill (deeper culmen depth than a typical icterid) — identify as Bronzed Cowbird.*
 
-**Validation result**: The completed rule (with additional background conditions added by the RULE_COMPLETER) **did not fire on the trigger image** — the additional conditions over-tightened it past the point where it recognizes its own target. The system correctly treated this as a completion artifact and fell back to the pre-completion rule, but that also failed to generalize across the held-out pool. Rule **rejected**.
+**Validation result**: Rule passed the held-out gate at full precision.
 
-**How it was fixed anyway**: Rule **r_001**, authored for Case 1, fired on this image at re-run and correctly flipped Qwen's prediction to Bronzed Cowbird. The red-iris rule generalized across cases — exactly the intended behavior.
+| Pool | Fires on trigger | True Positives | False Positives | Precision | Result |
+|---|---|---|---|---|---|
+| Held-out (8 images) | Yes | 4 | 0 | **1.00** | Pass |
+
+Rule registered as **r_002**. Re-run: **FIXED**.
 
 ---
 
@@ -253,24 +257,28 @@ Rule registered as **r_001**.
 **Ground truth**: Bronzed Cowbird
 **Qwen's prediction**: Shiny Cowbird — WRONG
 
-**What Qwen missed**: The heavy, deep-based bill and the proportionally large, rounded head — the "bull-necked" gestalt that distinguishes Bronzed Cowbird from the slimmer-headed, slimmer-billed Shiny Cowbird. In this image the red iris is less clearly visible (angle or lighting), so the expert focused on structural features rather than eye color. Additionally, Shiny Cowbird males display intense, uniform blue-violet iridescent gloss across the whole body; this bird's gloss appears more restricted and less brilliantly iridescent — consistent with Bronzed.
+**What Qwen missed**: In this image the red iris is less clearly visible (angle or lighting), so the expert focused on structural features: the heavy, deep-based bill and the proportionally large, rounded head — the "bull-necked" gestalt that distinguishes Bronzed Cowbird from the slimmer-headed, slimmer-billed Shiny Cowbird.
 
-**Expert's corrective rule**:
+**Expert's corrective rule (Round 1)**:
 
-> *When a black cowbird shows a visibly thick, heavy, conical bill with a distinctly rounded head profile (approaching a 'bull-necked' or large-headed appearance), and the plumage shows a dull-to-moderate gloss rather than intense iridescent sheen across the entire body — identify as Bronzed Cowbird.*
+> *When a uniformly dark/black cowbird shows a visibly thick, deep-based, and conical bill that appears noticeably bulbous or heavy at the base (giving a 'bull-headed' profile), combined with a puffy or ruffed neck/nape that creates a rounded, large-headed silhouette — identify as Bronzed Cowbird.*
 
-**Spectrum search**: The completed rule (10 preconditions) failed to fire on the trigger image. The pre-completion rule (5 preconditions) fired with precision=1.00. The spectrum was generated:
+**Spectrum search**: The completion pass over-tightened the rule (10 preconditions, fails to fire). The pre-completion rule (5 preconditions) fired with precision=1.00, and was selected:
 
 | Level | Preconditions | TP | FP | Precision | Fires on trigger | Result |
 |---|---|---|---|---|---|---|
-| Most general (L1) | 1 | 0 | 0 | 0.00 | No | Fail |
+| Pre-completion (L0) | 5 | 4 | 0 | **1.00** | Yes | **Pass** |
+| Most general (L1) | 1 | 4 | 1 | 0.80 | Yes | Pass |
 | Moderate (L2) | 2 | 4 | 2 | 0.67 | Yes | Fail |
-| Original (L3) | 5 | 2 | 0 | **1.00** | Yes | **Pass** |
 | Most specific (L4) | 6 | 0 | 0 | 0.00 | No | Fail |
 
-Level 3 (5 preconditions, pre-completion version) was selected. Rule registered as **r_002**.
+Rule registered as **r_003**. Re-run: **STILL FAILING** — the rule passes validation but Qwen does not reliably fire it at inference on this specific image.
 
-**Re-run result**: At re-run, **r_002** fired on Bronzed_0081 and correctly predicted Bronzed Cowbird on Bronzed_0019 — but Bronzed_0081 itself was not fixed. r_002 fired on 0019 instead; 0081 remains unfixed (neither rule fires consistently on this particular shot, likely due to camera angle or lighting obscuring the diagnostic features).
+**Round 2 (dialogic)**: The pupil's confusion was fed back to the expert: which rules were active, that none fired, and what the validator found when checking each precondition on the trigger image. The tutor authored a second rule targeting a different feature — the disproportionately large, domed head and stubby bill giving a "big-headed" top-heavy silhouette.
+
+> *When a uniformly black cowbird displays a disproportionately large, domed head that is visibly wider or taller than expected for the body size, combined with a short, stubby bill that appears compressed vertically and does not taper to a fine point — identify as Bronzed Cowbird.*
+
+Rule registered as **r_004**. Re-run: **STILL FAILING**. Both structural rules (r_003 and r_004) pass validation but the specific image remains challenging — structural gestalt features (bill depth, head proportions) appear to be insufficiently salient or ambiguous in this particular shot.
 
 ---
 
@@ -281,15 +289,13 @@ Level 3 (5 preconditions, pre-completion version) was selected. Rule registered 
 **Ground truth**: Shiny Cowbird
 **Qwen's prediction**: Bronzed Cowbird — WRONG
 
-**What Qwen missed**: This is a female or subdued-plumage Shiny Cowbird. Female Bronzed Cowbirds are distinguished by a visible nuchal ruff, a steep-foreheaded "bull-necked" profile, a heavier and slightly decurved bill, and often a red or orange-red iris. This bird shows none of those: the head is smoothly rounded, the nape is flat with no ruff, the bill is slim and straight, and the eye is dark. Qwen apparently saw "plain brown cowbird" and defaulted to Bronzed — the reverse of its error on the all-black birds.
+**What Qwen missed**: This is a female or subdued-plumage Shiny Cowbird. The head is smoothly rounded with no ruff, the nape is flat, the bill is slim and straight, and the eye is dark. Qwen apparently saw "plain brown cowbird" and defaulted to Bronzed — the reverse of its error on the all-black birds.
 
-**Expert's corrective rule** (for Shiny Cowbird):
+**Expert's corrective rule (Round 1)**: Expert authored a Shiny Cowbird rule targeting the absence of neck ruff, flat-crowned head profile, slender bill, and dark eye. Rule fired on the trigger image but the held-out validator could not confirm those features consistently in pool images — TP=0 on 4 Shiny pool images. Rule **rejected**.
 
-> *When a cowbird shows uniformly dull brown plumage with no visible neck ruff, a flat-crowned and round-headed profile, a slender conical bill without a pronounced decurved tip, and no iridescent tones on the upperparts — identify as Shiny Cowbird (female).*
+**Round 2 (dialogic)**: Expert was given the pupil's confusion context (round 1 rules active including r_003 which fired as a false positive, pupil's stated reasoning). A second rule was authored emphasizing the uniformly dull brown plumage and absence of all Bronzed structural markers. This rule also failed the held-out gate (TP=0 on pool). Rule **rejected**.
 
-**Validation result**: The rule fired on the trigger image, but on the 8-image held-out pool it did not fire on any of the 4 Shiny Cowbird images — it fired on 0 out of 4, giving precision 0.00. This is a case where the rule describes visible features correctly but the validator (Qwen) cannot reliably identify those features in held-out images. Rule **rejected**.
-
-**What happened at re-run**: Rule r_002 (bull-necked + heavy bill → Bronzed Cowbird) fired as a **false positive** on this image, flipping a wrong-prediction into a confirmed wrong prediction. This is an expected edge case: the precision gate caught FP ≤ 1 on the held-out training pool, but this specific FP image was from the test split and was not in the pool. The gate controls for known FP cases, not all possible FP cases.
+**Resolved via cross-rule anchoring**: After all four Bronzed Cowbird rules (r_001–r_004) were active, the rerun classified this image correctly — none of the Bronzed rules fired on the all-brown bird (no red iris, no black plumage, no heavy bill matching the thresholds), so Qwen correctly defaulted to Shiny Cowbird. The fix required no dedicated Shiny rule — the accumulated Bronzed knowledge implicitly defined the boundary.
 
 ---
 
@@ -301,31 +307,35 @@ Level 3 (5 preconditions, pre-completion version) was selected. Rule registered 
 |---|---|---|---|
 | Bronzed Cowbird vs Shiny Cowbird | 2 | 6 | 33.3% |
 
-### Patching loop outcomes
+### Patching loop outcomes (2 rounds)
 
-| Failure | Expert's diagnosis | Rule | Outcome |
-|---|---|---|---|
-| Bronzed_0019 | Missed red iris + thick bill | r_001 registered (precision=1.00) | Fixed by r_002 at rerun |
-| Bronzed_0061 | Missed red iris + neck ruff | Rejected — over-tightened by completer | Fixed by r_001 at rerun |
-| Bronzed_0081 | Missed heavy bill + matte gloss | r_002 registered (spectrum L3, precision=1.00) | Unfixed (no rule fires) |
-| Shiny_0080 | Missed absence of neck ruff + slim bill | Rejected — validator couldn't confirm in pool | Unfixed + r_002 FP |
+| Failure | Round | Expert's diagnosis | Rule | Outcome |
+|---|---|---|---|---|
+| Bronzed_0019 | 1 | Missed red iris + thick bill | r_001 registered (precision=1.00) | **Fixed** (r_001 fires at rerun) |
+| Bronzed_0061 | 1 | Missed red iris + neck ruff | r_002 registered (precision=1.00) | **Fixed** (r_002 fires at rerun) |
+| Bronzed_0081 | 1 | Missed heavy bill + bull-necked silhouette | r_003 registered (spectrum L0, precision=1.00) | STILL FAILING — rule passes validation but pupil does not fire it |
+| Shiny_0080 | 1 | Missed absence of neck ruff + slim bill | Rejected — validator TP=0 on pool | STILL FAILING |
+| Bronzed_0081 | 2 | Tutor re-engaged with pupil confusion context | r_004 registered (domed head + stubby bill) | STILL FAILING |
+| Shiny_0080 | 2 | Tutor re-engaged; rule again rejected | Rejected — validator TP=0 on pool | **Fixed** via cross-rule anchoring |
 
 ### After patching
 
 | Phase | Correct | Accuracy |
 |---|---|---|
 | Zero-shot (Qwen3-VL-8B) | 2/6 | 33.3% |
-| After KF patching | 4/6 | 66.7% |
-| Delta | +2 | **+33pp** |
-| Rules authored / accepted / registered | 4 / 2 / 2 | |
+| After 2-round KF patching | 5/6 | 83.3% |
+| Delta | +3 | **+50pp** |
+| Rules authored / accepted / registered | 6 / 4 / 4 | |
+| Round 1 rules | 4 authored / 3 registered | |
+| Round 2 rules (dialogic) | 2 authored / 1 registered | |
 
-### Cross-rule generalization
+### Cross-rule anchoring
 
-The most important result is the **cross-generalization**:
-- **r_001** was authored from Bronzed_0019 but fixed Bronzed_0061 at rerun.
-- **r_002** was authored from Bronzed_0081 but fixed Bronzed_0019 at rerun.
+The most striking result is **cross-rule anchoring** on Shiny_0080:
+- No dedicated Shiny Cowbird rule ever passed validation (validator could not confirm the absence-of-ruff feature reliably in pool images).
+- Yet after 4 Bronzed Cowbird rules were registered, Shiny_0080 was correctly classified — because none of the Bronzed rules fire on a brown, smooth-headed, slim-billed bird, causing the pupil to correctly default to Shiny Cowbird.
 
-Each rule generalized beyond the image it was authored from to another example of the same confusion. This is the core prediction of the KF hypothesis: when a rule captures a class-level visual principle rather than an image-specific artifact, it transfers.
+The accumulated Bronzed knowledge implicitly defined the boundary for the opposite class, without any explicit Shiny rule needed. This is the cross-class complement effect: a sufficiently rich rule set for class A can act as negative evidence for class B.
 
 ---
 
@@ -347,9 +357,15 @@ Both rejected rules were rejected correctly. The Bronzed_0061 rule was over-tigh
 
 The accepted rules were derived from the same kind of language an experienced field ornithologist would use with a beginning student: "the eye is bright red, not dark brown," "the bill is thick-based and slightly decurved." No ML terminology. No training data. No annotation tooling. The domain expertise was sufficient on its own.
 
-### Some failures require a different observation
+### Dialogic round 2: the loop works, but the hard case remains hard
 
-Bronzed_0081 and Shiny_0080 remain unresolved. In both cases the diagnostic features are present in principle but are not reliably detected by the validator in the held-out pool — suggesting an angle, lighting, or image-quality issue that prevents the relevant field marks from being consistently visible. A third rule targeting a different discriminating feature (or a more robust image-level description) would be needed to recover those cases.
+After round 1, the pupil's expressed confusion — which rules were active, whether they fired, what the validator observed on the trigger image — was assembled into a context block and given to the tutor for round 2. The tutor authored a new rule targeting a different feature (the oversized domed head and stubby bill). The rule passed validation. But Bronzed_0081 still failed.
+
+This shows both the value and the limit of multi-round dialogic exchange: the loop correctly identified that the round 1 rules were not firing and tasked the tutor with a different angle of attack. But if the diagnostic feature is genuinely ambiguous or low-contrast in a particular image, no amount of re-authoring can fix it at inference time. The problem shifted from "the tutor did not explain the right thing" to "the feature is not visible enough in this specific shot."
+
+### Cross-class anchoring: you don't always need a rule for the hard class
+
+Shiny_0080 was never fixed by a dedicated Shiny Cowbird rule — every Shiny rule failed validation. It was fixed indirectly, by the accumulation of four Bronzed Cowbird rules that together made the alternative hypothesis too costly. When none of the Bronzed rules fire on a plain brown bird, the pupil correctly defaults to Shiny. This emergent effect was not designed in. It suggests that in binary classification, building a sufficiently rich rule set for one class may implicitly resolve failures in the other.
 
 ---
 
