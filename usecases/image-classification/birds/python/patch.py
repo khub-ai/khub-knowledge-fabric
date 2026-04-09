@@ -1200,6 +1200,8 @@ def parse_args():
                    help="Number of dialogic rounds. Round 1 is the standard patch loop. "
                         "Rounds 2+ re-engage the expert for cases still failing after "
                         "round 1, with the pupil's expressed confusion as context.")
+    p.add_argument("--zero-shot-only",   dest="zero_shot_only", action="store_true",
+                   help="Run zero-shot baseline only; save {tasks:[...]} to --output and exit.")
     return p.parse_args()
 
 
@@ -1294,6 +1296,14 @@ async def main() -> None:
         f"\nBaseline: {total - len(failures)}/{total} correct | "
         f"[red]{len(failures)} failure(s) to patch[/red]"
     )
+
+    # --zero-shot-only: save baseline and exit
+    if args.zero_shot_only:
+        out_path = Path(_HERE) / args.output
+        with open(out_path, "w") as f:
+            json.dump({"tasks": all_tasks, "total": total, "failures": len(failures)}, f, indent=2)
+        console.print(f"Zero-shot baseline saved to [cyan]{args.output}[/cyan]")
+        return
 
     if not failures:
         console.print("[green]No failures — nothing to patch.[/green]")

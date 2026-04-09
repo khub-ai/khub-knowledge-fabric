@@ -64,6 +64,38 @@
       "tasks_seen": 0,
       "created": "2026-04-08T04:23:59",
       "last_fired": null
+    },
+    {
+      "id": "r_003",
+      "condition": "[Patch rule \u2014 melanoma_vs_melanocytic_nevus] Lesion is clearly asymmetric in shape and pigment distribution; At least three distinct colors are visible (e.g. light brown, dark brown, gray-blue, pink-red, white); Border is irregular, notched, scalloped, or ill-defined \u2014 not smooth/round/oval; Pigment distribution is heterogeneous, not the uniform brown of a banal nevus; An atypical pigment network (broadened, branched, abruptly cut off at the periphery) OR streaks/pseudopods OR a blue-white veil OR irregular dots/globules unevenly distributed is present \u2014 at least one melanoma-specific dermoscopic structure; The lesion is NOT a uniform reticular network with regular meshwork and gradual fade-out at the periphery (the classic banal nevus pattern); The lesion does NOT consist of evenly-sized, evenly-distributed brown globules in a symmetric arrangement (the classic globular nevus pattern); DO NOT demand ulceration, bleeding, or clinical history of growth \u2014 the dermoscopic ABCD-style features above are themselves sufficient",
+      "action": "Classify as Melanoma. Confidence: high. Rule: Large asymmetric multi-component lesion with at least four hues (light brown, dark brown, gray-blue/white areas, pink-red). Border is irregular and ill-defined. Pigment heterogeneous with focal gray-blue areas (blue-white veil substitute) and irregular dark dots/globules unevenly distributed. Not a uniform reticular or symmetric globular pattern.",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 0,
+          "successes": 0,
+          "failures": 0
+        }
+      },
+      "source": "expert_vlm:claude-tutor",
+      "source_task": "melanoma_vs_melanocytic_nevus_ISIC_0024400",
+      "tags": [
+        "derm-ham10000",
+        "melanoma_vs_melanocytic_nevus",
+        "patch:qwen/qwen3-vl-8b-instruct",
+        "triggered_by:melanoma_vs_melanocytic_nevus_ISIC_0024400"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": "patch rule for melanoma_vs_melanocytic_nevus triggered by melanoma_vs_melanocytic_nevus_ISIC_0024400"
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 0,
+      "created": "2026-04-08T13:14:34",
+      "last_fired": null
     }
   ]
 }

@@ -2,7 +2,7 @@
 
 > **For**: Ornithologists, naturalists, and field biologists curious about how AI can be corrected by domain experts without any programming or retraining.
 >
-> **Status**: Experiment completed — Bronzed Cowbird vs Shiny Cowbird: Qwen3-VL-8B zero-shot 33% → 83% after 2-round KF dialogic patching (+50pp). 3 of 4 failures resolved; 4 rules registered.
+> **Status**: Experiment completed — Bronzed Cowbird vs Shiny Cowbird: Qwen3-VL-8B zero-shot 33% → 83% after 2-round KF dialogic patching (+50pp). Expanded to 30/class (60 images): 46.7% → 96.7% (+50pp), 4 rules registered.
 >
 > **Dataset**: CUB-200-2011, 200 North American bird species, 11,788 images.
 >
@@ -82,10 +82,12 @@ This is not fine-tuning. The base model's weights are never changed. The knowled
 - **Pupil model**: Qwen3-VL-8B-Instruct (via OpenRouter) — a strong open-source vision-language model
 - **Expert model**: Claude Sonnet 4.6, acting as a senior ornithologist
 - **Validator model**: Claude Sonnet 4.6, independently checking rule quality
-- **Pair tested**: Bronzed Cowbird vs Shiny Cowbird (6 images, 3 per class)
+- **Pair tested**: Bronzed Cowbird vs Shiny Cowbird
+- **Pilot test set**: 6 images (3 per class) — used for rule authoring and initial validation
+- **Expanded test set**: 60 images (30 per class) — used to validate generalization at scale
 - **Held-out validation pool**: 8 images (4 per class, drawn from training split)
 
-**Zero-shot baseline result: 2/6 correct (33.3%)**
+**Zero-shot baseline result (pilot)**: 2/6 correct (33.3%)
 
 Qwen misclassified every Bronzed Cowbird as a Shiny Cowbird, and one Shiny Cowbird as a Bronzed Cowbird. The pattern is exactly the kind of systematic failure the dialogic patching loop is designed to resolve: not random noise, but a consistent gap in what the model knows how to look for.
 
@@ -303,9 +305,19 @@ Rule registered as **r_004**. Re-run: **STILL FAILING**. Both structural rules (
 
 ### Zero-shot baseline (Qwen3-VL-8B, no rules)
 
+#### Pilot (6 images, 3 per class)
+
 | Pair | Correct | Total | Accuracy |
 |---|---|---|---|
 | Bronzed Cowbird vs Shiny Cowbird | 2 | 6 | 33.3% |
+
+#### Expanded (60 images, 30 per class)
+
+| Pair | Correct | Total | Accuracy |
+|---|---|---|---|
+| Bronzed Cowbird vs Shiny Cowbird | 28 | 60 | 46.7% |
+
+The expanded baseline confirms the pattern from the pilot: Qwen misclassified nearly all Bronzed Cowbirds (29 of 30) as Shiny Cowbirds. This is the systematic zero-shot bias the pilot captured.
 
 ### Patching loop outcomes (2 rounds)
 
@@ -318,7 +330,7 @@ Rule registered as **r_004**. Re-run: **STILL FAILING**. Both structural rules (
 | Bronzed_0081 | 2 | Tutor re-engaged with pupil confusion context | r_004 registered (domed head + stubby bill) | STILL FAILING |
 | Shiny_0080 | 2 | Tutor re-engaged; rule again rejected | Rejected — validator TP=0 on pool | **Fixed** via cross-rule anchoring |
 
-### After patching
+### After patching — pilot (6 images)
 
 | Phase | Correct | Accuracy |
 |---|---|---|
@@ -328,6 +340,23 @@ Rule registered as **r_004**. Re-run: **STILL FAILING**. Both structural rules (
 | Rules authored / accepted / registered | 6 / 4 / 4 | |
 | Round 1 rules | 4 authored / 3 registered | |
 | Round 2 rules (dialogic) | 2 authored / 1 registered | |
+
+### After patching — expanded test (60 images, 30 per class)
+
+The 4 rules registered in the pilot were applied without modification to all 60 images:
+
+| Phase | Correct | Accuracy |
+|---|---|---|
+| Zero-shot (Qwen3-VL-8B) | 28/60 | 46.7% |
+| After applying 4 registered rules | 58/60 | 96.7% |
+| Delta | +30 | **+50pp** |
+
+**r_001** fired on 27 of 29 Bronzed Cowbird failures — the red-iris rule generalized broadly across the full test set. **r_003** (bull-necked silhouette) fixed one additional Bronzed image. Two images remain:
+
+- **Bronzed_0081**: the persistent hard case from the pilot. Both structural rules (r_003, r_004) pass validation but the pupil does not fire them at inference on this specific image.
+- **Shiny_0043**: new false positive from r_003 — the rule fires incorrectly on one Shiny image that apparently matches the heavy-bill description.
+
+The expanded test confirms the pilot result: the rules learned on 6 images generalize to 60 with no degradation in lift.
 
 ### Cross-rule anchoring
 

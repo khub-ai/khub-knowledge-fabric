@@ -1,0 +1,69 @@
+{
+  "version": 2,
+  "rules": [
+    {
+      "id": "r_001",
+      "condition": "[Patch rule \u2014 basal_cell_carcinoma_vs_benign_keratosis] Central pigmented area contains coarse white-to-cream granular inclusions (milia-like cysts or comedo-like openings) embedded within brownish-violaceous pigment; Peripheral zone shows scattered brown dots/globules or 'moth-eaten' edge fading gradually into surrounding skin without a sharp border; Color palette is mixed brown, gray-brown, and dull violaceous \u2014 NOT pearly white or translucent; No arborizing (tree-like) telangiectasias visible anywhere in the lesion; No blue-gray ovoid nests or spoke-wheel structures present; Lesion surface appears somewhat dull and keratotic rather than shiny or translucent",
+      "action": "Classify as Benign Keratosis. Confidence: high. Rule: When a lesion shows a central zone of mixed brown-to-violaceous pigmentation with a 'moth-eaten' or finely granular, milia-like white clod texture interspersed within the pigmented area, surrounded by a peripheral halo of scattered brown dots/globules fading into normal skin without arborizing vessels or blue-gray ovoid nests, classify as Benign Keratosis.",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 0,
+          "successes": 0,
+          "failures": 0
+        }
+      },
+      "source": "expert_vlm:claude-sonnet-4-6",
+      "source_task": "basal_cell_carcinoma_vs_benign_keratosis_ISIC_0024336",
+      "tags": [
+        "derm-ham10000",
+        "basal_cell_carcinoma_vs_benign_keratosis",
+        "patch:o4-mini",
+        "triggered_by:basal_cell_carcinoma_vs_benign_keratosis_ISIC_0024336"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": "patch rule for basal_cell_carcinoma_vs_benign_keratosis triggered by basal_cell_carcinoma_vs_benign_keratosis_ISIC_0024336"
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 0,
+      "created": "2026-04-06T01:49:10",
+      "last_fired": null
+    },
+    {
+      "id": "r_002",
+      "condition": "[Patch rule \u2014 basal_cell_carcinoma_vs_benign_keratosis] Lesion is small and relatively flat with ill-defined, irregular borders; Pigmentation consists of loosely aggregated brown/dark-brown granules, dots, and clods in a clustered but disorganized arrangement; Background skin is diffusely pink/erythematous with visible terminal hairs passing through or around the lesion; Absence of arborizing (telangiectatic) vessels, which are hallmark of BCC; Absence of pearly, translucent, or shiny white areas; Absence of blue-gray ovoid nests or multiple blue-gray globules; Absence of ulceration or erosion; Pigment pattern is mottled/moth-eaten rather than structurally organized (no clear pigment network, streaks, or spoke-wheel areas)",
+      "action": "Classify as Benign Keratosis. Confidence: medium. Rule: When a small, ill-defined pigmented lesion on hairy skin shows a disorganized cluster of brown-to-dark granules and dots WITHOUT arborizing vessels, without pearly/translucent areas, and without ulceration or blue-gray ovoid nests, set against a diffuse pink background with prominent terminal hairs, classify as Benign Keratosis.",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 0,
+          "successes": 0,
+          "failures": 0
+        }
+      },
+      "source": "expert_vlm:claude-sonnet-4-6",
+      "source_task": "basal_cell_carcinoma_vs_benign_keratosis_ISIC_0024420",
+      "tags": [
+        "derm-ham10000",
+        "basal_cell_carcinoma_vs_benign_keratosis",
+        "patch:o4-mini",
+        "triggered_by:basal_cell_carcinoma_vs_benign_keratosis_ISIC_0024420"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": "patch rule for basal_cell_carcinoma_vs_benign_keratosis triggered by basal_cell_carcinoma_vs_benign_keratosis_ISIC_0024420"
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 0,
+      "created": "2026-04-06T01:50:39",
+      "last_fired": null
+    }
+  ]
+}

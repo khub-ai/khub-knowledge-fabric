@@ -876,6 +876,11 @@ def parse_args() -> argparse.Namespace:
                    help="Author and validate rules but do not register them")
     p.add_argument("--output",            default="patch_session.json")
     p.add_argument("--skip-rerun",        dest="skip_rerun", action="store_true")
+    p.add_argument("--zero-shot-only",    dest="zero_shot_only", action="store_true",
+                   help="Run zero-shot baseline only; save {tasks:[...]} to --output and exit.")
+    p.add_argument("--rerun-only",        dest="rerun_only", action="store_true",
+                   help="Load --patch-rules and re-classify --failures-from; no patching. "
+                        "Use --max-per-class matching the baseline to include all failure IDs.")
     return p.parse_args()
 
 
@@ -897,6 +902,51 @@ async def main() -> None:
     console.print(f"  Held-out pool/class:    {args.max_val_per_class} "
                   f"(expert never sees; precision gate)")
     console.print(f"  Dry-run:                {args.dry_run}")
+
+    # --rerun-only: apply existing rules to failures from a baseline file; no patching
+    if args.rerun_only:
+        if not args.failures_from:
+            console.print("[red]--rerun-only requires --failures-from[/red]")
+            sys.exit(1)
+        if not patch_rules_path.exists():
+            console.print(f"[red]Rules file not found: {patch_rules_path}[/red]")
+            sys.exit(1)
+        with open(args.failures_from) as f:
+            prev_ro = json.load(f)
+        all_tasks_ro = prev_ro.get("tasks", [])
+        if args.pair:
+            all_tasks_ro = [t for t in all_tasks_ro if t.get("pair_id") == args.pair]
+        total_ro = len(all_tasks_ro)
+        failures_ro = [t for t in all_tasks_ro if not t["correct"]]
+        before_correct_ro = total_ro - len(failures_ro)
+        console.print(f"\nBaseline: {before_correct_ro}/{total_ro} correct | "
+                      f"[red]{len(failures_ro)} failure(s)[/red]")
+        console.print(f"Rules: {patch_rules_path.name}")
+        if not failures_ro:
+            console.print("[green]No failures to rerun.[/green]")
+            return
+        rerun_out = f"_rerun_only_{Path(args.output).stem}.json"
+        step_tasks = _run_pipeline_with_patch_rules(
+            cheap_model=args.cheap_model,
+            data_dir=args.data_dir,
+            output=rerun_out,
+            max_per_class=args.max_per_class,
+            patch_rules_path=patch_rules_path,
+            failure_task_ids=[t["task_id"] for t in failures_ro],
+        )
+        fixed_ro = sum(1 for t in step_tasks if t["correct"])
+        after_correct_ro = before_correct_ro + fixed_ro
+        console.rule("[bold]Rerun Summary[/bold]")
+        from rich.table import Table as _Table
+        tbl = _Table(show_header=True)
+        tbl.add_column("Phase"); tbl.add_column("Correct"); tbl.add_column("Accuracy")
+        tbl.add_row("Zero-shot baseline", f"{before_correct_ro}/{total_ro}",
+                    f"{before_correct_ro/total_ro*100:.1f}%")
+        tbl.add_row("After applying rules", f"{after_correct_ro}/{total_ro}",
+                    f"{after_correct_ro/total_ro*100:.1f}%")
+        tbl.add_row("Delta", f"+{fixed_ro}", f"+{fixed_ro/total_ro*100:.1f}pp")
+        console.print(tbl)
+        return
 
     # Load dataset
     console.print(f"\n[dim]Loading HAM10000 from {args.data_dir}...[/dim]")
@@ -922,6 +972,14 @@ async def main() -> None:
     total    = len(all_tasks)
     console.print(f"\nBaseline: {total - len(failures)}/{total} correct | "
                   f"[red]{len(failures)} failure(s) to patch[/red]")
+
+    # --zero-shot-only: save baseline and exit
+    if args.zero_shot_only:
+        out_path = Path(_HERE) / args.output
+        with open(out_path, "w") as f:
+            json.dump({"tasks": all_tasks, "total": total, "failures": len(failures)}, f, indent=2)
+        console.print(f"Zero-shot baseline saved to [cyan]{args.output}[/cyan]")
+        return
 
     if not failures:
         console.print("[green]No failures — nothing to patch.[/green]")

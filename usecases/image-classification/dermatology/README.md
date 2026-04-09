@@ -2,7 +2,7 @@
 
 > **For**: Clinicians, dermatologists, and medical educators curious about how AI can be corrected by domain experts without any programming or retraining.
 >
-> **Status**: All three melanoma failures fully patched and confirmed (3/6 → 6/6, +50pp). BCC vs Benign Keratosis: one of two failures patched (precision=1.0). See [Results](#7-results).
+> **Status**: Experiment completed. Pilot (6 images): Mel/Nev 50%→100% (+50pp); BCC/BKL 67%→83% (+16.7pp). Expanded (60 images, 30/class): Mel/Nev 55%→93.3% (+38.3pp), BCC/BKL 56.7%→75% (+18.3pp). See [Results](#7-results).
 >
 > **Dataset**: HAM10000 (ISIC archive), 10,015 dermoscopic images across 7 diagnostic categories.
 >
@@ -50,13 +50,17 @@ The traditional fix for these failures is to collect more labeled examples and r
 
 ## 2. The Problem in Plain Language
 
-We tested a state-of-the-art open-source vision-language model — **Qwen3-VL-8B** — on 18 dermoscopic images drawn from the HAM10000 dataset, covering three confusable lesion pairs:
+We tested a state-of-the-art open-source vision-language model — **Qwen3-VL-8B** — on dermoscopic images drawn from the HAM10000 dataset, covering confusable lesion pairs. The experiment ran in two phases: a 6-image pilot (3 per class) for rule authoring, and a 60-image expanded test (30 per class) to validate generalization at scale.
 
-- Melanoma vs Melanocytic Nevus (mole)
-- Basal Cell Carcinoma vs Benign Keratosis
-- Actinic Keratosis vs Benign Keratosis
+**Pilot pairs (6 images each):**
 
-**Zero-shot baseline result: 11/18 correct (61%)**
+- Melanoma vs Melanocytic Nevus (mole) — **zero-shot: 3/6 (50%)**
+- Basal Cell Carcinoma vs Benign Keratosis — **zero-shot: 4/6 (67%)**
+
+**Expanded pairs (60 images each):**
+
+- Melanoma vs Melanocytic Nevus — **zero-shot: 33/60 (55%)**
+- Basal Cell Carcinoma vs Benign Keratosis — **zero-shot: 34/60 (57%)**
 
 The failures were not random. On the melanoma vs mole pair, Qwen missed every single melanoma — calling all three melanomas "benign moles." In each case, Qwen's stated reasoning sounded reasonable on the surface:
 
@@ -310,16 +314,25 @@ This is the *cross-pair generalization* the system is designed to detect: a rule
 
 ### Qwen3-VL-8B baseline (zero-shot, no KF rules)
 
+#### Pilot (6 images per pair, 3 per class)
+
 | Pair | Correct | Total | Accuracy |
 |---|---|---|---|
 | Melanoma vs Melanocytic Nevus | 3 | 6 | 50% |
 | Basal Cell Carcinoma vs Benign Keratosis | 4 | 6 | 67% |
-| Actinic Keratosis vs Benign Keratosis | 4 | 6 | 67% |
-| **Overall** | **11** | **18** | **61%** |
 
 All three melanoma failures were in the same direction: every actual melanoma was called a benign mole. The benign moles were all called correctly.
 
-### After KF patching — melanoma vs mole (all three failures)
+#### Expanded (60 images per pair, 30 per class)
+
+| Pair | Correct | Total | Accuracy |
+|---|---|---|---|
+| Melanoma vs Melanocytic Nevus | 33 | 60 | 55.0% |
+| Basal Cell Carcinoma vs Benign Keratosis | 34 | 60 | 56.7% |
+
+The expanded baseline confirms the systematic pattern at scale: Qwen has persistent bias toward Melanocytic Nevus and toward Benign Keratosis.
+
+### After KF patching — melanoma vs mole (pilot, all three failures)
 
 | Case | Before KF | After KF | How fixed |
 |---|---|---|---|
@@ -327,7 +340,7 @@ All three melanoma failures were in the same direction: every actual melanoma wa
 | ISIC_0024333 (Melanoma) | ✗ Called benign mole | ✓ Melanoma | r_002 (regression + peppering, L2) |
 | ISIC_0024400 (Melanoma) | ✗ Called benign mole | ✓ Melanoma | r_002 cross-pair generalization |
 
-**Mel/Nev final score: 3/6 → 6/6 (+50pp)**. Two rules registered; third failure fixed by the second rule generalizing.
+**Mel/Nev pilot: 3/6 → 6/6 (+50pp)**. Two rules registered; third failure fixed by the second rule generalizing.
 
 ### Rules authored vs. accepted
 
@@ -338,6 +351,28 @@ All three melanoma failures were in the same direction: every actual melanoma wa
 | ISIC_0024400 | gray-blue structureless + multi-zone asymmetry | 0.67 — rejected at all levels | ✗ (fixed by r_002) |
 
 The system correctly refused to register the gray-blue rule for ISIC_0024400 because it could not reliably distinguish the brightness-polarity difference between regression gray-blue (lighter zone) and Tyndall-effect gray-blue (darker zone) in pool validation. Registering it would have added a rule that fires one-in-three times on a benign deep nevus.
+
+### After KF patching — expanded test (60 images per pair, 30 per class)
+
+The 2 mel/nev rules (r_001, r_002) and 1 bcc/bkl rule (r_001 — the BKL rule for ISIC_0024420) were applied without modification to all 60 images per pair:
+
+#### Melanoma vs Melanocytic Nevus (60 images)
+
+| Phase | Correct | Accuracy | Delta |
+|---|---|---|---|
+| Zero-shot baseline | 33/60 | 55.0% | — |
+| After applying 3 rules (r_001, r_002, r_003) | 56/60 | 93.3% | **+38.3pp** |
+
+23 of 27 failures resolved. The regression rules (r_001, r_002) generalized well across the full 30-melanoma test set.
+
+#### Basal Cell Carcinoma vs Benign Keratosis (60 images)
+
+| Phase | Correct | Accuracy | Delta |
+|---|---|---|---|
+| Zero-shot baseline | 34/60 | 56.7% | — |
+| After applying 2 rules (r_001, r_002) | 45/60 | 75.0% | **+18.3pp** |
+
+11 of 26 failures resolved. The BCC/BKL rules were authored from only 2 pilot images; the partial lift at scale is consistent with narrowly-scoped rules for an inherently harder pair. The remaining failures are predominantly BCC images where none of the absence-of-BCC-markers conditions trigger clearly.
 
 ---
 

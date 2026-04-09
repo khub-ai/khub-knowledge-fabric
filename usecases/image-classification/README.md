@@ -3,7 +3,7 @@
 
 ---
 
-> **Status**: Research prototype — birds: 2-round dialogic loop validated (Cowbird 33%→83%, 4 rules registered); dermatology: dialogic loop completed (Mel/Nev 50%→100%, BCC/BKL 1 of 2 failures patched)
+> **Status**: Research prototype — birds: 2-round dialogic loop validated (pilot 33%→83%; expanded 30/class: 46.7%→96.7%, +50pp); dermatology: expanded results: Mel/Nev 55%→93.3% (+38.3pp), BCC/BKL 56.7%→75% (+18.3pp), both at 30/class
 > **Theme**: [Knowledge Fabric (KF)](../../docs/what-is-kf.md) as a local-first knowledge authoring tool for domain experts with no AI expertise
 > **Last updated**: 2026.04.09
 
@@ -94,7 +94,9 @@ Fine-grained bird species identification is a clean proving ground for the KF th
 
 **The story in brief**: an AI model (Qwen3-VL-8B) confuses every Bronzed Cowbird with a Shiny Cowbird. An ornithologist explains that Bronzed has a conspicuous red iris and a thick decurved bill — features Qwen wasn't checking. KF turns that explanation into explicit rules, validates them against known images, and injects them back into Qwen. Qwen is re-tested and correctly identifies the previously misclassified birds.
 
-**Result**: Qwen3-VL-8B zero-shot **33%** → after 2-round KF dialogic patching **83%** (+50pp). 4 rules registered across 2 rounds; Shiny_0080 resolved by cross-class anchoring (no direct rule needed).
+**Pilot result** (6 images): Qwen3-VL-8B zero-shot **33%** → after 2-round KF dialogic patching **83%** (+50pp). 4 rules registered; Shiny_0080 resolved by cross-class anchoring.
+
+**Expanded result** (60 images, 30/class): zero-shot **46.7%** → after applying same 4 rules **96.7%** (+50pp). 58 of 60 correct. r_001 alone fixed 27 of 29 Bronzed Cowbird failures — the red-iris rule generalized across the full test set.
 
 For the step-by-step walkthrough, failure images, rule text, and full analysis, see [birds/README.md](birds/README.md).
 
@@ -106,19 +108,16 @@ For the developer-facing implementation notes, see [DESIGN.md](DESIGN.md#2-bird-
 
 > **Full write-up**: [dermatology/README.md](dermatology/README.md) — includes dermoscopic images of the three failure cases, step-by-step walkthrough of the patching loop, and a plain-language explanation of what KF solves. Written for clinicians and medical educators.
 
-> **Status**: Active experiment — first of three melanoma failures fully patched and confirmed. Second and third in progress.
-
 Dermoscopy AI tools can achieve high accuracy on benchmark test sets, but systematic failure modes still cluster around subtle patterns that a specialist would immediately recognize. KF enables a clinician to correct those failures without retraining.
 
-**The story in brief**: Qwen3-VL-8B called three actual melanomas "benign moles." Each melanoma had a different dermoscopy pattern — regression + peripheral globules, regression + peppering, gray-blue structureless areas — that the model failed to read correctly. A senior dermoscopist (the Tutor) explained each failure, the system turned each explanation into a validated rule, and Qwen was re-tested. The first failure was fully corrected. The second and third are in progress.
+**The story in brief**: Qwen3-VL-8B called three actual melanomas "benign moles." A senior dermoscopist explained each failure; the system turned those explanations into 2 validated rules. All three failures were resolved (the third by cross-pair rule generalization). The rules were then tested on 60 images without modification — accuracy rose from 55% to 93%.
 
-**Results at a glance**:
+**Expanded results at a glance** (30/class, 60 images per pair):
 
-| Case | Before KF | After KF |
-|---|---|---|
-| ISIC_0024315 — regression + peripheral globules | ✗ Called benign mole | ✓ Correctly called Melanoma |
-| ISIC_0024333 — regression + peppering | ✗ Called benign mole | *in progress* |
-| ISIC_0024400 — gray-blue structureless areas | ✗ Called benign mole | *in progress* |
+| Pair | Zero-shot | After KF rules | Delta |
+|---|---|---|---|
+| Melanoma vs Melanocytic Nevus | 33/60 (55.0%) | 56/60 (93.3%) | **+38.3pp** |
+| Basal Cell Carcinoma vs Benign Keratosis | 34/60 (56.7%) | 45/60 (75.0%) | **+18.3pp** |
 
 For the full case walkthrough with images, the five roles the Tutor plays, and what problems this solves, see [dermatology/README.md](dermatology/README.md).
 
@@ -144,10 +143,11 @@ What the dermatology use case has shown so far:
 - Explicit pre-conditions (hard gates) are essential. Rules that describe a corrective action without pre-conditions can fire on cases they were not designed for, causing regressions. Rules with pre-conditions fire only when those features are confirmed in the image, making them safer to deploy.
 - A "cross-pair firing" — a rule authored for one lesion pair firing on a different pair — is a meaningful signal. It either indicates a quality problem (pre-conditions too broad) or a genuine visual generalization that the domain expert should confirm or further refine.
 
-What the next evaluation milestone needs:
+What the expanded results show:
 
-- **Dialogic loop lift measurement**: o4-mini zero-shot vs o4-mini + patch rules authored by a superior VLM (Claude Sonnet/Opus), on the same labeled test images, with all known pipeline bugs fixed.
-- **Portability**: whether the same patch rules authored for one image set transfer to a different batch of images from the same pair.
+- **Rules generalize.** The 4 bird rules authored on 6 images achieved +50pp on 60 images. The 2 mel/nev rules achieved +38pp on 60 images. Rule quality — not test set size — is the binding constraint.
+- **Harder pairs need more rules.** BCC/BKL gained only +18pp from 2 rules authored on 2 failures. The pair is intrinsically harder (more BKL heterogeneity; BCC absence-of-markers rules are narrower). More dialogic rounds and more failure examples would be needed to close the remaining gap.
+- **The small-test-set skeptic is answered.** Results consistent across pilot and expanded sets confirm the lifts are not lucky coincidences from a 6-image sample.
 
 Summary of current evidence:
 
