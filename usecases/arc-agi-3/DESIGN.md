@@ -468,60 +468,80 @@ class StateFact:
 
 ### Attribute fact key schema
 
-Keys are tuples. The first element is the namespace.
+Keys are tuples. The first element is the namespace. The schema defines
+**only domain-agnostic core keys**. Domain-specific keys (e.g., ARC game
+colors, robot sensor readings) are written by the OBSERVER and are not
+part of the core schema — they are just facts like any other.
 
-**World namespace — game physics, inferred from interaction:**
+**World namespace — environment physics and affordances:**
 ```
-("world", "step_size")              → int         # e.g. 5
-("world", "action_map")            → dict        # {"UP": "ACTION1", ...}
-("world", "walkable_colors")       → set[int]    # {3, 5}
-("world", "wall_colors")           → set[int]    # {4}
-("world", "grid_offset")           → (int, int)  # (col%step, row%step)
-("world", "playfield_bbox")        → (int,int,int,int) # (c0,r0,c1,r1)
-("world", "input_model")          → str         # "keyboard" | "click" | "hybrid"
-("world", "action_count")         → int         # how many distinct action IDs
-("world", "phase")                → str         # "change" | "spill" | "play" (sp80-style)
-("world", "orientation")          → int         # 0/90/180/270 (sp80 board rotation)
-("world", "color_cycle")          → list[int]   # [9, 8, 12] (ft09 palette)
+("world", "input_model")          → str         # how the agent acts: "keyboard" | "click" | "continuous" | ...
+("world", "action_count")         → int         # how many distinct actions available
+("world", "action_map")           → dict        # maps semantic names to action IDs
+("world", "phase")                → str         # current phase if env has phases
+("world", "bounds")               → tuple       # environment boundary (any dimensionality)
 ```
 
-**Object namespace — keyed by object ID, not color or name:**
+**Object namespace — keyed by object ID, not name or type:**
 ```
-("obj", <id>, "colors")            → set[int]    # current pixel colors
-("obj", <id>, "dominant_color")    → int         # most-frequent color
-("obj", <id>, "size")              → int         # pixel count
-("obj", <id>, "bbox")              → (c0,r0,c1,r1)
-("obj", <id>, "centroid")          → (col, row)
-("obj", <id>, "shape_hash")        → int         # rotation-normalized pixel hash
-("obj", <id>, "shape_variant")     → int         # index within variant family
-("obj", <id>, "rotation")          → int         # 0/90/180/270
+("obj", <id>, "position")          → tuple       # location (dimensionality set by OBSERVER)
+("obj", <id>, "orientation")       → Any         # rotation/heading (domain-defined)
+("obj", <id>, "size")              → Any         # extent (pixels, meters, volume — domain-defined)
 ("obj", <id>, "role")              → str         # OBSERVER-assigned, free-form
-("obj", <id>, "selected")          → bool        # cursor/selection is on this obj
-("obj", <id>, "visible")           → bool        # currently rendered
-("obj", <id>, "layer")             → int         # rendering layer
-("obj", <id>, "state")             → str         # "attached" | "detached" | "filled" etc.
-("obj", <id>, "paint_colors")      → set[int]    # collected paint (r11l)
-("obj", <id>, "visit_count")       → int         # how many times player visited
-("obj", <id>, "blocked")           → bool        # player failed to enter this cell
+("obj", <id>, "selected")          → bool        # agent is currently targeting this obj
+("obj", <id>, "visible")           → bool        # currently perceivable
+("obj", <id>, "state")             → str         # free-form state label
+("obj", <id>, "visit_count")       → int         # how many times agent has interacted
 ```
 
-**Progress namespace — what has happened this level:**
+**Progress namespace — what has happened in the current task/episode:**
 ```
 ("progress", "steps_taken")         → int
-("progress", "steps_remaining")     → int
-("progress", "lives_remaining")     → int
-("progress", "visited_positions")   → set[tuple]
-("progress", "blocked_positions")   → set[tuple]
+("progress", "steps_remaining")     → int         # if budget-limited
 ("progress", "goals_satisfied")     → int
 ("progress", "goals_total")         → int
-("progress", "cursor_on")          → int         # object ID under cursor
-("progress", "phase")              → str         # current game phase
-("progress", "collision_count")    → int         # penalty hits (r11l)
+("progress", "phase")              → str         # current task phase
 ```
 
-The schema is open-ended: any `("world", <key>)`, `("obj", <id>, <key>)`, or
-`("progress", <key>)` can be written at any time. No enumeration is exhaustive —
-future games may introduce new keys.
+The schema is **open-ended**: any `("<namespace>", <key>)` or
+`("<namespace>", <id>, <key>)` can be written at any time by the OBSERVER,
+rules, or the agent itself. No enumeration is exhaustive.
+
+**Domain-specific keys are NOT part of the core schema.** They are written
+by each domain's OBSERVER as ordinary facts. Examples:
+
+*ARC-AGI-3 OBSERVER writes:*
+```
+("world", "step_size")            → 5           # grid cell size in pixels
+("world", "walkable_colors")      → {3, 5}      # pixel colors the player can traverse
+("world", "wall_colors")          → {4}
+("world", "grid_offset")          → (2, 3)      # sub-cell alignment
+("world", "color_cycle")          → [9, 8, 12]  # ft09 palette cycle
+("obj", 7, "dominant_color")      → 1           # pixel color
+("obj", 7, "shape_hash")          → 0xA3F2      # rotation-normalized shape
+("obj", 7, "bbox")                → (10, 20, 25, 35)
+("obj", 7, "paint_colors")        → {3, 5}      # r11l collected paint
+("progress", "blocked_positions") → {(5,10)}     # BFS dead ends
+("progress", "lives_remaining")   → 3
+```
+
+*Home robot OBSERVER writes:*
+```
+("world", "coordinate_frame")     → "house_floor1"
+("world", "units")                → "meters"
+("obj", 12, "class")              → "mug"
+("obj", 12, "material")           → "ceramic"
+("obj", 12, "weight_kg")          → 0.35
+("obj", 12, "temperature_c")      → 62.0
+("person", 1, "name")             → "Alice"
+("person", 1, "activity")         → "reading"
+("room", 3, "name")               → "kitchen"
+("room", 3, "temperature_c")      → 22.5
+```
+
+The StateStore implementation treats all of these identically — it does
+not know or care which keys exist. Domain knowledge lives in the OBSERVER
+and in rules, never in the store itself.
 
 ---
 
