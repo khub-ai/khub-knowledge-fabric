@@ -148,8 +148,8 @@ def parse_args() -> argparse.Namespace:
 # Curated list of games we currently consider competition-ready, with budgets
 # tuned to known-good runs. Add games here as they reach competition quality.
 COMPETITION_GAMES: list[dict] = [
-    # Smoke test: ls20 only, budget sized for level 1 (~13 BFS-optimal steps).
-    {"env_id": "ls20", "max_steps": 20, "max_cycles": 12, "episodes": 1},
+    # Budget covers level 1 (~15 steps) + level 2 (BFS-optimal ~45 steps).
+    {"env_id": "ls20", "max_steps": 80, "max_cycles": 40, "episodes": 1},
 ]
 
 

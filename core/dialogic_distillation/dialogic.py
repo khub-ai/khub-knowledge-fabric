@@ -211,153 +211,126 @@ async def run_dialogic_distillation(
         _print(f"    TP={tp} FP={fp} precision={prec:.2f} "
                f"{'[green]PASS[/green]' if accepted else '[red]FAIL[/red]'}")
 
-        # -- Iterative tightening (if pool fails with FPs) --
+        # -- Spectrum-based tightening (if pool fails with FPs) --
+        #
+        # Instead of the crude single-precondition loop, we use the full
+        # patch pipeline: contrastive analysis -> 4-level spectrum ->
+        # batch validate all levels -> pick tightest passing level.
+        # This is the same approach used in the production patch loop.
         tighten_history = []
         if not accepted and fp > 0 and pool_result.get("tp_cases"):
-            current_pool = pool_result
+            _print(f"\n  [bold]Spectrum tightening[/bold] -- "
+                   f"FP={fp}, running contrastive analysis...")
 
-            for tighten_round in range(1, max_tightening_rounds + 1):
-                _print(f"\n  [bold]Tightening round {tighten_round}[/bold] "
-                       f"-- asking TUTOR to exclude FPs...")
+            tp_cases = pool_result.get("tp_cases", [])
+            fp_cases = pool_result.get("fp_cases", [])
 
-                tp_obs = "\n".join(
-                    f"  - {c['ground_truth']}: {c.get('observations', '')[:100]}"
-                    for c in current_pool.get("tp_cases", [])[:4]
-                )
-                fp_obs = "\n".join(
-                    f"  - {c['ground_truth']}: {c.get('observations', '')[:100]}"
-                    for c in current_pool.get("fp_cases", [])[:4]
-                )
+            # Step 1: contrastive analysis -- find the TP/FP discriminating feature
+            contrastive_result, _ = await _agents.run_contrastive_feature_analysis(
+                tp_cases=tp_cases,
+                fp_cases=fp_cases,
+                candidate_rule=active_rule,
+                pair_info=pair_info,
+                config=config,
+                model=tutor_model,
+                call_agent_fn=call_agent_fn,
+            )
+            disc = contrastive_result.get("description", "(none)")
+            _print(f"    Contrastive: [italic]{disc[:100]}[/italic] "
+                   f"(present in {contrastive_result.get('present_in', '?')})")
 
-                extra = ""
-                if tighten_round > 1:
-                    prev_pc = tighten_history[-1].get("precondition", "")
-                    prev_outcome = tighten_history[-1].get("outcome", "")
-                    if prev_outcome == "over_tightened":
-                        extra = (
-                            f"Your PREVIOUS tightening attempt was TOO RESTRICTIVE:\n"
-                            f'  "{prev_pc}"\n'
-                            f"It caused the rule to stop firing on the trigger {config.item_noun}.\n"
-                            f"Try a LESS restrictive condition — something that is\n"
-                            f"clearly present in {active_rule.get('favors', '')} {config.item_noun_plural} "
-                            f"but not in the opposing {config.class_noun}.\n"
-                            f"Focus on what the FP observations describe that differs\n"
-                            f"from the TP observations."
-                        )
-                    elif prev_outcome == "still_too_broad":
-                        extra = (
-                            f"Your previous tightening attempt still had too many FPs.\n"
-                            f"Try a DIFFERENT distinguishing feature entirely."
-                        )
+            tighten_history.append({
+                "step": "contrastive_analysis",
+                "discriminating_feature": contrastive_result.get("discriminating_feature"),
+                "description": disc,
+                "present_in": contrastive_result.get("present_in"),
+                "confidence": contrastive_result.get("confidence"),
+            })
 
-                tighten_text = _prompts.TIGHTEN_PROMPT.format(
-                    rule_text=active_rule.get("rule", ""),
-                    preconditions="\n".join(
-                        f"  - {p}" for p in active_rule.get("preconditions", [])),
-                    n_fp=current_pool.get("fp", fp),
-                    favors=active_rule.get("favors", correct_label),
-                    opposing_class=opposing,
-                    tp_observations=tp_obs or "  (none)",
-                    fp_observations=fp_obs or "  (none)",
-                    extra_guidance=extra,
-                    item_noun=config.item_noun,
-                    item_noun_plural=config.item_noun_plural,
-                    class_noun=config.class_noun,
-                )
+            # Step 2: generate 4-level specificity spectrum
+            _print("    Generating 4-level specificity spectrum...")
+            spectrum_levels, _ = await _agents.run_rule_spectrum_generator(
+                candidate_rule=active_rule,
+                tp_cases=tp_cases,
+                fp_cases=fp_cases,
+                contrastive_result=contrastive_result,
+                pair_info=pair_info,
+                config=config,
+                model=tutor_model,
+                call_agent_fn=call_agent_fn,
+            )
+            _print(f"    Generated {len(spectrum_levels)} spectrum levels")
+            for lv in spectrum_levels:
+                _print(f"      L{lv.get('level','?')} ({lv.get('label','?')}): "
+                       f"{len(lv.get('preconditions', []))} preconditions")
 
-                tighten_content = [
-                    _agents.image_block(image_path),
-                    {"type": "text", "text": tighten_text},
-                ]
+            tighten_history.append({
+                "step": "spectrum_generation",
+                "n_levels": len(spectrum_levels),
+                "levels": [
+                    {"level": lv.get("level"), "label": lv.get("label"),
+                     "n_preconditions": len(lv.get("preconditions", []))}
+                    for lv in spectrum_levels
+                ],
+            })
 
-                tighten_raw, _ = await (_agents._get_default_call_agent()
-                                        if call_agent_fn is None else call_agent_fn)(
-                    "DIALOGIC_TUTOR",
-                    tighten_content,
-                    system_prompt=_prompts.dialogic_tutor_system(config),
-                    model=tutor_model,
-                    max_tokens=1024,
-                )
+            # Step 3: batch validate all levels against the pool
+            _print(f"    Batch validating {len(spectrum_levels)} levels "
+                   f"on {len(pool_images)} pool images...")
+            batch_results = await _agents.validate_candidate_rules_batch(
+                candidate_rules=spectrum_levels,
+                validation_images=pool_images,
+                trigger_image_path=image_path,
+                trigger_correct_label=correct_label,
+                config=config,
+                model=validator_model,
+                call_agent_fn=call_agent_fn,
+            )
 
-                tighten_parsed = _agents.parse_json_block(tighten_raw)
-                new_pc = (tighten_parsed or {}).get("tightening_precondition", "")
-                if not new_pc:
-                    _print("    TUTOR could not propose a tightening condition.")
-                    tighten_history.append({
-                        "round": tighten_round, "outcome": "no_proposal"})
-                    break
+            for lv, res in zip(spectrum_levels, batch_results):
+                _print(f"      L{lv.get('level','?')}: "
+                       f"TP={res['tp']} FP={res['fp']} "
+                       f"prec={res['precision']:.2f} "
+                       f"{'[green]PASS[/green]' if res['accepted'] else '[red]FAIL[/red]'}")
 
-                _print(f"    TUTOR -> tighten: [italic]{new_pc[:120]}[/italic]")
+            tighten_history.append({
+                "step": "batch_validation",
+                "results": [
+                    {"level": lv.get("level"), "label": lv.get("label"),
+                     "tp": res["tp"], "fp": res["fp"],
+                     "precision": res["precision"], "accepted": res["accepted"]}
+                    for lv, res in zip(spectrum_levels, batch_results)
+                ],
+            })
 
-                tightened_rule = {
-                    **active_rule,
-                    "preconditions": active_rule["preconditions"] + [new_pc],
-                    "rule": active_rule["rule"].rstrip(".") + f"; plus {new_pc}.",
-                }
-
-                # Grounding check on tightened rule
-                _print("    KF -> grounding check on tightened rule...")
-                trig_val, _ = await _agents.run_rule_validator_on_image(
-                    image_path=image_path,
-                    ground_truth=correct_label,
-                    candidate_rule=tightened_rule,
-                    config=config,
-                    model=validator_model,
-                    call_agent_fn=call_agent_fn,
-                )
-
-                if not trig_val.get("precondition_met", False):
-                    _print(f"    [yellow]Over-tightened -- rule no longer fires "
-                           f"on trigger. Trying again...[/yellow]")
-                    tighten_history.append({
-                        "round": tighten_round,
-                        "precondition": new_pc,
-                        "outcome": "over_tightened",
-                        "validator_observations": trig_val.get("observations", ""),
-                    })
-                    continue
-
-                # Pool validation on tightened rule
-                pool_result2 = await _agents.validate_candidate_rule(
-                    candidate_rule=tightened_rule,
-                    validation_images=pool_images,
-                    trigger_image_path=image_path,
-                    trigger_correct_label=correct_label,
-                    config=config,
-                    model=validator_model,
-                    call_agent_fn=call_agent_fn,
-                )
-
-                prec2 = pool_result2["precision"]
-                fp2 = pool_result2["fp"]
-                tp2 = pool_result2["tp"]
-                accepted2 = pool_result2["accepted"]
-
-                _print(f"    Tightened: TP={tp2} FP={fp2} precision={prec2:.2f} "
-                       f"{'[green]PASS[/green]' if accepted2 else '[red]FAIL[/red]'}")
-
+            # Step 4: pick the tightest level that passes
+            passing = [(lv, res) for lv, res in zip(spectrum_levels, batch_results)
+                       if res["accepted"]]
+            if passing:
+                # tightest = highest level number among passing
+                best_lv, best_res = max(passing, key=lambda x: x[0].get("level", 0))
+                active_rule = best_lv
+                accepted = True
+                _print(f"    [green]Accepted spectrum level "
+                       f"L{best_lv.get('level')} ({best_lv.get('label')})[/green]")
                 tighten_history.append({
-                    "round": tighten_round,
-                    "precondition": new_pc,
-                    "outcome": "accepted" if accepted2 else "still_too_broad",
-                    "pool": {k: v for k, v in pool_result2.items()
+                    "step": "selected_level",
+                    "level": best_lv.get("level"),
+                    "label": best_lv.get("label"),
+                    "pool": {k: v for k, v in best_res.items()
                              if k not in ("tp_cases", "fp_cases")},
                 })
-
-                if accepted2:
-                    active_rule = tightened_rule
-                    accepted = True
-                    break
-                else:
-                    current_pool = pool_result2
+                transcript["pool_result_after_tighten"] = {
+                    k: v for k, v in best_res.items()
+                    if k not in ("tp_cases", "fp_cases")
+                }
+            else:
+                _print("    [red]No spectrum level passed the pool gate[/red]")
+                tighten_history.append({"step": "selected_level", "level": None,
+                                        "outcome": "no_level_passed"})
+                transcript["pool_result_after_tighten"] = None
 
             transcript["tighten_history"] = tighten_history
-            if accepted:
-                transcript["pool_result_after_tighten"] = tighten_history[-1].get("pool")
-            else:
-                transcript["pool_result_after_tighten"] = (
-                    tighten_history[-1].get("pool") if tighten_history else None
-                )
 
         transcript["final_rule"] = {
             k: v for k, v in active_rule.items() if k != "raw_response"

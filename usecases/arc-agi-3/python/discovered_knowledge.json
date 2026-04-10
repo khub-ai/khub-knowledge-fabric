@@ -1,0 +1,11 @@
+{
+  "ls20": {
+    "level_rc_visits": {
+      "1": 1
+    },
+    "color_roles": {
+      "1": "rotation_changer",
+      "9": "win_gate"
+    }
+  }
+}

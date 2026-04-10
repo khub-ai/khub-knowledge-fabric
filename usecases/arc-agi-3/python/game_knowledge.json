@@ -1,36 +1,17 @@
 {
   "ls20": {
-    "action_map": {"UP": "ACTION1", "DOWN": "ACTION2", "LEFT": "ACTION3", "RIGHT": "ACTION4"},
-    "walkable_colors": [3],
+    "action_map": {
+      "UP": "ACTION1",
+      "DOWN": "ACTION2",
+      "LEFT": "ACTION3",
+      "RIGHT": "ACTION4"
+    },
+    "walkable_colors": [3, 5],
     "step_size": 5,
     "player_colors": [12],
-    "1": {
-      "rot_changers": [
-        {
-          "x": 19,
-          "y": 30,
-          "nearby_colors": [
-            3,
-            12,
-            9
-          ]
-        }
-      ],
-      "color_changers": [],
-      "shape_changers": [],
-      "win_target": {
-        "x": 34,
-        "y": 10
-      },
-      "player_at_win": {
-        "rot_idx": 0,
-        "color_idx": 9
-      },
-      "step_budget": 42,
-      "start_state": {
-        "rot_idx": 270,
-        "color_idx": 9
-      }
-    }
+    "step_budget": 42,
+    "1": {},
+    "2": {},
+    "3": {}
   }
 }

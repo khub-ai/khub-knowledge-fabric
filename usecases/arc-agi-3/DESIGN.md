@@ -407,3 +407,328 @@ to specific position, align with white W reference pattern in bordered box.
 
 **Step budget:** Starting at 84 cells, losing 2/step → 42 actions before step counter
 depletes. What happens at depletion is unknown (likely GAME_OVER).
+
+---
+
+## StateStore — Unified State and Relation Representation
+
+### Motivation
+
+The current system hard-codes game-specific concepts (player, RC, win_gate, ring) in
+Python data structures that only work for ls20-style maze navigation. ARC-AGI-3 has
+25 games spanning radically different mechanics:
+
+| Game | Mechanic |
+|------|----------|
+| ls20 | Grid navigation, maze rotation via state-changers, shape/color/rotation matching |
+| tr87 | Pattern-matching: rotate shapes until rule-pairs are satisfied |
+| ft09 | Constraint satisfaction: click cells to cycle colors, satisfy adjacency constraints |
+| r11l | Drag-and-drop: select pieces, move to goals, avoid obstacles, collect paint |
+| wa30 | Push-coupling: grab objects, push them to goals, 4-way BFS pathfinding |
+| dc22 | Hybrid keyboard+click: bridge attachment, pressure plates, pixel collision |
+| lp85 | Cyclic permutation: click buttons to rotate tile sequences, dual-goal matching |
+| sp80 | Two-phase: arrange ramps/buckets, then simulate particle flow with splitting |
+
+A general schema must handle all of these without mentioning any game by name.
+
+---
+
+### Design principle: everything is a fact in a typed store
+
+The `StateStore` holds three kinds of facts:
+
+1. **Attribute facts** — a property of one entity (an object, the world, progress)
+2. **Relation facts** — a relationship between two or more entities
+3. **Delta events** — a change to any fact, emitted on every write
+
+Rules read facts, match deltas, and write new facts. The planner reads facts to
+decide actions. No Python code should hard-code game knowledge that could be
+expressed as a fact + rule.
+
+---
+
+### Object identity
+
+Objects are assigned stable integer IDs when first detected (via connected-component
+analysis or OBSERVER identification). An ID persists within a level; on level advance,
+IDs may be reassigned. The only built-in property of an object is its ID.
+
+```python
+@dataclass
+class StateFact:
+    value:      Any           # the fact's value — any Python type
+    confidence: float         # 0.0–1.0
+    source:     str           # "prior" | "inferred" | "observed" | "rule"
+    scope:      str           # "step" | "level" | "episode" | "game"
+    step_index: int           # when last written
+    evidence:   int           # how many observations support this
+```
+
+---
+
+### Attribute fact key schema
+
+Keys are tuples. The first element is the namespace.
+
+**World namespace — game physics, inferred from interaction:**
+```
+("world", "step_size")              → int         # e.g. 5
+("world", "action_map")            → dict        # {"UP": "ACTION1", ...}
+("world", "walkable_colors")       → set[int]    # {3, 5}
+("world", "wall_colors")           → set[int]    # {4}
+("world", "grid_offset")           → (int, int)  # (col%step, row%step)
+("world", "playfield_bbox")        → (int,int,int,int) # (c0,r0,c1,r1)
+("world", "input_model")          → str         # "keyboard" | "click" | "hybrid"
+("world", "action_count")         → int         # how many distinct action IDs
+("world", "phase")                → str         # "change" | "spill" | "play" (sp80-style)
+("world", "orientation")          → int         # 0/90/180/270 (sp80 board rotation)
+("world", "color_cycle")          → list[int]   # [9, 8, 12] (ft09 palette)
+```
+
+**Object namespace — keyed by object ID, not color or name:**
+```
+("obj", <id>, "colors")            → set[int]    # current pixel colors
+("obj", <id>, "dominant_color")    → int         # most-frequent color
+("obj", <id>, "size")              → int         # pixel count
+("obj", <id>, "bbox")              → (c0,r0,c1,r1)
+("obj", <id>, "centroid")          → (col, row)
+("obj", <id>, "shape_hash")        → int         # rotation-normalized pixel hash
+("obj", <id>, "shape_variant")     → int         # index within variant family
+("obj", <id>, "rotation")          → int         # 0/90/180/270
+("obj", <id>, "role")              → str         # OBSERVER-assigned, free-form
+("obj", <id>, "selected")          → bool        # cursor/selection is on this obj
+("obj", <id>, "visible")           → bool        # currently rendered
+("obj", <id>, "layer")             → int         # rendering layer
+("obj", <id>, "state")             → str         # "attached" | "detached" | "filled" etc.
+("obj", <id>, "paint_colors")      → set[int]    # collected paint (r11l)
+("obj", <id>, "visit_count")       → int         # how many times player visited
+("obj", <id>, "blocked")           → bool        # player failed to enter this cell
+```
+
+**Progress namespace — what has happened this level:**
+```
+("progress", "steps_taken")         → int
+("progress", "steps_remaining")     → int
+("progress", "lives_remaining")     → int
+("progress", "visited_positions")   → set[tuple]
+("progress", "blocked_positions")   → set[tuple]
+("progress", "goals_satisfied")     → int
+("progress", "goals_total")         → int
+("progress", "cursor_on")          → int         # object ID under cursor
+("progress", "phase")              → str         # current game phase
+("progress", "collision_count")    → int         # penalty hits (r11l)
+```
+
+The schema is open-ended: any `("world", <key>)`, `("obj", <id>, <key>)`, or
+`("progress", <key>)` can be written at any time. No enumeration is exhaustive —
+future games may introduce new keys.
+
+---
+
+### Relation fact schema
+
+Relations are stored as facts keyed by a synthetic relation ID.
+
+```python
+@dataclass
+class RelFact:
+    rel_type:   str           # see vocabulary below
+    subjects:   tuple[int,...]# object IDs (ordered where meaningful)
+    properties: dict          # relation-specific data
+    confidence: float
+    scope:      str
+    step_index: int
+    evidence:   int
+```
+
+Stored as: `("rel", <rel_id>) → RelFact(...)`
+
+**Relation type vocabulary** — organized by what observation creates them:
+
+#### Spatial relations (from frame geometry)
+
+```
+"same_row"       (A, B)  {"row": 14, "tolerance": 3}
+"same_col"       (A, B)  {"col": 23}
+"adjacent"       (A, B)  {"distance": 5, "direction": "RIGHT"}
+"contains"       (A, B)  {}          # A's bbox contains B's centroid
+"left_of"        (A, B)  {"gap": 2}
+"above"          (A, B)  {"gap": 9}
+"overlaps"       (A, B)  {"area": 12}  # pixel overlap (dc22 collision)
+```
+
+#### Structural / grouping (from visual clustering + OBSERVER)
+
+```
+"member_of"        (A, G)     {"position": 2, "group_size": 3}
+"ordered_sequence"  (G,)       {"members": [A,B,C], "axis": "horizontal"}
+"paired_with"       (G1, G2)   {"via": C}     # two sequences linked through connector
+"cycle_group"       (G,)       {"members": [A,B,C,D]}  # cyclic permutation group (lp85)
+"stacked_on"        (A, B)     {}   # A sits on top of B (layer / z-order)
+```
+
+#### Similarity / equivalence (from shape analysis)
+
+```
+"same_shape"        (A, B)  {"hash": 0xA3F2}
+"same_color"        (A, B)  {"color": 5}
+"rotation_of"       (A, B)  {"angle": 90}
+"variant_of"        (A, B)  {"delta": 1}  # next variant in family
+"mirror_of"         (A, B)  {"axis": "horizontal"}
+"color_match"       (A, B)  {}  # A's color set == B's color set (r11l paint)
+```
+
+#### Causal / dependency (from behavioral observation)
+
+```
+"blocks"            (A, B)  {"direction": "LEFT"}
+"enables"           (A, B)  {"condition": "visited"}
+"requires"          (A, B)  {"count": 1}  # B requires N visits to A
+"triggers"          (A, B)  {"effect": "removes"}  # pressing A removes B (pressure plate)
+"cycles_color_of"   (A, B)  {"pattern": [[0,0,0],[0,1,0],[0,0,0]]}  # clicking A cycles B (ft09)
+"permutes"          (A, G)  {"direction": "left"}  # clicking A shifts cycle-group G (lp85)
+"spawns"            (A, B)  {"direction": (0,1)}  # A produces B moving in direction (sp80 fountain)
+"redirects"         (A, B)  {"from": (0,1), "to": (1,0)}  # A deflects B's direction (sp80 ramp)
+"fills"             (A, B)  {}  # A is filled by B (sp80 bucket←particle)
+```
+
+#### Attachment / coupling (from behavioral observation)
+
+```
+"attached_to"       (A, B)  {"offset": (3, 0)}  # A moves with B, fixed offset
+"grabbed_by"        (A, B)  {}  # A is being carried by B (wa30)
+"co_moves_with"     (A, B)  {}  # A and B always displace identically (ls20 player body)
+```
+
+#### Selection / reachability (from player state + pathfinding)
+
+```
+"selected"          (cursor, A)  {}
+"reachable"         (player, A)  {"path_length": 5}
+"unreachable"       (player, A)  {"reason": "blocked"}
+```
+
+#### Constraint satisfaction (from ft09-style games)
+
+```
+"constrains"        (A, B)  {"must_equal": True, "target_color": 9}
+"satisfied"         (A,)    {}  # constraint A is currently satisfied
+"violated"          (A,)    {}  # constraint A is currently violated
+```
+
+The vocabulary is open-ended. New relation types can be introduced by rules or
+the OBSERVER at any time. The relation type string is free-form; the vocabulary
+above is a starting set, not a closed enumeration.
+
+---
+
+### Delta events
+
+Every `StateStore.set()` emits a delta:
+
+```python
+@dataclass
+class Delta:
+    key:        tuple       # which fact changed
+    old_value:  Any         # None if new fact
+    new_value:  Any
+    step_index: int
+```
+
+For relation facts, creating or removing a relation also emits a delta.
+
+Rules pattern-match on deltas, not just static state. This enables event-driven
+rules like:
+
+```
+ON  delta("obj", X, "centroid") changed
+AND delta("world", "last_frame_diff") > 80 [same step]
+THEN  set("obj", color_at(old_centroid), "role") → "state_changer"
+```
+
+---
+
+### Scope lifecycle
+
+| Scope | Cleared when | Examples |
+|-------|-------------|----------|
+| `"step"` | After each env.step() | last_frame_diff, last_action |
+| `"level"` | Level advances | blocked_positions, visit_count, goals_satisfied |
+| `"episode"` | Episode ends | action_map (may differ game to game) |
+| `"game"` | Never (within game run) | wall_colors, walkable_colors, step_size |
+
+`StateStore.clear_scope(scope)` removes all facts with that scope.
+
+---
+
+### Rules over StateStore
+
+A rule has three parts:
+
+```
+CONDITION   — pattern over current facts and/or pending deltas
+EFFECT      — writes new facts and/or emits actions
+CONFIDENCE  — how certain this rule is (propagated to written facts)
+```
+
+**Rule tiers** (from raw signal to strategy):
+
+| Tier | What it captures | Example |
+|------|-----------------|---------|
+| T1 | Action → player displacement | ACTION1 → player.pos += (0, -5) |
+| T2 | Action → single object attribute change | any action → counter.size -= 2 |
+| T3 | Action → relationship change | ACTION2 → distance(player, goal) decreases |
+| T4 | Object attribute (static) | color 3 is dominant → role = "floor" |
+| T5 | Object relationship (static) | A and B always move together → co_moves_with |
+| T6 | Conditional effect (action + state → special) | at RC pos + action → large diff (maze rotates) |
+| T7 | Temporal / sequential | visit RC once, then win_gate → level advance |
+| T8 | World structure | step_size = 5, walkable = {3, 5} |
+| T9 | Goal / strategy | win_gate unreachable → visit unvisited RC first |
+
+Rules at every tier read and write `StateStore` facts. No tier has a privileged
+code path — a T1 rule and a T9 rule are both `(condition, effect, confidence)` triples.
+
+---
+
+### Completeness check against known games
+
+The schema must handle every mechanic discovered across the 25-game corpus.
+Below is a verification against the 8 deeply-analyzed games:
+
+| Mechanic | Game(s) | How represented |
+|----------|---------|-----------------|
+| Grid movement with step_size | ls20, wa30, g50t | `("world", "step_size")`, `("world", "action_map")` |
+| Click-based interaction | ft09, r11l, lp85, dc22 | `("world", "input_model")` = "click" / "hybrid" |
+| Object selection / cursor | tr87, r11l, lp85, sp80 | `("obj", id, "selected")`, `("progress", "cursor_on")` |
+| Shape rotation (cyclic variants) | tr87, ls20 | `("obj", id, "shape_variant")`, `("obj", id, "rotation")`, rel: `variant_of` |
+| Color cycling | ft09, ls20 | `("world", "color_cycle")`, `("obj", id, "dominant_color")`, rel: `cycles_color_of` |
+| Constraint satisfaction | ft09 | rel: `constrains(A, B, must_equal, target_color)`, `satisfied(A)` |
+| Pattern-matching rules | tr87 | rel: `paired_with(G1, G2, via=connector)`, `same_shape(A, B)` |
+| Drag / move to goal | r11l | rel: `reachable`, fact: `("obj", id, "centroid")` delta |
+| Paint collection | r11l | `("obj", id, "paint_colors")`, rel: `color_match(A, B)` |
+| Push-coupling (grab+push) | wa30 | rel: `grabbed_by(obj, player)`, `attached_to(obj, player, offset)` |
+| Bridge attachment | dc22 | `("obj", id, "state")` = "attached"/"detached", rel: `attached_to` |
+| Pressure plates | dc22 | rel: `triggers(plate, blocker, effect="removes")` |
+| Cyclic permutation buttons | lp85 | rel: `cycle_group(G, members=[...])`, `permutes(button, G, direction)` |
+| Two-phase state machine | sp80 | `("world", "phase")`, `("progress", "phase")` |
+| Particle flow / spawning | sp80 | rel: `spawns(fountain, particle, direction)`, `redirects(ramp, particle)` |
+| Bucket fill detection | sp80 | rel: `fills(bucket, particle)`, spatial adjacency check |
+| Board rotation | sp80 | `("world", "orientation")` affecting input + physics |
+| Maze rotation (state-changer) | ls20 | rel: `enables(RC, win_gate)`, `requires(RC, win_gate, count=1)` |
+| Step counter / budget | all games | `("progress", "steps_remaining")`, `("progress", "lives_remaining")` |
+| Multi-goal levels | ls20 (L6), r11l, lp85 | `("progress", "goals_satisfied")`, `("progress", "goals_total")` |
+| Obstacle penalty | r11l, wa30 | `("progress", "collision_count")`, rel: `blocks(obstacle, player)` |
+| Co-moving objects | ls20 (player body) | rel: `co_moves_with(A, B)` |
+| Spatial zones (free/blocked/hazard) | wa30 | multiple `("world", "zone_*")` facts or tagged relations |
+| Pixel-level collision | dc22 | rel: `overlaps(A, B, area)` |
+| Animation state blocking | dc22, sp80 | `("world", "animating")` → bool, rules should not fire during animation |
+| Fog of war | ls20 (L7-8) | `("world", "fog")` → bool |
+| Lives / retry | ls20 | `("progress", "lives_remaining")` |
+| Dual coordinate systems | dc22 | `("world", "grid_to_pixel_offset")`, conversion is a world fact |
+| Object invisibility | tr87 (hidden click targets) | `("obj", id, "visible")` |
+| Collectible removal on visit | ls20 (rings), r11l (paint), sp80 (particles) | delta on `("obj", id, "visible")` False + source="consumed" |
+
+**Gap analysis:** No mechanic from the 8 analyzed games falls outside the schema.
+The schema's open-ended key design (any string key in any namespace) means that
+unforeseen mechanics in the remaining 17 games can be added without schema changes —
+only new keys and relation types, which is purely additive.

@@ -106,12 +106,19 @@ def compute_navigation_plan(
     step_size: int,
     action_map: dict[str, str],  # {"UP": "ACTION1", ...}
     extra_passable: Optional[set[tuple[int, int]]] = None,
+    blocked_positions: Optional[set[tuple[int, int]]] = None,
 ) -> Optional[list[str]]:
     """
     Compute the full action sequence to navigate through all waypoints in order.
     Returns list of ACTION names, or None if any segment has no path.
+
+    blocked_positions: cells the player has empirically failed to enter
+    (walls between grid cells).  These are subtracted from the walkable set
+    so BFS routes around them.
     """
     walkable = extract_walkable_grid(frame, walkable_colors, step_size)
+    if blocked_positions:
+        walkable -= blocked_positions
     full_actions = []
     for i in range(len(waypoints) - 1):
         seg_path = bfs_path(waypoints[i], waypoints[i + 1], walkable,

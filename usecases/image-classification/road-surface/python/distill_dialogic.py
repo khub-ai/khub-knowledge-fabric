@@ -198,8 +198,10 @@ def parse_args():
     p.add_argument("--failure-ids", default="",
                    help="Comma-separated RSCD image IDs (stem only, no .jpg). "
                         "If not provided, auto-discovers failures using --pupil-model.")
-    p.add_argument("--pupil-model",  default="claude-haiku-4-5-20251001",
-                   help="Cheap model to test as PUPIL (used when --failure-ids not given)")
+    p.add_argument("--pupil-model",  default="qwen/qwen3-vl-8b-instruct",
+                   help="Cheap model to test as PUPIL (used when --failure-ids not given). "
+                        "Defaults to Qwen3-VL-8B via OpenRouter — same as birds/dermatology "
+                        "experiments for cross-domain comparability.")
     p.add_argument("--tutor-model",  default=DEFAULT_TUTOR)
     p.add_argument("--validator-model", default=DEFAULT_VALIDATOR)
     p.add_argument("--max-rounds",   type=int, default=DEFAULT_MAX_ROUNDS)

@@ -119,12 +119,25 @@ SKIP_OBSERVER_FOR_PUZZLES = True
 # learned from training. Training mode (False) keeps the bespoke solvers
 # enabled so they can be used as ground-truth references for the generalized
 # layer under development.
-COMPETITION_MODE = False
+COMPETITION_MODE = True
 
 # In competition mode, execute at most this many actions per MEDIATOR plan
 # before breaking and letting the MEDIATOR re-evaluate with fresh observations.
 # Keeps the MEDIATOR from committing to a long wrong plan without feedback.
 COMPETITION_MAX_PLAN_CHUNK = 3
+
+# Hard USD cap on LLM spending per episode in competition mode.
+# Once the accumulated cost (OBSERVER + MEDIATOR calls) exceeds this threshold,
+# all LLM calls are suppressed for the rest of the episode — only BFS-direct
+# execution continues.  Set to 0 to disable the cap.
+# Rationale: each OBSERVER agent turn costs ~$0.05-0.15; a 40-cycle run with
+# the 4-turn tool loop can reach $10-20 before the BFS-direct bypass kicks in.
+COMPETITION_MAX_LLM_USD = 1.0
+
+# Maximum number of LLM cycles (OBSERVER+MEDIATOR) per episode in competition
+# mode.  After this many cycles the LLM path is silently skipped; BFS-direct
+# continues.  Set to 0 to disable.
+COMPETITION_MAX_LLM_CYCLES = 8
 
 # Known action sequences to pre-solve (skip) levels that are already mastered.
 # Keys are env_id strings.  Values are ordered action names.
@@ -908,12 +921,424 @@ def _load_default_gk_registry() -> Optional[GameKnowledgeRegistry]:
     return _GK_REGISTRY_CACHE
 
 
+# ---------------------------------------------------------------------------
+# Dynamic BFS navigation helper (observation-based, no hardcoded positions)
+# ---------------------------------------------------------------------------
+
+def _compute_bfs_nav_dynamic(
+    frame: list[list[int]],
+    game_id: str,
+    level: int,
+    game_data: dict,
+    player_pos: tuple[int, int],
+    hypothesis: "GameHypothesis",
+    action_history: list[dict],
+    level_initial_frame: list[list[int]],
+    concept_bindings: dict,
+    history_start_idx: int = 0,
+) -> str:
+    """
+    Build a BFS navigation section for levels that have no hardcoded positions
+    in game_knowledge.json, using dynamic object discovery instead.
+
+    Object discovery pipeline
+    -------------------------
+    1. Load discovered_knowledge.json (cross-episode persistence) to get
+       color roles and n_rc_visits for this game/level.
+    2. Merge with concept_bindings so the LevelModel builder has richer hints.
+    3. Build LevelModel from initial vs. current frame + action_history.
+    4. Determine game-reset index and rc_visits_done from history.
+    5. If model.is_navigable: plan budget-aware waypoints.
+       Else:                  explore nearest unclassified candidate.
+    6. Run BFS over the planned waypoints and return the formatted result.
+    """
+    from nav_bfs import (
+        extract_walkable_grid,
+        compute_navigation_plan,
+        format_nav_plan,
+        bfs_path as _bfs_path,
+    )
+    from dynamic_discovery import (
+        GameHypothesis,
+        build_level_model,
+        compute_dynamic_waypoints,
+        nearest_exploration_waypoint,
+        load_discovered_knowledge,
+        get_n_rc_visits,
+        get_color_roles,
+        enrich_concept_bindings_from_discovered,
+        infer_step_size_from_positions,
+        infer_action_directions_from_history,
+        infer_walkable_from_visits,
+        infer_player_colors_from_diff,
+    )
+
+    # ------------------------------------------------------------------
+    # Run inference functions to populate obs_* fields of hypothesis.
+    # Each inference is independent; failures leave obs_* as None so the
+    # effective_* property falls back to the prior from game_knowledge.json.
+    # ------------------------------------------------------------------
+    _obs_step = infer_step_size_from_positions(action_history)
+    if _obs_step is not None:
+        hypothesis.obs_step_size = _obs_step
+        print(f"  [HYP] inferred step_size={_obs_step}", flush=True)
+
+    _obs_amap = infer_action_directions_from_history(
+        action_history, hypothesis.effective_step_size
+    )
+    if _obs_amap:
+        hypothesis.obs_action_map = _obs_amap
+        print(f"  [HYP] inferred action_map={_obs_amap}", flush=True)
+
+    _last_frame_before = None
+    for _hstep in reversed(action_history):
+        _fb = _hstep.get("frame_before")
+        if _fb is not None:
+            _last_frame_before = _fb
+            break
+    if _last_frame_before is not None:
+        _obs_pc = infer_player_colors_from_diff(
+            _last_frame_before, frame, hypothesis.effective_step_size
+        )
+        if _obs_pc is not None:
+            # Exclude walkable colors — floor pixels change under the player
+            # sprite as it moves, but floor is not a player color.
+            _obs_pc -= hypothesis.effective_walkable_colors
+            if _obs_pc:
+                hypothesis.obs_player_colors = _obs_pc
+                print(f"  [HYP] inferred player_colors={_obs_pc}", flush=True)
+
+    # Convenience aliases so the rest of the function reads cleanly
+    walkable_colors = hypothesis.effective_walkable_colors
+    player_colors   = hypothesis.effective_player_colors
+    step_size       = hypothesis.effective_step_size
+    action_map      = hypothesis.effective_action_map
+
+    print(f"  [HYP] {hypothesis}", flush=True)
+
+    _HERE_DYN = Path(__file__).resolve().parent
+    _DK_PATH  = _HERE_DYN / "discovered_knowledge.json"
+
+    # Load persisted discovered knowledge (color roles, rc visit counts)
+    _dk = load_discovered_knowledge(_DK_PATH)
+
+    # Enrich concept_bindings with stored color roles
+    _cb_enriched = enrich_concept_bindings_from_discovered(
+        concept_bindings, _dk, game_id
+    )
+
+    # Game-reset detection (life lost → step counter ran out)
+    _current_levels = level - 1
+    _last_reset_idx = -1
+    for _ri, _rs in enumerate(action_history):
+        if (_rs.get("diff", 0) >= 3000
+                and _rs.get("levels", 0) == _current_levels
+                and _rs.get("player_pos") is None):
+            _last_reset_idx = _ri
+    if _last_reset_idx >= 0:
+        print(f"  [DYN] Game reset at history idx {_last_reset_idx}; "
+              f"invalidating earlier visit counts", flush=True)
+
+    # Detect blocked/unreachable candidates from action_history:
+    # If the player tried to move (action taken) but position didn't change,
+    # the attempted cell is a wall (not an interactive object).
+    _blocked: set[tuple] = set()
+    _dir_deltas: dict[str, tuple] = {
+        "UP":    (0, -step_size),
+        "DOWN":  (0,  step_size),
+        "LEFT":  (-step_size, 0),
+        "RIGHT": ( step_size, 0),
+    }
+    # Build action_name → direction from action_map (invert it)
+    _action_to_dir: dict[str, tuple] = {}
+    for _dir, _aname in action_map.items():
+        _action_to_dir[_aname] = _dir_deltas.get(_dir, (0, 0))
+
+    _prev_pos_b: tuple | None = None
+    for _bi, _bs in enumerate(action_history):
+        if _bi <= _last_reset_idx:
+            _prev_pos_b = None
+            continue
+        # Large diff = maze rotation (RC visit).  Previously blocked cells
+        # may no longer be walls in the new maze state, so reset.
+        if _bs.get("diff", 0) > 80:
+            _blocked.clear()
+        _pp_b = _bs.get("player_pos")
+        if _pp_b is not None:
+            _ppt = tuple(_pp_b)
+            if _prev_pos_b is not None and _ppt == _prev_pos_b:
+                # Player didn't move → attempted cell is blocked
+                _delta = _action_to_dir.get(_bs.get("action", ""), (0, 0))
+                if _delta != (0, 0):  # only if a real movement action
+                    _attempted = (_prev_pos_b[0] + _delta[0], _prev_pos_b[1] + _delta[1])
+                    _blocked.add(_attempted)
+            _prev_pos_b = _ppt
+
+    # Build the level model
+    model = build_level_model(
+        initial_frame=level_initial_frame,
+        current_frame=frame,
+        action_history=action_history,
+        walkable_colors=walkable_colors,
+        player_colors=player_colors,
+        step_size=step_size,
+        player_pos=player_pos,
+        concept_bindings=_cb_enriched,
+        history_start_idx=history_start_idx,
+        last_reset_idx=_last_reset_idx,
+        blocked_positions=_blocked,
+    )
+    print(f"  [DYN] {model}  blocked={len(_blocked)}"
+          + (f" {_blocked}" if _blocked else ""), flush=True)
+
+    # Walkable grid for BFS — exclude cells the player couldn't enter even
+    # though they look walkable in the frame.  This prevents BFS from routing
+    # through game-level walls that happen to share a walkable color.
+    wset = extract_walkable_grid(frame, walkable_colors, step_size) - _blocked
+
+    # Visited set (after last reset)
+    visited: set[tuple] = set()
+    for _i, _s in enumerate(action_history):
+        if _i <= _last_reset_idx:
+            continue
+        _pp = _s.get("player_pos")
+        if _pp is not None:
+            visited.add(tuple(_pp))
+    # Also add blocked positions to visited so exploration skips them
+    visited.update(_blocked)
+
+    # Infer walkable colors from visited positions now that visited set is ready.
+    # Exclude known wall colors — the inference can pick up wall border pixels
+    # at grid anchor points, but concept_bindings already knows they are walls.
+    _obs_wc = infer_walkable_from_visits(
+        frame, visited - _blocked, player_colors, step_size
+    )
+    if _obs_wc is not None:
+        _known_walls = set(_cb_enriched.get("wall_colors", []))
+        _obs_wc -= _known_walls
+        if _obs_wc:
+            hypothesis.obs_walkable_colors = _obs_wc
+            walkable_colors = _obs_wc
+            wset = extract_walkable_grid(frame, walkable_colors, step_size) - _blocked
+            print(f"  [HYP] inferred walkable_colors={_obs_wc}", flush=True)
+
+    # Validate win_gate reachability: if it was set by concept_bindings
+    # pre-classification (not action history), verify BFS can reach it.
+    # Unreachable "win_gates" are false positives (e.g. HUD pixels with
+    # the same color as the real win gate).
+    if model.win_gate is not None:
+        _wg = tuple(model.win_gate)
+        _wg_extra = set()
+        _wg_extra.add(_wg)
+        for _dc, _dr in [(0, step_size), (0, -step_size),
+                         (step_size, 0), (-step_size, 0)]:
+            _wg_extra.add((_wg[0] + _dc, _wg[1] + _dr))
+        _wg_path = _bfs_path(player_pos, _wg, wset, step_size, _wg_extra)
+        if _wg_path is None:
+            print(f"  [DYN] Win gate {_wg} unreachable — clearing (false positive)",
+                  flush=True)
+            model.win_gate = None
+
+    # If model is incomplete, explore nearest unclassified candidate.
+    # Special case: if we have RCs but no win_gate, and blocked positions
+    # overlap with win_gate-color candidates, the player needs to visit
+    # more RCs to rotate the maze.  Prioritise unvisited RCs over generic
+    # candidates so we systematically try new RC combinations.
+    if not model.is_navigable:
+        _explore_rc = False
+        if model.has_rc and not model.has_win_gate and _blocked:
+            # Check if any blocked position has win_gate color
+            _has_blocked_wg = False
+            if _cb_enriched:
+                _wg_colors_chk: set[int] = set()
+                for _cc, _cv in _cb_enriched.items():
+                    if not isinstance(_cc, int):
+                        continue
+                    _cr = (_cv.get("role", "") if isinstance(_cv, dict)
+                           else str(_cv)).lower()
+                    if any(k in _cr for k in ("win", "target", "goal",
+                                               "objective", "finish")):
+                        _wg_colors_chk.add(_cc)
+                for _bp in _blocked:
+                    _bx, _by = _bp
+                    if (0 <= _by < len(level_initial_frame)
+                            and 0 <= _bx < len(level_initial_frame[0])):
+                        if level_initial_frame[_by][_bx] in _wg_colors_chk:
+                            _has_blocked_wg = True
+                            break
+            if _has_blocked_wg:
+                # Find unvisited RCs reachable from current position
+                _rc_set = {tuple(p) for p in model.rc_positions}
+                _unvisited_rcs = [p for p in _rc_set if p not in visited]
+                if _unvisited_rcs:
+                    # Navigate to the nearest unvisited RC
+                    _unvisited_rcs.sort(
+                        key=lambda p: abs(p[0] - player_pos[0]) + abs(p[1] - player_pos[1]))
+                    _explore_rc = True
+                    _rc_target = _unvisited_rcs[0]
+                    print(f"  [DYN] Win gate blocked — visiting unvisited RC {_rc_target}",
+                          flush=True)
+
+        if not _explore_rc:
+            print(f"  [DYN] Model incomplete — exploring nearest candidate", flush=True)
+        waypoints, extra_passable = nearest_exploration_waypoint(
+            model=model,
+            player_pos=player_pos,
+            visited=visited,
+            walkable_set=wset,
+            step_size=step_size,
+            extra_passable=set(),
+        )
+        # Override exploration target with unvisited RC if applicable
+        if _explore_rc:
+            _rc_extra = set()
+            _rc_extra.add(_rc_target)
+            for _dc, _dr in [(0, step_size), (0, -step_size),
+                             (step_size, 0), (-step_size, 0)]:
+                _rc_extra.add((_rc_target[0] + _dc, _rc_target[1] + _dr))
+            waypoints = [player_pos, _rc_target]
+            extra_passable = _rc_extra
+
+        if len(waypoints) <= 1:
+            print(f"  [DYN] No exploration candidate reachable", flush=True)
+            return ""
+        goal = waypoints[-1]
+        actions = compute_navigation_plan(
+            frame=frame,
+            waypoints=waypoints,
+            walkable_colors=walkable_colors,
+            step_size=step_size,
+            action_map=action_map,
+            extra_passable=extra_passable,
+            blocked_positions=_blocked,
+        )
+        if actions is None:
+            print(f"  [DYN] BFS: no path to explore candidate {goal}", flush=True)
+            return (
+                f"## Computed navigation path\n"
+                f"  BFS found NO path from player {player_pos} to candidate {goal}."
+            )
+        formatted = format_nav_plan(actions)
+        print(f"  [DYN-EXPLORE] {player_pos} -> {goal}: {formatted} ({len(actions)} steps)",
+              flush=True)
+        return (
+            f"## Computed navigation path\n"
+            f"  EXECUTE THIS PATH EXACTLY — take the first 3 actions, then re-read.\n"
+            f"  Full path: {formatted} ({len(actions)} total steps)"
+        )
+
+    # Model is navigable — plan the win route
+    # Count distinct RC visits (transitions: not-at-RC → at-RC).
+    # Consecutive steps at the same RC are a single visit.
+    rc_pos_set = {tuple(p) for p in model.rc_positions}
+    rc_visits_done = 0
+    _prev_at_rc = False
+    for _idx, _s in enumerate(action_history):
+        if _idx < history_start_idx or _idx <= _last_reset_idx:
+            continue
+        _pp = _s.get("player_pos")
+        _at_rc = _pp is not None and tuple(_pp) in rc_pos_set
+        if _at_rc and not _prev_at_rc:
+            rc_visits_done += 1
+        # Large diff with unknown position also signals an RC visit
+        elif not _at_rc and _pp is None and _s.get("diff", 0) > 80 and not _prev_at_rc:
+            rc_visits_done += 1
+            _at_rc = True  # treat as at-RC for transition tracking
+        _prev_at_rc = _at_rc
+
+    # Determine how many RC visits this level needs.
+    # Priority: discovered_knowledge (from previous successful plays).
+    # Fallback: count failed win-gate attempts — each time the player
+    # reaches the win gate without the level advancing, we need one
+    # more RC visit.  This converges (only increases after a failed
+    # attempt, not after each RC visit).
+    n_rc_needed = get_n_rc_visits(_dk, game_id, level)
+    if n_rc_needed is None:
+        _win_failures = 0
+        if model.win_gate:
+            _wg_pos = tuple(model.win_gate)
+            for _wi in range(history_start_idx, len(action_history)):
+                _ws = action_history[_wi]
+                _wpp = _ws.get("player_pos")
+                if _wpp is not None and tuple(_wpp) == _wg_pos:
+                    if _ws.get("levels", 0) <= _current_levels:
+                        _win_failures += 1
+        n_rc_needed = _win_failures + 1
+    print(f"  [DYN] rc_visits_done={rc_visits_done} n_rc_needed={n_rc_needed}", flush=True)
+
+    # Rings collected since last game reset
+    ring_pos_set = {tuple(p) for p in model.ring_positions}
+    sc_resets_done: set[tuple] = set()
+    for _si, _s in enumerate(action_history):
+        if _si <= _last_reset_idx:
+            continue
+        _pp = _s.get("player_pos")
+        if _pp is not None and tuple(_pp) in ring_pos_set:
+            sc_resets_done.add(tuple(_pp))
+
+    # Steps since last ring (or level start / game reset)
+    _valid_hist = [s for i, s in enumerate(action_history) if i > _last_reset_idx]
+    _last_ring_step = -1
+    for _j, _s in enumerate(_valid_hist):
+        _pp = _s.get("player_pos")
+        if _pp is not None and tuple(_pp) in ring_pos_set:
+            _last_ring_step = _j
+    _step_budget: int = game_data.get("step_budget", 42)
+    _steps_since_reset = len(_valid_hist) - (_last_ring_step + 1)
+
+    # Compute dynamic ordered waypoints
+    waypoints, extra_passable = compute_dynamic_waypoints(
+        model=model,
+        player_pos=player_pos,
+        rc_visits_done=rc_visits_done,
+        n_rc_visits_needed=n_rc_needed,
+        sc_resets_done=sc_resets_done,
+        walkable_set=wset,
+        step_size=step_size,
+        step_budget=_step_budget,
+        steps_since_reset=_steps_since_reset,
+        extra_passable=set(),
+    )
+
+    # Run BFS
+    actions = compute_navigation_plan(
+        frame=frame,
+        waypoints=waypoints,
+        walkable_colors=walkable_colors,
+        step_size=step_size,
+        action_map=action_map,
+        extra_passable=extra_passable,
+        blocked_positions=_blocked,
+    )
+    if actions is None:
+        goal = waypoints[-1] if len(waypoints) > 1 else None
+        print(f"  [DYN] BFS: NO PATH from {player_pos} to {goal}", flush=True)
+        return (
+            f"## Computed navigation path\n"
+            f"  BFS found NO path from player {player_pos} to goal {goal}.\n"
+            f"  The maze may need further state transformation before this path opens."
+        )
+
+    formatted = format_nav_plan(actions)
+    print(f"  [DYN] player={player_pos} rc={rc_visits_done}/{n_rc_needed} "
+          f"-> {formatted} ({len(actions)} steps)", flush=True)
+    return (
+        f"## Computed navigation path\n"
+        f"  EXECUTE THIS PATH EXACTLY — take the first 3 actions, then re-read next cycle.\n"
+        f"  Full path: {formatted} ({len(actions)} total steps)"
+    )
+
+
 def _compute_bfs_nav_section(
     frame: list[list[int]],
     game_id: str,
     level: int,
     gk_registry: Optional[GameKnowledgeRegistry],
     action_history: Optional[list[dict]] = None,
+    level_initial_frame: Optional[list[list[int]]] = None,
+    concept_bindings: Optional[dict] = None,
+    history_start_idx: int = 0,
+    tracked_player_colors: Optional[set] = None,
 ) -> str:
     """
     Compute a BFS navigation path from the player's current position through
@@ -922,7 +1347,15 @@ def _compute_bfs_nav_section(
 
     Returns "" if any required data is missing or BFS fails.
 
-    rot_changer_visited detection: scan action_history for any UP step whose
+    Two operating modes:
+      STATIC MODE   — when game_knowledge.json has positional data for this
+                       level (rot_changers, win_target, etc.), use it exactly
+                       as before (unchanged backward-compatible behaviour).
+      DYNAMIC MODE  — when the level entry is empty {}, discover object
+                       positions from frame analysis + action history +
+                       concept_bindings.  Requires level_initial_frame.
+
+    rot_changer_visited detection: scan action_history for any step whose
     cumulative-diff exceeds 80 — a heuristic for the colour-change event that
     happens when the player walks over the ROT_CHANGER.
     """
@@ -931,7 +1364,11 @@ def _compute_bfs_nav_section(
 
     # Retrieve per-level entry
     entry = gk_registry.get_level(game_id, level)
-    if not entry:
+    # entry may be None OR an empty dict {} (stripped level placeholder)
+    _has_static_data = bool(entry and (
+        entry.get("rot_changers") or entry.get("win_target")
+    ))
+    if entry is None:
         return ""
 
     # Retrieve top-level game config keys (action_map, walkable_colors, etc.)
@@ -945,12 +1382,64 @@ def _compute_bfs_nav_section(
         return ""
 
     walkable_colors: set[int] = set(walkable_colors_raw)
-    player_colors:   set[int] = set(player_colors_raw)
+    # tracked_player_colors (from step loop) takes precedence over game_knowledge
+    # prior when the player sprite color has changed (e.g. after color-changer).
+    player_colors: set[int] = (
+        tracked_player_colors if tracked_player_colors
+        else set(player_colors_raw)
+    )
 
-    # Locate player in the frame (top-left corner of sprite bounding box)
+    # Locate player in the frame (top-left corner of sprite bounding box).
+    # If the prior player_colors fails (e.g. after a color-changer visit),
+    # fall back to inferring player color from the most recent frame diff.
     player_pos = find_player_position(frame, player_colors)
+    if player_pos is None and action_history:
+        from dynamic_discovery import infer_player_colors_from_diff
+        for _ah_step in reversed(action_history):
+            _fb = _ah_step.get("frame_before")
+            if _fb is not None:
+                _inferred_pc = infer_player_colors_from_diff(_fb, frame)
+                if _inferred_pc:
+                    _found = find_player_position(frame, _inferred_pc)
+                    if _found is not None:
+                        player_pos = _found
+                        player_colors = _inferred_pc
+                        print(f"  [NAV] player color inferred: {player_colors}",
+                              flush=True)
+                break
     if player_pos is None:
         return ""
+
+    # ------------------------------------------------------------------
+    # DYNAMIC DISCOVERY MODE
+    # When game_knowledge has no positional data for this level (empty {}),
+    # discover object positions from frame analysis + action history +
+    # concept_bindings.  Returns early with the BFS result string.
+    # ------------------------------------------------------------------
+    if not _has_static_data:
+        from dynamic_discovery import GameHypothesis as _GameHypothesis
+        _hypothesis = _GameHypothesis(
+            prior_player_colors=player_colors,
+            prior_walkable_colors=walkable_colors,
+            prior_step_size=step_size,
+            prior_action_map=action_map,
+        )
+        return _compute_bfs_nav_dynamic(
+            frame=frame,
+            game_id=game_id,
+            level=level,
+            game_data=game_data,
+            player_pos=player_pos,
+            hypothesis=_hypothesis,
+            action_history=action_history or [],
+            level_initial_frame=level_initial_frame or frame,
+            concept_bindings=concept_bindings or {},
+            history_start_idx=history_start_idx,
+        )
+
+    # ------------------------------------------------------------------
+    # STATIC MODE (existing logic — unchanged)
+    # ------------------------------------------------------------------
 
     # Collect waypoints: rot_changers (if unvisited) then win_target
     rot_changers = entry.get("rot_changers", [])
@@ -958,34 +1447,200 @@ def _compute_bfs_nav_section(
     if not win_target:
         return ""
 
-    # Detect whether each rot_changer has already been visited.
-    # Heuristic: look for a step in action_history whose 'diff' value > 80
-    # A large pixel diff (> 80) on ANY movement action signals the ROT_CHANGER
-    # was triggered — regardless of direction.
-    rot_changer_visited = False
-    if action_history:
-        for step in action_history:
-            if step.get("diff", 0) > 80:
-                rot_changer_visited = True
-                break
+    # Step-counter reset positions: game rings that reset internal step budget.
+    # Must be collected (visited once) BEFORE the step counter runs out.
+    # Recorded as the player-movement-grid position that triggers the ring
+    # (the ring sprite may be offset by one step_size from the trigger cell).
+    sc_resets_raw = entry.get("step_counter_resets", [])
+    sc_reset_positions: list[tuple[int, int]] = [(r["x"], r["y"]) for r in sc_resets_raw]
+    sc_reset_pos_set: set[tuple[int, int]] = set(sc_reset_positions)
 
-    # Build ordered waypoint list
+    # Detect the last GAME RESET on the current level (life lost when step counter
+    # ran out).  A reset produces a large diff (>= 3000) on a step where the
+    # levels-completed count does NOT increase — different from a level-transition
+    # flash.  After a reset the player's rotation returns to StartRotation and
+    # collected rings are restored, so ALL visit/collection history before that
+    # point is invalid.
+    _current_levels = level - 1   # levels_now when playing this level
+    _last_reset_idx = -1
+    for _ri, _rs in enumerate(action_history or []):
+        if (_rs.get("diff", 0) >= 3000
+                and _rs.get("levels", 0) == _current_levels
+                and _rs.get("player_pos") is None):  # pos=None during flash frame
+            _last_reset_idx = _ri
+    if _last_reset_idx >= 0:
+        print(f"  [SC-RESET] Game reset detected at history idx {_last_reset_idx}; "
+              f"invalidating earlier visit counts", flush=True)
+
+    # Count which reset positions have already been collected (only after last reset).
+    sc_resets_done: set[tuple[int, int]] = set()
+    for _si, _s in enumerate(action_history or []):
+        if _si <= _last_reset_idx:
+            continue
+        _pp = _s.get("player_pos")
+        if _pp is not None and tuple(_pp) in sc_reset_pos_set:
+            sc_resets_done.add(tuple(_pp))
+
+    # Deduplicate rot_changers by position (bootstrap records each visit separately).
+    seen_rc: set[tuple[int, int]] = set()
+    unique_rc_positions: list[tuple[int, int]] = []
+    for rc in rot_changers:
+        pos = (rc["x"], rc["y"])
+        if pos not in seen_rc:
+            seen_rc.add(pos)
+            unique_rc_positions.append(pos)
+
+    # Total visits needed = number of rot_changer records in bootstrap.
+    n_visits_needed = len(rot_changers)
+
+    # Count confirmed CHANGER visits from action_history.
+    # Primary criterion: player_pos matches a known RC position (unconditional —
+    # no diff gate, because some games produce diff < 80 on RC visits).
+    # Fallback (no pos info available): diff > 80 with a cooldown of 1 step to
+    # suppress the post-rotation sprite spike on the very next action.
+    rc_pos_set = set(unique_rc_positions)
+    visits_done = 0
+    last_visit_idx = -2  # index of the most recently counted visit
+    for idx, s in enumerate(action_history or []):
+        if idx <= _last_reset_idx:
+            continue  # skip history invalidated by last game-reset
+        ppos = s.get("player_pos")
+        if ppos is not None:
+            # Position-based (primary): unconditional, no diff threshold needed.
+            if tuple(ppos) in rc_pos_set:
+                visits_done += 1
+                last_visit_idx = idx
+        else:
+            # Diff-based fallback (when player_pos not recorded): require
+            # diff > 80 and skip the step immediately after the last counted
+            # visit to suppress the post-rotation sprite spike.
+            if s.get("diff", 0) > 80 and idx > last_visit_idx + 1:
+                visits_done += 1
+                last_visit_idx = idx
+
+    visits_remaining = max(0, n_visits_needed - visits_done)
+
+    wt_pos = (win_target["x"], win_target["y"])
+
+    # Build ordered waypoint list.
     waypoints: list[tuple[int, int]] = [player_pos]
     extra_passable: set[tuple[int, int]] = set()
 
-    if rot_changers and not rot_changer_visited:
-        rc = rot_changers[0]
-        rc_pos = (rc["x"], rc["y"])
-        waypoints.append(rc_pos)
-        extra_passable.add(rc_pos)
+    ordered_wps = entry.get("ordered_waypoints")
+    if ordered_wps:
+        # ORDERED WAYPOINTS MODE: explicit interleaved sequence from game_knowledge.
+        # Supports types: "rc" = rotation changer, "sc_reset" = step-counter ring,
+        # "win" = win target.  Skips already-completed entries, inserts bounce cells
+        # between consecutive RC visits so BFS is forced to leave and re-enter.
+        from nav_bfs import extract_walkable_grid as _ewg
+        _wset = _ewg(frame, walkable_colors, step_size)
 
-    wt_pos = (win_target["x"], win_target["y"])
-    waypoints.append(wt_pos)
-    extra_passable.add(wt_pos)
-    # Also mark the cells adjacent to win_target as passable — the approach
-    # cells may have a special non-color3 appearance (target border/overlay).
-    for _dc, _dr in [(0, step_size), (0, -step_size), (step_size, 0), (-step_size, 0)]:
-        extra_passable.add((wt_pos[0] + _dc, wt_pos[1] + _dr))
+        # Pre-compute bounce neighbors for all RC positions.
+        _rc_bounce_map: dict = {}
+        for _owp in ordered_wps:
+            if _owp.get("type") == "rc":
+                _rcp = (_owp["x"], _owp["y"])
+                if _rcp not in _rc_bounce_map:
+                    _b = None
+                    for _dc, _dr in [(0, step_size), (0, -step_size),
+                                     (step_size, 0), (-step_size, 0)]:
+                        if (_rcp[0] + _dc, _rcp[1] + _dr) in _wset:
+                            _b = (_rcp[0] + _dc, _rcp[1] + _dr)
+                            break
+                    _rc_bounce_map[_rcp] = _b
+
+        rc_consumed = 0  # how many "rc" entries have been consumed (already done)
+        for _owp in ordered_wps:
+            _wp_pos = (_owp["x"], _owp["y"])
+            _wp_type = _owp.get("type", "")
+            if _wp_type == "rc":
+                if rc_consumed < visits_done:
+                    rc_consumed += 1
+                    continue  # this RC visit already confirmed in action_history
+                # Remaining RC visit: need to go there.
+                _bounce = _rc_bounce_map.get(_wp_pos)
+                # If last waypoint equals this RC position, must insert bounce first
+                # so BFS is forced to leave and re-enter the cell.
+                if waypoints[-1] == _wp_pos and _bounce is not None:
+                    waypoints.append(_bounce)
+                waypoints.append(_wp_pos)
+                extra_passable.add(_wp_pos)
+                rc_consumed += 1
+            elif _wp_type == "sc_reset":
+                if _wp_pos not in sc_resets_done:
+                    waypoints.append(_wp_pos)
+                    extra_passable.add(_wp_pos)
+                    print(f"  [SC-RESET] Adding step-counter reset waypoint {_wp_pos}",
+                          flush=True)
+            elif _wp_type == "win":
+                waypoints.append(_wp_pos)
+                extra_passable.add(_wp_pos)
+                for _dc, _dr in [(0, step_size), (0, -step_size),
+                                 (step_size, 0), (-step_size, 0)]:
+                    extra_passable.add((_wp_pos[0] + _dc, _wp_pos[1] + _dr))
+
+        visits_remaining = 0  # suppress legacy waypoint logic below
+    else:
+        # LEGACY MODE: auto-sequence SC resets (prepended) → RC visits → WIN.
+        # Prepend unvisited step-counter reset waypoints so they are collected
+        # before the game's internal step budget runs out.
+        for _r in sc_reset_positions:
+            if _r not in sc_resets_done:
+                waypoints.append(_r)
+                extra_passable.add(_r)
+                print(f"  [SC-RESET] Adding step-counter reset waypoint {_r}", flush=True)
+
+        if unique_rc_positions and visits_remaining > 0:
+            rc_pos = unique_rc_positions[0]
+            extra_passable.add(rc_pos)
+            # For each remaining visit, add the RC. Between consecutive visits to
+            # the same cell, insert a "bounce" point one step_size away so BFS
+            # is forced to leave and re-enter the cell.
+            # Find a valid bounce neighbor by checking walkable cells around rc_pos.
+            from nav_bfs import extract_walkable_grid as _ewg
+            _wset = _ewg(frame, walkable_colors, step_size)
+            bounce = None
+            for _dc, _dr in [(0, step_size), (0, -step_size),
+                             (step_size, 0), (-step_size, 0)]:
+                cand = (rc_pos[0] + _dc, rc_pos[1] + _dr)
+                if cand in _wset:
+                    bounce = cand
+                    break
+
+            # If the player is ALREADY standing on the RC cell, insert a bounce
+            # first so BFS has to leave before re-entering for the next visit.
+            # Without this, BFS from rc_pos to rc_pos is 0 steps and the cycle
+            # falls through to the LLM mediator which may go the wrong way.
+            if player_pos == rc_pos and bounce is not None:
+                waypoints.append(bounce)
+
+            for i in range(visits_remaining):
+                waypoints.append(rc_pos)
+                if i < visits_remaining - 1 and bounce is not None:
+                    waypoints.append(bounce)  # leave RC before next visit
+
+        # Only add WIN_TARGET (and COLOR_CHANGER) once all RC visits are done.
+        # Before that, the maze may not yet have a walkable path to WIN — the game
+        # layout can change after state transformations (rot/color).  We let BFS
+        # figure out the post-transformation path in a later cycle.
+        if visits_remaining == 0:
+            # Add color_changer visits if they differ from win_target.
+            color_changers = entry.get("color_changers", [])
+            cc_visits_done = max(0, visits_done - n_visits_needed)
+            for i, cc in enumerate(color_changers):
+                if i < cc_visits_done:
+                    continue
+                cc_pos = (cc["x"], cc["y"])
+                extra_passable.add(cc_pos)
+                if cc_pos != wt_pos:
+                    waypoints.append(cc_pos)
+
+            waypoints.append(wt_pos)
+            extra_passable.add(wt_pos)
+            # Also mark adjacent cells as passable — approach cells may have a
+            # special non-color3 appearance (target border/overlay).
+            for _dc, _dr in [(0, step_size), (0, -step_size), (step_size, 0), (-step_size, 0)]:
+                extra_passable.add((wt_pos[0] + _dc, wt_pos[1] + _dr))
 
     # Run BFS
     actions = compute_navigation_plan(
@@ -997,17 +1652,64 @@ def _compute_bfs_nav_section(
         extra_passable=extra_passable,
     )
     if actions is None:
+        goal = waypoints[-1] if len(waypoints) > 1 else wt_pos
+        visits_info = (
+            f"visits={visits_done}/{n_visits_needed} "
+            if n_visits_needed > 0 else ""
+        )
+        print(f"  [BFS] player={player_pos} {visits_info}-> NO PATH to {goal}", flush=True)
         return (
             f"## Computed navigation path\n"
-            f"  BFS found NO path from player {player_pos} to goal {wt_pos}."
+            f"  BFS found NO path from player {player_pos} to goal {goal}.\n"
+            f"  The maze may need further state transformation before this path opens."
         )
 
     formatted = format_nav_plan(actions)
     total = len(actions)
+    # Compact progress summary for competition monitoring (always printed).
+    visits_info = (
+        f"visits={visits_done}/{n_visits_needed} "
+        if n_visits_needed > 0 else ""
+    )
+    print(f"  [BFS] player={player_pos} {visits_info}-> {formatted} ({total} steps)",
+          flush=True)
     return (
         f"## Computed navigation path\n"
-        f"  Optimal path from current position: {formatted} ({total} total steps)"
+        f"  EXECUTE THIS PATH EXACTLY — take the first 3 actions, then re-read next cycle.\n"
+        f"  Full path: {formatted} ({total} total steps)"
     )
+
+
+def _parse_bfs_action_list(bfs_nav_str: str) -> list:
+    """
+    Extract the ordered action list from a _compute_bfs_nav_section return value.
+
+    Parses lines like:
+      Full path: ACTION1×3, ACTION4×2, ACTION2, ACTION1 (17 total steps)
+
+    Returns a flat list of action-name strings, e.g.
+      ["ACTION1","ACTION1","ACTION1","ACTION4","ACTION4","ACTION2","ACTION1"]
+    or [] if no valid path section is found (NO PATH case).
+    """
+    import re
+    if not bfs_nav_str:
+        return []
+    m = re.search(r'Full path:\s*(.+?)\s*\(\d+\s+total steps\)', bfs_nav_str)
+    if not m:
+        return []
+    path_str = m.group(1)
+    actions: list = []
+    for part in re.split(r',\s*', path_str):
+        part = part.strip()
+        mm = re.match(r'(ACTION\d+)(?:\u00d7(\d+))?$', part)  # × is U+00D7
+        if not mm:
+            # try ASCII 'x' multiplier as fallback
+            mm = re.match(r'(ACTION\d+)(?:x(\d+))?$', part, re.IGNORECASE)
+        if mm:
+            act   = mm.group(1)
+            count = int(mm.group(2)) if mm.group(2) else 1
+            actions.extend([act] * count)
+    return actions
 
 
 def _build_game_knowledge_section(gk_registry: Optional[GameKnowledgeRegistry],
@@ -1216,6 +1918,18 @@ async def run_episode(
     # a specific object.  Format: [{"touched_color": int, "step": int, "delta": dict}]
     contact_events: list[dict] = []
 
+    # Dynamic discovery: track the frame at the START of each level so the
+    # discovery module can compare it against the current frame to find consumed
+    # objects (e.g. rings that disappeared after collection).
+    _level_initial_frame: list = [row[:] for row in obs_frame(obs)]
+    # Index in action_history where the current level started.
+    _level_history_start: int = 0
+    # Adaptive player color tracking: starts from game_knowledge.json prior but
+    # updates if color-changers modify the player sprite color mid-level.
+    # P1: seed from game_knowledge prior — no hardcoded color fallback.
+    _gk_init = _load_default_gk_registry()._data.get(env_id, {})
+    _tracked_player_colors: set[int] = set(_gk_init.get("player_colors") or [])
+
     # Running OBSERVER/MEDIATOR outputs for playlog (reset each cycle)
     _obs_text_current   = ""
     _med_plan_current:  list = []
@@ -1225,6 +1939,17 @@ async def run_episode(
     _is_puzzle: bool = False    # cached from previous cycle for early rule-skip
     _last_structural_str: str = ""   # Fix 1: cache to avoid resending when frame unchanged
     _last_structural_frame_sig: tuple = ()  # Fix 1: frame signature for cache invalidation
+
+    # LLM spending gate — counts cycles where OBSERVER/MEDIATOR were actually called.
+    _llm_cycles_used: int = 0
+
+    # Level-transition stale-frame guard.
+    # When a level advances, the obs returned by env.step() is still the WIN
+    # transition frame of the previous level — not the new level's initial frame.
+    # The actual new-level frame only appears after the NEXT env.step() call.
+    # We set this flag on level advance and use it to skip OBSERVER/BFS analysis
+    # for one cycle, executing one neutral step first to get the real frame.
+    _level_just_changed: bool = False
 
     log(f"\n{'-' * 50}")
     log(f"Episode {episode_num}  env={env_id}  model={DEFAULT_MODEL}")
@@ -1264,6 +1989,59 @@ async def run_episode(
 
         log(f"\n-- Cycle {cycle_count}  "
             f"(steps {step_count}/{max_steps}, levels={levels_now}) --")
+        print(f"\n[C{cycle_count} S{step_count}/{max_steps} L{levels_now}]", flush=True)
+
+        # ------------------------------------------------------------------
+        # Stale-frame guard: skip analysis on the cycle immediately after a
+        # level advance.  The obs returned by the WIN step is still the
+        # previous level's transition frame — the new level's actual layout
+        # only appears after the next env.step().  Execute one neutral step
+        # (whichever action moves the player least, defaulting to ACTION1)
+        # to advance past the transition, then continue to the normal cycle.
+        # ------------------------------------------------------------------
+        if _level_just_changed:
+            _level_just_changed = False
+            if step_count < max_steps:
+                # Pick a neutral action — any direction is fine; we just need
+                # env.step() to return the new-level frame.
+                _neutral_action_name = "ACTION1"
+                _neutral_obj = next(
+                    (a for a in getattr(env, "action_space", [])
+                     if getattr(a, "name", "") == _neutral_action_name),
+                    None,
+                )
+                if _neutral_obj is not None:
+                    obs = env.step(_neutral_obj)
+                    step_count += 1
+                    _ppos_neutral = None
+                    try:
+                        from nav_bfs import find_player_position as _fppos_n
+                        # P1: use tracked colors, not hardcoded fallback
+                        _ppos_neutral = _fppos_n(obs_frame(obs), _tracked_player_colors)
+                    except Exception:
+                        pass
+                    print(f"  [FRAME-GUARD] Stepped past transition frame "
+                          f"(step {step_count}, new pos={_ppos_neutral})", flush=True)
+                    log(f"  [FRAME-GUARD] Stepped past transition frame "
+                        f"(step {step_count}, new pos={_ppos_neutral})")
+                    # Save the real new-level frame image now that we have it.
+                    if playlog_root is not None:
+                        save_level_frame(obs_frame(obs), env_id,
+                                         obs_levels_completed(obs), playlog_root)
+                    # Capture the initial frame for this new level (used by
+                    # dynamic object discovery to detect consumed objects).
+                    _level_initial_frame = [row[:] for row in obs_frame(obs)]
+                    _level_history_start = len(action_history)
+                    # Reset adaptive player color tracking for the new level —
+                    # the player state (color, rotation) resets on level advance.
+                    # P1: use game_knowledge prior, no hardcoded color fallback.
+                    _tracked_player_colors = set(
+                        _gk_init.get("player_colors") or []
+                    )
+                    print(f"  [FRAME-GUARD] Level initial frame captured "
+                          f"(history_start={_level_history_start})", flush=True)
+                    # Restart this cycle iteration with the correct frame.
+                    continue
 
         # ------------------------------------------------------------------
         # Round 0: Rule matching
@@ -1357,142 +2135,95 @@ async def run_episode(
         else:
             _frame_diff = 999  # first cycle — always observe
 
+        # ------------------------------------------------------------------
+        # BFS-DIRECT mode (COMPETITION_MODE only)
+        # Pre-compute the BFS navigation path here, before OBSERVER/MEDIATOR.
+        # If BFS has a valid action sequence, we bypass both OBSERVER and
+        # MEDIATOR entirely and execute those actions directly — eliminating
+        # the LLM deviation problem that caused levels to be missed.
+        # ------------------------------------------------------------------
+        _bfs_direct_actions: list = []
+        _bfs_direct_nav_str: str  = ""
+        _bfs_direct_gk_str:  str  = ""
+        if COMPETITION_MODE:
+            _gk_pre = _load_default_gk_registry()
+            _bfs_direct_nav_str = _compute_bfs_nav_section(
+                frame=_curr_frame,
+                game_id=env_id,
+                level=levels_now + 1,
+                gk_registry=_gk_pre,
+                action_history=action_history,
+                level_initial_frame=_level_initial_frame,
+                concept_bindings=state_manager._data.get("concept_bindings"),
+                history_start_idx=_level_history_start,
+                tracked_player_colors=_tracked_player_colors,
+            )
+            _bfs_direct_actions = _parse_bfs_action_list(_bfs_direct_nav_str)
+            _bfs_direct_gk_str  = _build_game_knowledge_section(
+                _gk_pre, env_id, levels_now + 1
+            )
+
         _t0 = time.time()
 
+        # --- Spending gate: check USD cap and LLM cycle cap ---
+        # Once either limit is hit in competition mode, suppress all LLM calls
+        # for the remainder of this episode (BFS-direct will still run).
+        _llm_allowed = True
+        if COMPETITION_MODE:
+            _current_cost = get_cost_tracker().cost_usd()
+            _over_usd  = COMPETITION_MAX_LLM_USD  > 0 and _current_cost  >= COMPETITION_MAX_LLM_USD
+            _over_cyc  = COMPETITION_MAX_LLM_CYCLES > 0 and _llm_cycles_used >= COMPETITION_MAX_LLM_CYCLES
+            if _over_usd or _over_cyc:
+                _llm_allowed = False
+                reason = f"cost=${_current_cost:.3f}>=${COMPETITION_MAX_LLM_USD}" if _over_usd \
+                    else f"llm_cycles={_llm_cycles_used}>={COMPETITION_MAX_LLM_CYCLES}"
+                print(f"  [GATE] LLM suppressed ({reason}) — BFS-direct only", flush=True)
+
+        # --- BFS-DIRECT: skip OBSERVER+MEDIATOR when BFS has a valid path ---
+        _bfs_direct_mode = COMPETITION_MODE and bool(_bfs_direct_actions)
+        if _bfs_direct_mode:
+            obs_text            = _obs_text_current or ""
+            _obs_text_current   = obs_text
+            action_plan         = [{"action": a, "data": {}} for a in _bfs_direct_actions[:COMPETITION_MAX_PLAN_CHUNK]]
+            med_text            = ""
+            _med_plan_current   = action_plan
+            _med_reason_current = ""
+            _t0 = time.time()   # reset timer so _observer_ms ≈ 0 below
+            log(f"  [BFS-DIRECT] Executing BFS path: {[p['action'] for p in action_plan]}")
+        # --- LLM gate: if spending cap hit and no BFS path, skip the whole cycle ---
+        elif COMPETITION_MODE and not _llm_allowed:
+            log("  [GATE] No BFS path and LLM suppressed — skipping cycle")
+            print("  [GATE] No BFS path and LLM suppressed — skipping cycle", flush=True)
+            continue
         # --- Puzzle-level OBSERVER bypass (SKIP_OBSERVER_FOR_PUZZLES) ---
         # On puzzle levels the structural context already contains groups,
         # focus/cursor, mismatch info, and reference slot mapping — everything
         # the MEDIATOR needs. We build a lightweight synthetic OBSERVER output
         # from locally-computed data, saving ~$0.15 per skipped call.
-        if COMPETITION_MODE and (_frame_diff > 3 or not _obs_text_current):
-            # --- COMPETITION MODE: bounded tool-loop OBSERVER ---
-            # Replaces the single-shot OBSERVER call with an Anthropic
-            # tool-use loop that has hard caps and access only to a small
-            # custom toolset (no Bash/Read/Write). The agent can recall
-            # learned concepts from the persistent ConceptRegistry and
-            # record new ones. Per-game artifacts (LS20 BFS, TR87 slot-
-            # strip detector) are excluded by design here.
-            from agent_loop import run_observer_agent
-            from object_tracker import summarize_current_objects
-            _objects_summary = summarize_current_objects(_curr_frame, concept_bindings)
-            # Minimal context: dimensions, level, budget, action names tried,
-            # PRIOR HYPOTHESIS (so the agent refines instead of starting cold),
-            # and a compact recent-action-outcomes trace (so the agent sees
-            # wall hits and dead actions without spending a tool call). The
-            # agent fetches the frame/objects/effects via tools as needed.
-            _h = len(_curr_frame)
-            _w = len(_curr_frame[0]) if _curr_frame else 0
-            _ae = state_manager._data.get("action_effects") or {}
-            _tried = ", ".join(sorted(_ae.keys())) or "(none yet)"
-            _untried_actions = [
-                a.name for a in available_actions
-                if not getattr(a, "is_complex", lambda: False)() and a.name not in _ae
-            ]
-            # Prior hypothesis carried from MEDIATOR's last cycle (if any).
-            _prior_hypo = state_manager._data.get("current_hypothesis") or "(none yet)"
-            # Compact recent action outcomes trace (last 8 steps), with
-            # explicit WALL markers when an action produced no movement.
-            _recent: list[str] = []
-            for _h_entry in (action_history[-8:] if action_history else []):
-                _act = _h_entry.get("action", "?")
-                _diff = _h_entry.get("diff", _h_entry.get("frame_diff"))
-                _moved = _h_entry.get("moved")
-                if _diff is not None and _diff <= 4:
-                    _recent.append(f"{_act} -> WALL/no-movement (diff={_diff})")
-                elif _moved:
-                    _recent.append(f"{_act} -> {_moved}")
-                else:
-                    _recent.append(f"{_act} -> diff={_diff}")
-            _recent_str = "\n".join(f"  {i+1}. {s}" for i, s in enumerate(_recent)) or "  (no actions yet)"
-
-            # Stuck detector: count consecutive recent steps with diff<=4.
-            # If the last N steps all produced no meaningful change, the
-            # current hypothesis is almost certainly wrong — force a reset.
-            _stuck_n = 0
-            for _h_entry in reversed(action_history[-12:] if action_history else []):
-                _d = _h_entry.get("diff")
-                if _d is not None and _d <= 4:
-                    _stuck_n += 1
-                else:
-                    break
-            _stuck_block = ""
-            if _stuck_n >= 6:
-                _stuck_block = (
-                    f"## STAGNATION ALERT\n"
-                    f"The last {_stuck_n} steps produced essentially no state change. "
-                    f"Your prior hypothesis is almost certainly WRONG or the situation "
-                    f"has changed. You MUST:\n"
-                    f"  1. Discard the prior hypothesis and form a NEW one.\n"
-                    f"  2. Try an action or strategy you have NOT recently tried.\n"
-                    f"  3. Do NOT propose a 'submit' or 'puzzle solved' plan unless "
-                    f"levels_completed has actually increased.\n\n"
-                )
-                # Also wipe MEDIATOR's stale hypothesis so the next cycle starts fresh.
-                try:
-                    state_manager._data["current_hypothesis"] = None
-                    _prior_hypo = "(reset due to stagnation)"
-                except Exception:
-                    pass
-
-            # Build a compact section from active mechanic-principle rules so
-            # the OBSERVER agent has game-mechanic context even before calling
-            # recall_concepts. This prevents it from defaulting to a visual
-            # hypothesis that contradicts known ARC-AGI-3 mechanics.
-            _mp_rules = [
-                r for r in rule_engine.active_rules()
-                if "mechanic-principle" in r.get("tags", [])
-            ]
-            _mp_lines: list[str] = []
-            for _r in _mp_rules[:6]:
-                _if  = (_r.get("condition", "") or "").strip()[:200]
-                _then = (_r.get("action", "") or "").strip()[:200]
-                _mp_lines.append(f"  IF: {_if}\n  THEN: {_then}")
-            _mp_str = (
-                "## Known ARC-AGI-3 mechanics (from rule base — treat as ground truth)\n"
-                + "\n\n".join(_mp_lines)
-                + "\n\n"
-            ) if _mp_lines else ""
-
-            _user_ctx = (
-                f"## Current game state\n"
-                f"env_id: {env_id}\n"
-                f"level: {_levels_after_reset + 1}\n"
-                f"frame: {_h}x{_w}\n"
-                f"steps_remaining: {max_steps - step_count}\n"
-                f"actions_tried: {_tried}\n"
-                f"actions_untried: {', '.join(_untried_actions) or '(none)'}\n\n"
-                f"{_mp_str}"
-                f"{_stuck_block}"
-                f"## Prior hypothesis (from last cycle — verify against known mechanics above before accepting)\n"
-                f"{_prior_hypo}\n\n"
-                f"## Recent action outcomes (most recent last)\n"
-                f"{_recent_str}\n\n"
-                f"Use your tools to verify or refine the hypothesis. "
-                f"If a recent action hit a wall, do NOT plan to repeat it. "
-                f"If the prior hypothesis contradicts a known mechanic above, REPLACE it. "
-                f"Start with recall_concepts."
-            )
-            obs_text, _observer_ms, _agent_stats = await run_observer_agent(
-                current_frame=_curr_frame,
-                previous_frame=_last_obs_frame or None,
-                action_effects=state_manager._data.get("action_effects") or {},
-                objects_summary=_objects_summary,
+        elif COMPETITION_MODE and (_frame_diff > 3 or not _obs_text_current):
+            # --- COMPETITION MODE OBSERVER ---
+            # Use the cheap single-call run_observer (same as non-competition).
+            # The 4-turn tool-loop (run_observer_agent) costs up to 4x more per
+            # cycle and provides no meaningful benefit when BFS-direct handles
+            # all navigation — the OBSERVER output is only used in the rare
+            # NO-PATH fallback cycles.
+            obs_text, _observer_ms = await run_observer(
+                obs,
+                available_actions,
+                action_history,
+                rules_section=rules_section,
+                action_effects=state_manager._data.get("action_effects"),
                 concept_bindings=concept_bindings,
-                episode_meta={
-                    "env_id": env_id,
-                    "level": _levels_after_reset + 1,
-                    "step": step_count,
-                },
-                user_context=_user_ctx,
+                steps_remaining=max_steps - step_count,
+                known_dynamic_colors=known_dynamic_colors,
+                explored_colors=explored_colors,
+                action_directions=action_directions,
+                contact_events=contact_events,
                 verbose=verbose,
             )
             _last_obs_frame = [row[:] for row in _curr_frame]
-            log(
-                f"  [OBSERVER] competition agent: turns={_agent_stats['turns']} "
-                f"tool_calls={_agent_stats['tool_calls']} "
-                f"recorded={len(_agent_stats['recorded'])} "
-                f"confirmed={len(_agent_stats['confirmed'])}"
-            )
+            _llm_cycles_used += 1
+            log(f"  [OBSERVER] competition single-call (llm_cycles={_llm_cycles_used})")
             # Inject top recalled concepts into the MEDIATOR's rules_section.
             # This closes the producer->consumer loop: concepts the agent has
             # learned (in this episode or previous ones) are surfaced to the
@@ -1631,48 +2362,59 @@ async def run_episode(
                 ep_log._write(f"  [CONCEPTS] {summary}")
 
         # ------------------------------------------------------------------
-        # Round 2: MEDIATOR
+        # Round 2: MEDIATOR (skipped in BFS-direct mode)
         # ------------------------------------------------------------------
-        _t0 = time.time()
-        # Fix 2: cap action history at 6 entries for MEDIATOR — the
-        # `## Recent action outcomes` already sent to OBSERVER covers last 8
-        # steps compactly; the full 15-entry history is redundant.
-        _mediator_history = action_history[-6:] if action_history else []
+        _mediator_ms = 0  # default; overwritten below when mediator runs
+        if not _bfs_direct_mode:
+          _t0 = time.time()
+          # Fix 2: cap action history at 6 entries for MEDIATOR — the
+          # `## Recent action outcomes` already sent to OBSERVER covers last 8
+          # steps compactly; the full 15-entry history is redundant.
+          _mediator_history = action_history[-6:] if action_history else []
 
-        # Fix 3: in COMPETITION_MODE the OBSERVER already summarises the
-        # frame; sending structural_str to MEDIATOR again is double-billing.
-        _mediator_struct = "" if COMPETITION_MODE else structural_str
+          # Fix 3: in COMPETITION_MODE the OBSERVER already summarises the
+          # frame; sending structural_str to MEDIATOR again is double-billing.
+          _mediator_struct = "" if COMPETITION_MODE else structural_str
 
-        _gk = _load_default_gk_registry()
-        _game_knowledge_str = _build_game_knowledge_section(
-            _gk, env_id, levels_now + 1
-        )
-        _bfs_nav_str = _compute_bfs_nav_section(
-            frame=_curr_frame,
-            game_id=env_id,
-            level=levels_now + 1,
-            gk_registry=_gk,
-            action_history=action_history,
-        )
-        if _bfs_nav_str:
-            _game_knowledge_str = (
-                (_game_knowledge_str + "\n" if _game_knowledge_str else "")
-                + _bfs_nav_str
-            )
+          _gk = _load_default_gk_registry()
+          _game_knowledge_str = _build_game_knowledge_section(
+              _gk, env_id, levels_now + 1
+          )
+          _bfs_nav_str = _compute_bfs_nav_section(
+              frame=_curr_frame,
+              game_id=env_id,
+              level=levels_now + 1,
+              gk_registry=_gk,
+              action_history=action_history,
+              level_initial_frame=_level_initial_frame,
+              concept_bindings=state_manager._data.get("concept_bindings"),
+              history_start_idx=_level_history_start,
+              tracked_player_colors=_tracked_player_colors,
+          )
+          if _bfs_nav_str:
+              _game_knowledge_str = (
+                  (_game_knowledge_str + "\n" if _game_knowledge_str else "")
+                  + _bfs_nav_str
+              )
 
-        action_plan, med_text, _med_ms = await run_mediator(
-            obs_text,
-            rules_section=rules_section,
-            tools_section=tools_section,
-            action_history=_mediator_history,
-            available_actions=available_actions,
-            state_section=_gs,
-            action_directions=action_directions if action_directions else None,
-            structural_context_str=_mediator_struct,
-            game_knowledge_section=_game_knowledge_str,
-            verbose=verbose,
-        )
-        _mediator_ms = int((time.time() - _t0) * 1000)
+          action_plan, med_text, _med_ms = await run_mediator(
+              obs_text,
+              rules_section=rules_section,
+              tools_section=tools_section,
+              action_history=_mediator_history,
+              available_actions=available_actions,
+              state_section=_gs,
+              action_directions=action_directions if action_directions else None,
+              structural_context_str=_mediator_struct,
+              game_knowledge_section=_game_knowledge_str,
+              verbose=verbose,
+          )
+          _mediator_ms = int((time.time() - _t0) * 1000)
+          # Count this as an LLM cycle (observer+mediator both ran)
+          if COMPETITION_MODE:
+              _cost_now = get_cost_tracker().cost_usd()
+              print(f"  [GATE] LLM cycle {_llm_cycles_used} complete "
+                    f"(cumulative cost=${_cost_now:.3f})", flush=True)
 
         _med_plan_current  = action_plan
         _med_reason_current = _extract_reasoning(med_text)
@@ -1836,13 +2578,57 @@ async def run_episode(
             except Exception:
                 _step_diff = -1
 
+            # Record player position alongside diff so CHANGER detection
+            # can use position (not just diff) to avoid false positives from
+            # the rotated-sprite diff spike that follows a real CHANGER visit.
+            # _tracked_player_colors adapts when a color-changer alters the
+            # player sprite color (e.g. level 3: color 12 → 9 after visit).
+            try:
+                from nav_bfs import find_player_position as _fppos2
+                _ppos2 = _fppos2(obs_frame(obs), _tracked_player_colors)
+                if _ppos2 is None and _step_diff > 50:
+                    # Player color may have changed — infer from frame diff
+                    from dynamic_discovery import infer_player_colors_from_diff
+                    _inferred_pc = infer_player_colors_from_diff(
+                        frame_before, obs_frame(obs)
+                    )
+                    if _inferred_pc:
+                        # Exclude walkable colors from inferred set
+                        _wc_set = set(_gk_init.get("walkable_colors") or [])
+                        _inferred_pc -= _wc_set
+                    if _inferred_pc:
+                        _ppos2 = _fppos2(obs_frame(obs), _inferred_pc)
+                        if _ppos2 is not None:
+                            _tracked_player_colors = _inferred_pc
+                            print(f"  [HYP] player color updated: "
+                                  f"{_tracked_player_colors}", flush=True)
+            except Exception:
+                _ppos2 = None
             action_history.append({
-                "action": action_name,
-                "data":   data,
-                "levels": levels_after,
-                "state":  state_after,
-                "diff":   _step_diff,
+                "action":      action_name,
+                "data":        data,
+                "levels":      levels_after,
+                "state":       state_after,
+                "diff":        _step_diff,
+                "player_pos":  _ppos2,
+                "frame_before": frame_before,
             })
+
+            # Always-on progress line: step / action / diff / player pos / levels.
+            # P1: use _tracked_player_colors (adaptive), not re-read from gk.
+            try:
+                from nav_bfs import find_player_position as _fppos
+                _ppos = _fppos(obs_frame(obs), _tracked_player_colors)
+            except Exception:
+                _ppos = "?"
+            _changer_flag = " *** LARGE DIFF ***" if _step_diff > 80 else ""
+            _level_flag   = f" -> LEVEL {levels_after}!" if levels_after > levels_before else ""
+            print(
+                f"  step {step_count:3d} {action_name:8s} "
+                f"diff={_step_diff:4d} pos={str(_ppos):12s} "
+                f"L={levels_after}{_changer_flag}{_level_flag}",
+                flush=True,
+            )
 
             # Write playlog for this step (use live state so action_effects show up)
             if playlog_dir is not None:
@@ -2115,11 +2901,78 @@ async def run_episode(
             if levels_after > levels_before:
                 last_matched = []  # force rule re-match on new level
                 _last_obs_frame = []  # force OBSERVER re-run on new level
+                _level_just_changed = True  # next cycle: skip stale transition frame
                 log(f"  [ACTOR] Level advanced: {levels_before} -> {levels_after}")
                 ep_log.level_advance(levels_before, levels_after)
-                if playlog_root is not None:
-                    save_level_frame(obs_frame(obs), env_id, levels_after, playlog_root)
-                    log(f"  [FRAME] Saved frame image for level {levels_after + 1}")
+                # Persist discovered knowledge for this level (RC visits, color roles).
+                # This allows future episodes to navigate without hardcoded data.
+                try:
+                    from dynamic_discovery import (
+                        update_discovered_knowledge,
+                        build_level_model,
+                        load_discovered_knowledge,
+                        get_n_rc_visits,
+                    )
+                    _HERE_UC = Path(__file__).resolve().parent
+                    _DK_PATH_UC = _HERE_UC / "discovered_knowledge.json"
+                    _dk_now = load_discovered_knowledge(_DK_PATH_UC)
+                    _completed_level = levels_before + 1  # 1-indexed
+                    # Count RC visits for this level (from history since level start)
+                    # P1: use game_knowledge priors, no hardcoded fallbacks.
+                    _pc_uc = set(_tracked_player_colors)
+                    _wc_uc = set(_gk_init.get("walkable_colors") or [])
+                    _ss_uc = _gk_init.get("step_size", 1)
+                    _lif_uc = _level_initial_frame
+                    _cb_uc = state_manager._data.get("concept_bindings") or {}
+                    _curr_f_uc = obs_frame(obs)
+                    _ppos_uc = find_player_position(_curr_f_uc, _pc_uc)
+                    _model_uc = build_level_model(
+                        initial_frame=_lif_uc,
+                        current_frame=_curr_f_uc,
+                        action_history=action_history,
+                        walkable_colors=_wc_uc,
+                        player_colors=_pc_uc,
+                        step_size=_ss_uc,
+                        player_pos=_ppos_uc,
+                        concept_bindings=_cb_uc,
+                        history_start_idx=_level_history_start,
+                        last_reset_idx=-1,
+                    )
+                    # Count confirmed RC visits in this level cycle
+                    _rc_set_uc = {tuple(p) for p in _model_uc.rc_positions}
+                    _rc_v_uc = sum(
+                        1 for _si in range(_level_history_start, len(action_history))
+                        if tuple(action_history[_si].get("player_pos") or ()) in _rc_set_uc
+                    )
+                    if _rc_set_uc and get_n_rc_visits(_dk_now, env_id, _completed_level) is None:
+                        # Save rc_visits and color roles for this level.
+                        # Use the SPRITE color from model.candidates (the
+                        # color of the non-walkable overlay), not the floor
+                        # pixel at the grid anchor which is walkable.
+                        _color_roles_uc: dict[int, str] = {}
+                        _cands_uc = _model_uc.candidates
+                        for _rp in _model_uc.rc_positions:
+                            _rcolor = _cands_uc.get(tuple(_rp), -1)
+                            if _rcolor > 0:
+                                _color_roles_uc[_rcolor] = "rotation_changer"
+                        for _rng in _model_uc.ring_positions + _model_uc.consumed_rings:
+                            _rng_color = _cands_uc.get(tuple(_rng), -1)
+                            if _rng_color > 0:
+                                _color_roles_uc[_rng_color] = "step_counter_ring"
+                        if _model_uc.win_gate:
+                            _wg_color = _cands_uc.get(tuple(_model_uc.win_gate), -1)
+                            if _wg_color > 0:
+                                _color_roles_uc[_wg_color] = "win_gate"
+                        update_discovered_knowledge(
+                            _DK_PATH_UC, env_id, _completed_level,
+                            rc_visits=_rc_v_uc if _rc_v_uc > 0 else None,
+                            color_roles=_color_roles_uc or None,
+                        )
+                except Exception as _dk_err:
+                    log(f"  [DISCOVER] persistence error (non-fatal): {_dk_err}")
+                # NOTE: frame image is saved by the stale-frame guard in the
+                # next cycle (after one neutral step), so we get the real new-
+                # level layout rather than the WIN transition frame.
                 # Reset per-level observation counts in concept bindings so
                 # short-term (level) and long-term (lifetime) stats stay distinct
                 bindings_now = state_manager._data.get("concept_bindings") or {}

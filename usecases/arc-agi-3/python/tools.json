@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "tools": [
+    {
+      "name": "count_changer_visits",
+      "code": "def count_changer_visits(start_idx, goal_idx, cycle_len=4):\n    \"\"\"\n    Return the minimum number of CHANGER visits needed to\n    advance from start_idx to goal_idx in a circular cycle\n    of length cycle_len (e.g. rotation or color index).\n    Returns 0 if already at goal.\n    Learned from ARC-AGI-3 bootstrap tour.\n    \"\"\"\n    return (goal_idx - start_idx) % cycle_len\n",
+      "tool_type": "code",
+      "verified": true,
+      "source_task": "ls20_bootstrap_l1",
+      "description": "Return visits needed to advance from start_idx to goal_idx in a circular changer cycle (e.g. rot or color index).",
+      "fix_attempts": 0,
+      "scope": "global",
+      "tags": [],
+      "created": "2026-04-08T14:06:57"
+    },
+    {
+      "name": "player_at_goal_state",
+      "code": "def player_at_goal_state(rot_idx, color_idx, goal_rot, goal_color):\n    \"\"\"\n    True when the player's current rotation and color indices\n    match the level's goal state.\n    Learned from ARC-AGI-3 bootstrap tour.\n    \"\"\"\n    return rot_idx == goal_rot and color_idx == goal_color\n",
+      "tool_type": "code",
+      "verified": true,
+      "source_task": "ls20_bootstrap_l1",
+      "description": "True when player rot_idx and color_idx match the level goal state.",
+      "fix_attempts": 0,
+      "scope": "global",
+      "tags": [],
+      "created": "2026-04-08T14:06:57"
+    }
+  ]
+}

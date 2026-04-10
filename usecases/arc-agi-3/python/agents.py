@@ -196,12 +196,16 @@ def format_action_history(history: list[dict], last_n: int = 12) -> str:
         data_str = f" {h['data']}" if h.get("data") else ""
         diff = h.get("diff", -1)
         diff_str = f" diff={diff}" if diff >= 0 else ""
-        # Flag abnormally large diffs — may indicate a CHANGER cell was visited
+        ppos = h.get("player_pos")
+        pos_str = f" pos={ppos}" if ppos is not None else ""
+        # Flag abnormally large diffs — may indicate a CHANGER cell was visited.
+        # Only flag as confirmed CHANGER if the player is AT a changer cell;
+        # the rotated sprite causes a spurious spike on the step immediately after.
         changer_flag = " [*** LARGE DIFF — possible CHANGER visited ***]" if diff > 80 else ""
         lines.append(
             f"  Step {offset + i + 1}: "
             f"{h['action']}{data_str}"
-            f" → levels={h['levels']} state={h['state']}{diff_str}{changer_flag}"
+            f" → levels={h['levels']} state={h['state']}{diff_str}{pos_str}{changer_flag}"
         )
     return "\n".join(lines)
 
