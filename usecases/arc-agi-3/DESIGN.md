@@ -50,10 +50,11 @@ while steps < max_steps and cycles < max_cycles and state != WIN/GAME_OVER:
         RuleEngine retrieves candidate+active rules matching current state
 
     Round 1: OBSERVER
-        Input:  frame (64×64 grid), current objects, concept_bindings, trend predictions,
+        Input:  frame (64×64 grid), current StateStore facts (objects, roles, world),
                 action effects table, action history, matched rules
         Output: JSON with level_description, visual_observations, action_characterizations,
-                identified_objects, concept_bindings, hypothesized_goal, reasoning
+                identified_objects, role assignments, hypothesized_goal, reasoning
+                → writes StateFact/RelFact entries to StateStore
                 All inferences labeled [GUESS] or [CONFIRMED]
 
     Round 2: MEDIATOR
@@ -61,9 +62,9 @@ while steps < max_steps and cycles < max_cycles and state != WIN/GAME_OVER:
         Output: JSON with action_plan, rule_updates, goal_updates, state_updates, reasoning
 
     Parse updates:
-        - Merge concept_bindings from OBSERVER into state
-        - Apply goal_updates and state_updates from MEDIATOR
-        - Add rule_updates (all forced to "candidate" status)
+        - OBSERVER writes object/role facts to StateStore (replaces concept_bindings merge)
+        - MEDIATOR writes goal/strategy facts to StateStore (replaces state_updates)
+        - Rule updates added to rule engine (all forced to "candidate" status)
 
     Round 3: ACTOR — for each action in plan:
         env.step(action)
@@ -140,33 +141,39 @@ can see them clearly, but no semantic meaning is hardcoded.
 
 **Why:** Hardcoding "color12 = cursor" breaks the moment a different game uses color12
 for something else, or the same game changes. Roles must be discovered through exploration
-and stored in concept_bindings.
+and stored as `StateFact` entries in the StateStore (see D3).
 
 **What is allowed:** Rendering distinction (different char per color value). Not allowed:
 pre-assigning semantic names to specific color integers in any prompt or constant.
 
 ---
 
-### D3 — Concept bindings schema (two-level, game-local)
+### D3 — Object roles live in the StateStore, not in a separate bindings dict
 
-`state_manager._data["concept_bindings"]` uses two schemas:
+~~Previously, concept bindings were a two-level dict (`{color: role}` + `{"wall_colors": [...]}`)
+stored in `state_manager._data`. This is superseded by the StateStore.~~
 
-1. `{color_int: role_name}` — color-keyed, proposed by OBSERVER per episode
-   Example: `{12: "player_piece", 11: "step_counter"}`
+Object roles are now `StateFact` entries:
 
-2. `{"wall_colors": [c, ...]}` — concept-keyed list, populated by wall detection
-   Example: `{"wall_colors": [4, 5]}`
+```
+@(obj, <id>, "role")  →  "player" | "wall" | "goal" | "step_counter" | ...
+```
 
-**Critical invariant:** ALL concept_bindings are game-local and episode-local.
-StateManager is created fresh each episode — nothing persists across episodes by design.
-The same color may mean different things in different games.
+**Source tracking replaces the two schemas.** The old `{color: role}` (OBSERVER guess)
+vs `{"wall_colors": [...]}` (behavioral confirmation) distinction is captured by the
+`source` and `confidence` fields of `StateFact`:
+- OBSERVER's initial guess: `source="observed", confidence=0.5`
+- Behavioral confirmation (wall blocked movement): `source="rule", confidence=0.9`
 
-**Why two schemas:** The wall concept travels across games (the concept "wall" is stable)
-but the color instantiation does not. Storing it as `{"wall_colors": [...]}` separates the
-concept name from the color, whereas `{4: "wall"}` would conflate them.
+**Scope replaces the "episode-local" invariant.** Role facts have `scope="level"` or
+`scope="episode"` — cleared at the appropriate boundary. Cross-game concept knowledge
+lives in concept facts (`scope="game"` or persistent) separate from concrete role
+assignments.
 
-**Role name vocabulary:** OBSERVER must use generic names: `player_piece`, `step_counter`,
-`goal_region`, `reference_pattern`, `wall`. Not game-specific names.
+**Role name vocabulary:** OBSERVER assigns generic role names from its own common-sense
+vocabulary. No fixed enumeration — the LLM-as-ontology-engine principle means the
+system's concept vocabulary grows with what it encounters (see "LLM as the Ontology
+Engine" section).
 
 ---
 
@@ -213,10 +220,15 @@ When a step produces no movement on an object that has moved before under the sa
 1. `infer_typical_direction()` retrieves the most common move direction for this action
 2. `detect_wall_contacts()` scans cells immediately beyond the object's bounding box in
    that direction and counts colors found there
-3. Those colors are added to `concept_bindings["wall_colors"]` (game-local)
+3. Adjacent cells are assigned `@(obj, X, "role") := "wall"` in the StateStore via a
+   concept-binding rule (T4). The concept fact `@(concept, "wall", "discriminator") =
+   "blocks movement, immovable"` is written once and persists.
 
 **Why color-agnostic:** Wall color varies between games. The concept "wall" is stable;
-the color is not. We discover it per-game rather than assuming any color is always a wall.
+the color is not. The concept-binding rule maps the concrete color to the abstract role,
+so a wall-color change in a new level only requires re-learning the binding rule — the
+abstract movement rules that check `role ≠ "wall"` survive unchanged (see Rule
+Abstraction Ladder).
 
 ---
 
@@ -260,10 +272,15 @@ Everything in `game_knowledge.json` — `player_colors`, `walkable_colors`, `ste
 different game (or even a slightly altered version of the same game). They serve only as
 starting guesses until the system has gathered enough observations to replace them.
 
-**Implementation:** `GameHypothesis` dataclass holds `prior_*` (from game_knowledge.json)
-and `obs_*` (filled by inference functions at runtime). `effective_*` properties return
-the observed value when available, falling back to the prior. All downstream code
-uses `effective_*`, never the raw priors.
+**Implementation:** Initial hypotheses from `game_knowledge.json` are loaded as
+`StateFact` entries with `source="prior"` and low confidence (e.g., 0.3). As the
+system observes evidence, inference rules write higher-confidence facts with
+`source="inferred"` or `source="observed"` that supersede the priors. All downstream
+code reads from the StateStore, which returns the highest-confidence fact for each key.
+
+~~The former `GameHypothesis` dataclass with `prior_*`/`obs_*`/`effective_*` properties
+is superseded by this mechanism — the StateStore's confidence-ranked facts provide the
+same prior→observed fallback behavior without a separate data structure.~~
 
 **Corollary:** Any hardcoded filter, threshold, or heuristic that assumes specific
 properties of a particular game is a design violation. If the system relies on
@@ -276,47 +293,60 @@ will break on a different game that doesn't match those assumptions.
 
 The OBSERVER (LLM) looks at the game frame with human-like vision and common sense.
 It identifies what objects exist, what they look like, and what role they may play (toggle,
-changer, wall, player, status bar, etc.). It writes these identifications to
-`concept_bindings`. These are to be treated as initial hypotheses, since they could be wrong.
+changer, wall, player, status bar, etc.). It writes these identifications as `StateFact`
+and `RelFact` entries in the StateStore. These are initial hypotheses at low confidence —
+they may be wrong, and behavioral evidence (P3) can overwrite them.
 
-The Python frame analysis code (`find_sprite_cells`, `build_level_model`) only does
-**position mapping**: given a color that the OBSERVER says is interesting, where does
-that color appear on the game grid? The Python code may override or
-second-guess the OBSERVER's object identification with sufficient evidence.
+The OBSERVER is also the source of **initial concept labels** — from the very first
+frame, before any interaction, it guesses roles for all visible objects. This gives
+the rule system a starting vocabulary immediately (see "LLM as the Ontology Engine").
+
+The Python frame analysis code (perception tools) only does **position mapping**:
+given an object ID that the OBSERVER has registered, where does it appear on the
+game grid? The Python tool may also flag evidence that contradicts the OBSERVER's
+labels (e.g., a "wall" that moved), which triggers concept refinement.
 
 **Division of labor:**
 
 | Responsibility                        | Who does it       |
 |---------------------------------------|-------------------|
-| "The yellow ring is a step-counter"     | OBSERVER (LLM)    |
-| "The yellow rings appears near cells (19,30) and (34,15)" | Python frame scan |
-| "Those are ring_positions in the model"| `build_level_model` (joins the above) |
-| "The yellow bar at the bottom is the HUD, not a ring" | OBSERVER (LLM) |
+| "That yellow ring is a step-counter"   | OBSERVER (LLM) → `@(obj, 5, "role") := "step_counter"` |
+| "Yellow pixels at (19,30) and (34,15)" | Perception tool (Python) |
+| "The yellow bar at the bottom is HUD"  | OBSERVER (LLM) → `@(obj, 8, "role") := "hud"` |
+| "Object 3 blocks movement"            | Rule engine (T4 concept-binding rule) |
+| "Object 3's role should split"         | OBSERVER/MEDIATOR (concept split, LLM call) |
 
-Python code may not
-filter, exclude, or re-classify candidates
-based on heuristics (dominant color frequency, pixel count thresholds, screen
-region). These are the MEDIATOR and OBSERVER's job.
+Python code may not filter, exclude, or re-classify candidates based on
+heuristics (dominant color frequency, pixel count thresholds, screen region).
+Classification is the OBSERVER's job; refinement is the rule engine's job;
+ambiguity resolution is the MEDIATOR's job.
 
 ---
 
 ### P3 — Object discovery is behavioral, not static
 
 Objects are discovered by **what happens when you interact with them**, not by
-how they look in a single frame.
+how they look in a single frame. The OBSERVER provides initial role guesses
+from the first frame (P2), but these are hypotheses at low confidence.
+Behavioral evidence writes higher-confidence role facts that supersede them.
 
-| Observation                                        | Classification    |
+| Observation (delta pattern)                        | Role fact written  |
 |----------------------------------------------------|-------------------|
-| Large pixel diff at position, no level advance     | State changer (RC, color-changer, etc.) |
-| Level advance while standing at position           | Win gate           |
-| Object disappears from frame after being visited   | Consumable (ring)  |
-| Step counter bar grows after visiting position     | Step-counter reset |
-| Player didn't move despite taking an action        | Wall / blocked     |
+| Large pixel diff at position, no level advance     | `@(obj, X, "role") := "state_changer"` |
+| Level advance while standing at position           | `@(obj, X, "role") := "goal"` |
+| Object disappears from frame after being visited   | `@(obj, X, "role") := "consumable"` |
+| Counter object grows after visiting position       | `@(obj, X, "role") := "resource_reset"` |
+| Agent didn't move despite taking an action         | `@(obj, X, "role") := "wall"` |
+| Object moves when pushed                           | Concept split: "wall" → "wall" + "pushable" |
 
-A single frame can identify *candidates* (non-floor, non-player pixels), but
-classification requires observing behavior over time. The system should never
-assume an object's role from its color or appearance alone — it must confirm
-through interaction.
+Each row corresponds to a T4 concept-binding rule in the rule engine. The
+rules fire on delta events and write role facts to the StateStore. The role
+vocabulary is open-ended — the OBSERVER names new roles as needed (see
+"LLM as the Ontology Engine").
+
+A single frame can identify *candidates* (non-background, non-agent pixels), but
+classification requires observing behavior over time. The OBSERVER's initial
+labels are starting hypotheses; behavioral confirmation raises their confidence.
 
 ---
 
@@ -337,51 +367,81 @@ mid-level or change state dynamically.
 
 ---
 
-### P5 — Player state tracking must be adaptive
+### P5 — Agent state tracking must be adaptive
 
-The player's visual appearance (color, shape, rotation) changes during gameplay
-as the player visits state-changers. The system must track these changes and
-update its internal model accordingly — it cannot assume the player always looks
+The agent's visual appearance (color, shape, rotation) changes during gameplay
+as it interacts with state-changers. The system must track these changes and
+update its internal model accordingly — it cannot assume the agent always looks
 the same as it did at level start.
 
-**Current implementation:** `_tracked_player_colors` starts from the
-game_knowledge prior and updates whenever `find_player_position` fails but a
-frame diff reveals a new moving cluster. Resets to prior on level advance.
+**Implementation via StateStore:** The agent's appearance is stored as mutable
+facts: `@(obj, agent_id, "colors")`, `@(obj, agent_id, "shape_hash")`,
+`@(obj, agent_id, "rotation")`. When the perception tool detects that the
+agent has changed appearance (frame diff reveals the old agent-colored cluster
+disappeared and a new one appeared), it updates these facts. A delta event
+fires, which downstream rules can react to.
 
-**General principle:** Any game property that can change during play (player
-color, player shape, walkable set, action semantics) must be tracked as a
-mutable variable, not stored as a constant.
+**General principle:** Any environment property that can change during play
+(agent appearance, traversable regions, action semantics) must be a `StateFact`
+with appropriate scope — not a constant or a one-time assignment. The scope
+lifecycle handles resetting on level advance.
 
 ---
 
-### P6 — Inference functions are independent and fallible
+### P6 — Inference is independent, fallible, and expressed as rules
 
-Each inference function (`infer_step_size`, `infer_action_directions`,
-`infer_walkable_from_visits`, `infer_player_colors_from_diff`) operates
-independently. Each can fail (return `None`) without affecting the others.
-When an inference fails, the system falls back to the prior hypothesis
-from game_knowledge.json.
+Each type of inference (step size, action directions, traversable regions,
+agent appearance) operates independently. Each can fail without affecting
+the others. When an inference has not yet produced a result, the system
+falls back to the prior-confidence facts loaded from initial hypotheses.
+
+**Implementation via rules:** Each inference is a rule (or small rule chain)
+in the rule engine. For example:
+
+- T8 rule: after observing two agent displacements of the same magnitude,
+  write `@(world, "step_size") := magnitude, confidence=0.8`
+- T1 rule: after observing `ACTION1 → displacement(0, -N)`, write
+  `@(world, "action_map", "ACTION1") := "UP", confidence=0.9`
 
 This means the system degrades gracefully: on the first step with no history,
-all inferences fail and the system runs entirely on priors. As history
-accumulates, inferences override priors one by one. There is no single
-point of failure.
+no inference rules have fired and the system runs entirely on prior-confidence
+facts. As history accumulates, higher-confidence facts from fired rules
+supersede the priors one by one. There is no single point of failure.
 
-Hard-coded inference functions should be considered as temporary measures, since later we would want to allow such functions to be learned as well. 
+**Temporary hard-coded inference functions** (e.g., `infer_step_size`) may
+exist during the transition to the rule-based architecture. These are
+intermediate implementations that will be replaced by T8 rules as the rule
+engine matures. They are not part of the target design.
 
 ---
 
-### P7 — discovered_knowledge.json persists cross-episode facts
+### P7 — Cross-episode knowledge persists via scope and persistence tiers
 
-Facts confirmed through successful gameplay (e.g., "level 1 requires 2 RC
-visits", "color 3 = rotation_changer") persisted to
-`discovered_knowledge.json` so future episodes don't have to re-discover them.
+Facts confirmed through successful gameplay (e.g., "level 1 requires visiting
+a state-changer before the goal", "color 3 objects have role=state_changer")
+persist in the StateStore with `scope="game"` or `persistence="persistent"`.
+Future episodes begin with these facts already loaded, avoiding re-discovery.
 
-The matching with previous facts must be fuzzy, so that the persisted facts can be generalized appropriately to cover similar (but not exactly matched) situations. Generalized and validated "facts" are also registered in the `discovered_knowledge.json`. There should be suitable triggering mechanism not only to allow fuzzy matching, but also support efficient triggering of very large knowledge store.
+**Scope-based persistence replaces `discovered_knowledge.json`.** The StateStore's
+scope lifecycle (`step < level < episode < game`) and persistence tier
+(`volatile < session < persistent`) provide the same layered persistence
+without a separate file. Facts written with `scope="game"` survive across
+episodes within a run; facts with `persistence="persistent"` survive across
+runs (serialized to disk).
 
-This is complementary to concept_bindings (which are episode-local and proposed
-by the OBSERVER). Discovered knowledge is **confirmed** — it came from a
-successful level completion, not from unconfirmed hypotheses.
+**Generalization of persisted facts.** A fact confirmed in one level
+(e.g., `color=5 → role="wall"`) is a concrete binding. Through the rule
+abstraction ladder, it may generalize to a concept-level fact
+(`@(concept, "wall", "discriminator") = "blocks movement"`) that transfers
+across levels and games. The concrete binding is level-scoped; the concept
+fact is game-scoped or persistent.
+
+**Rule-based matching replaces fuzzy matching.** Rather than fuzzy string
+matching against a knowledge file, the rule engine matches incoming
+observations against existing concept facts and rules. A T4 concept-binding
+rule fires when it sees evidence matching a known concept's discriminator —
+this is structural matching, not string similarity, and scales to large
+knowledge stores through the rule engine's indexing.
 
 ---
 
@@ -707,6 +767,324 @@ CONFIDENCE  — how certain this rule is (propagated to written facts)
 
 Rules at every tier read and write `StateStore` facts. No tier has a privileged
 code path — a T1 rule and a T9 rule are both `(condition, effect, confidence)` triples.
+
+---
+
+### Rule Abstraction Ladder
+
+Rules are not static. A rule evolves through levels of abstraction as the
+system accumulates evidence, encounters failures, and extracts concepts.
+This progression is the mechanism by which the system transfers knowledge
+across levels, games, and domains.
+
+#### The four levels
+
+**Level 0 — Raw observation (T1).** Direct correlation from a single episode:
+
+```
+ACTION1  →  Δ(obj, agent, position.x) = +step_size
+```
+
+Confidence: 0.80. Sometimes fails; the system doesn't yet know why.
+
+**Level 1 — Specialized with concrete condition (T6).** After observing that
+ACTION1 fails when a specific concrete condition holds:
+
+```
+ACTION1
+  ∧ adj(agent, RIGHT).color ≠ 5
+  →  Δ(obj, agent, position.x) = +step_size
+```
+
+Confidence: 0.95. Fewer failures, but the condition `color ≠ 5` is brittle —
+it breaks if wall color changes in level 2.
+
+**Level 2 — Concept extraction (T4 + T6).** The concrete condition is replaced
+by an abstract concept. Two rules replace one:
+
+Rule A — *concept binding* (maps concrete attribute to abstract role):
+```
+obj.color = 5
+  ∧ agent failed to enter obj.position
+  →  @(obj, X, role) := "wall"
+```
+
+Rule B — *abstract movement* (references role, not color):
+```
+ACTION1
+  ∧ adj(agent, RIGHT).role ≠ "wall"
+  →  Δ(obj, agent, position.x) = +step_size
+```
+
+If wall color changes from 5 to 7 in a new level, only Rule A needs
+re-learning. Rule B survives intact.
+
+**Level 3 — Full generalization (T8 + T6).** The direction mapping itself
+is extracted as a parameterized concept:
+
+Rule C — *action-direction binding*:
+```
+ACTION1 → direction := RIGHT
+ACTION2 → direction := LEFT
+ACTION3 → direction := UP
+ACTION4 → direction := DOWN
+```
+
+Rule D — *universal movement*:
+```
+ACTION(X)
+  ∧ X.direction = D
+  ∧ adj(agent, D).role ≠ "wall"
+  →  Δ(obj, agent, position) += D.unit_vector × step_size
+```
+
+A single movement rule now handles all four directions. The only
+game-specific knowledge is in Rules A (what is a wall) and C (which
+button maps to which direction) — both are cheap leaf rules that re-learn
+quickly on game or level change.
+
+#### What transfers across contexts
+
+| Scenario | Level 1 (concrete) | Level 2+ (abstract) |
+|----------|-------------------|---------------------|
+| New level changes wall color 5 → 7 | Rule breaks, must re-learn from scratch | Rule B survives; only Rule A re-learns |
+| Different game uses color 5 as floor | Rule wrongly avoids color 5 | Rule A never fires (no blocked evidence), color 5 gets `role="floor"` |
+| Wall becomes invisible (no color cue) | Cannot represent | Rule A learns from blocked movement alone, no color needed |
+| Action buttons remapped | Level 3 Rule D breaks | Only Rule C re-learns; Rule D survives |
+
+Each level separates **what changes between contexts** (color=5, ACTION1=RIGHT)
+from **what is invariant** (walls block movement, actions cause directional
+displacement). Invariant parts survive; variant parts are cheap leaf rules.
+
+---
+
+### Triggers for Climbing and Descending the Ladder
+
+The system does not generalize or specialize on a fixed schedule. Specific
+evidence patterns trigger transitions between abstraction levels.
+
+#### Climbing (generalization)
+
+**Repeated observation.** When the system observes the same pattern across
+multiple contexts (different levels, different episodes), the recurring
+structure is a candidate for extraction. For example, if `color=5 → blocked`
+holds across three levels, the concept "wall" is worth extracting even if
+the OBSERVER hasn't named it yet.
+
+**Concept ladder match.** When a concrete condition in a Level 1 rule
+(e.g., `color=5`) also appears in a concept fact written by the OBSERVER
+(e.g., `@(concept, "wall", "indicators") contains color=5`), the system
+can immediately generalize to Level 2 by referencing the concept instead
+of the concrete value. This is the fast path — the OBSERVER's common-sense
+knowledge short-circuits what would otherwise require many episodes of
+bottom-up pattern extraction.
+
+**OBSERVER top-down labeling.** The OBSERVER is prompted to label objects
+and roles from the very first frame, before any interaction. These initial
+guesses (at low confidence) provide a starting concept vocabulary that
+rules can reference immediately. As behavioral evidence accumulates
+(the labeled "wall" actually blocks movement), confidence rises. If a
+label is wrong, low evidence makes it cheap to overwrite.
+
+#### Descending (specialization)
+
+**Confidence drop.** When a rule's confidence falls below a threshold
+(e.g., < 0.7 after N failures), the system looks for a discriminating
+condition between its success and failure cases, then creates a more
+specialized version.
+
+**Concept splitting.** When an abstract concept starts producing
+contradictory evidence (e.g., some "walls" move when pushed, others
+don't), the concept splits into sub-concepts. Split types include:
+
+- *Behavioral split:* Same appearance, different response to action
+  (wall vs pushable vs breakable).
+- *Conditional split:* Same object, different behavior depending on state
+  (locked door vs unlocked door).
+- *Contextual split:* Same concept, different meaning in different phases
+  (color 5 is floor in phase 1, hazard in phase 2).
+- *Compositional split:* Concept conflates independent properties
+  (color=5 means "wall AND blue" but wall-ness and blue-ness are
+  independent).
+
+Splits are triggered mechanically (the rule tool detects the confidence
+drop and identifies the discriminating sub-condition) but *named* by
+the LLM (the OBSERVER decides that the sub-concepts should be called
+"wall" and "pushable" rather than "blocking_type_1" and "blocking_type_2").
+
+#### MEDIATOR as tiebreaker
+
+When the OBSERVER is uncertain between two plausible interpretations,
+or when rules produce contradictory evidence about an object's role,
+the MEDIATOR can be consulted. The OBSERVER stays focused on perception;
+the MEDIATOR provides judgment. This separation prevents the OBSERVER
+from stalling on ambiguity.
+
+---
+
+### Confidence Propagation Through Rule Chains
+
+When Rule B reads a fact that was written by Rule A, Rule B's effective
+confidence is bounded by Rule A's confidence:
+
+```
+effective_confidence(Rule B) =
+    Rule_B.own_confidence × min(confidence of each input fact)
+```
+
+This prevents the system from acting confidently on shaky foundations.
+A freshly-extracted concept with confidence 0.6 limits all downstream
+rules that depend on it, regardless of how often those rules have
+succeeded in the past. As the concept's evidence grows and its confidence
+rises, all dependent rules benefit automatically.
+
+---
+
+### Unknown Facts and Exploration
+
+When a rule condition references a fact that does not exist in the
+StateStore (e.g., `adj(agent, RIGHT).role` when the adjacent cell has
+never been classified), the condition evaluates to `UNKNOWN` rather
+than `TRUE` or `FALSE`.
+
+Unknown conditions do not silently pass. Instead, they trigger
+**exploration subgoals**:
+
+```
+adj(agent, RIGHT).role = UNKNOWN
+  → create subgoal: "determine role of cell (x+1, y)"
+  → plan: traverse to cell → observe result
+  → outcome writes fact: role="wall" or role="floor" or role="pushable" ...
+```
+
+Exploration subgoals are prioritized by relevance to the current goal.
+Unknowns on the critical path to the active goal are explored first.
+Unknowns far from any current objective are deferred. This prevents
+exploration paralysis in environments with many unclassified cells.
+
+---
+
+### Rule Degradation and Subsumption
+
+When a higher-level rule (Level 2) is created from a lower-level rule
+(Level 1), both are retained. They coexist under a priority ordering:
+
+```
+priority:  Level 3 > Level 2 > Level 1 > Level 0
+```
+
+The highest-level applicable rule fires first. Lower-level rules serve
+as **fallbacks**: if the abstract rule's confidence drops (e.g., the
+concept binding broke in a new level), the concrete rule reactivates
+while the concept re-learns.
+
+Rules that have not fired successfully in N steps are **degraded**: their
+priority is lowered, reducing trigger frequency. Degraded rules are not
+deleted — they remain available for reactivation. A rule is **pruned**
+(permanently removed) only when a higher-level rule strictly dominates it
+in both evidence count and confidence over a sustained period.
+
+This ensures that the rule base grows in abstraction over time but never
+loses hard-won concrete knowledge prematurely.
+
+---
+
+## LLM as the Ontology Engine
+
+Traditional AI systems rely on **fixed ontologies** — hand-crafted
+hierarchies of concepts (obstacle → wall, door, fence; container → box,
+cup, bucket) that define the vocabulary of the system. Fixed ontologies
+are brittle in three well-known ways:
+
+1. **Incompleteness.** No designer can anticipate every concept a system
+   will encounter. A robot trained with an ontology that includes "wall"
+   but not "curtain" cannot represent a soft barrier.
+
+2. **Rigidity.** Splitting or merging concepts requires modifying the
+   ontology definition — typically a code change, a schema migration,
+   or a knowledge-engineering session. The system cannot adapt to novel
+   distinctions at runtime.
+
+3. **Domain lock-in.** An ontology built for household robotics is useless
+   for chemistry, game-playing, or medical diagnosis. Cross-domain
+   transfer requires building a new ontology from scratch.
+
+The StateStore avoids all three by **using the LLM itself as the ontology
+engine.** Concepts are not defined in code or configuration. They are
+facts in the StateStore, created and managed by LLM calls at runtime:
+
+```
+@(concept, "wall", "parent")           = "obstacle"
+@(concept, "wall", "discriminator")    = "blocks movement, immovable"
+@(concept, "pushable", "parent")       = "obstacle"
+@(concept, "pushable", "discriminator")= "blocks movement, moves when pushed"
+```
+
+These facts are written by the OBSERVER (when it labels objects in a frame)
+or by the MEDIATOR (when it resolves ambiguity or names a concept split).
+The rule engine's tool traverses concept facts mechanically — find children,
+check parent, match discriminator. But the *creation* and *naming* of
+concepts is always an LLM operation.
+
+#### Why this matters
+
+**No hardcoded vocabulary.** The system starts with zero concepts.
+The OBSERVER examines the first frame and writes initial concept facts
+based on what it sees. In an ARC game, it might write "player," "wall,"
+"goal." For a home robot, it might write "person," "table," "mug."
+For a chemistry simulation, it might write "molecule," "catalyst,"
+"solvent." The StateStore and rule engine don't change — only the
+LLM's perception prompt changes.
+
+**Runtime adaptation.** When the concept-split mechanism detects that
+"wall" conflates two distinct behaviors, it asks the LLM: "Object X
+blocks movement but moved when pushed. Current label is 'wall.' What
+should the sub-concepts be called?" The LLM responds with "wall" and
+"pushable" (or domain-appropriate equivalents). The concept hierarchy
+updates in-place, as ordinary StateStore writes.
+
+**Domain transfer by LLM swap.** The entire domain knowledge of the
+system lives in three places: the OBSERVER's system prompt (how to
+interpret sensory input), the MEDIATOR's system prompt (how to resolve
+ambiguity), and the concept facts these LLMs have written into the
+StateStore. To move from game-playing to household robotics, swap the
+OBSERVER and MEDIATOR prompts. To move from English-centric concepts
+to domain-specialist concepts (e.g., materials science), swap the
+underlying LLM. The StateStore, the rule engine, the abstraction
+ladder, the tool — all remain identical.
+
+**Graceful degradation.** If the LLM produces a poor concept name,
+nothing breaks. The name is a string label for human readability; the
+rule engine matches on structure (parent, discriminator), not on the
+name itself. A concept called "blocking_thing_1" works identically to
+one called "wall." Over time, better LLM calls or MEDIATOR intervention
+can rename concepts without invalidating any rules that reference them.
+
+#### Architecture: tool handles volume, LLM handles judgment
+
+The concept hierarchy can grow large. Evaluating hundreds of rules
+against thousands of facts every step is a mechanical operation that
+should never touch the LLM context window. The division of labor:
+
+| Operation | Executor | Rationale |
+|-----------|----------|-----------|
+| Rule condition matching | **Tool** (Python) | Iterate facts, check predicates, pure logic |
+| Rule effect application | **Tool** (Python) | Write facts to StateStore |
+| Confidence arithmetic | **Tool** (Python) | Update evidence counts, degrade unused rules |
+| Concept split detection | **Tool** (Python) | Detect confidence drop + discriminating sub-condition |
+| Generalization pattern matching | **Tool** (Python) | Structural comparison of rule conditions across contexts |
+| Exploration subgoal creation | **Tool** (Python) | Generate subgoal from UNKNOWN fact on critical path |
+| **Concept naming / labeling** | **LLM** (OBSERVER) | Requires common sense: "blocks movement" → "wall" |
+| **Novel concept recognition** | **LLM** (OBSERVER) | Requires world knowledge: "this looks like a pressure plate" |
+| **Ambiguous split naming** | **LLM** (OBSERVER/MEDIATOR) | "Is this a wall or a door?" requires judgment |
+| **Strategy / goal prioritization** | **LLM** (Planner) | "Which unknown to explore first?" requires judgment |
+| **Initial frame labeling** | **LLM** (OBSERVER) | Label all objects and guess roles from first frame |
+
+The LLM never sees the full rule set. It receives focused, narrow
+queries from the tool: "Cell at (15, 20) blocks movement and has color 5.
+What concept is this?" or "Object X was labeled 'wall' but it moved when
+pushed. What are the two sub-concepts?" This keeps LLM calls small,
+fast, and cheap — typically a single sentence in, a single label out.
 
 ---
 
