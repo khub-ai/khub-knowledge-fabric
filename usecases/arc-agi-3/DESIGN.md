@@ -816,7 +816,7 @@ preheating for 8 minutes." "Water the plants every Tuesday." These all require:
 
 ---
 
-### Gap 3: 2D grid coordinates → 3D continuous space
+### Gap 3: 2D grid coordinates → 3D continuous space — RESOLVED BY OBSERVER
 
 **Current:** All positions are `(col, row)` integer tuples on a pixel grid,
 with `step_size` defining the discrete cell spacing.
@@ -825,36 +825,46 @@ with `step_size` defining the discrete cell spacing.
 at `(1.23, 0.87, 0.75)` meters in the kitchen reference frame. The robot's
 gripper has 6-DOF pose. Rooms are volumes, not grid cells.
 
-**Fix — coordinate model:**
+**Resolution:** This is an OBSERVER responsibility, not a StateStore schema
+issue. The OBSERVER is the perception boundary between the external world
+(pixel frames, LIDAR point clouds, depth cameras, etc.) and the internal
+representation. Its job is to convert raw sensory data into `StateFact` and
+`RelFact` entries using whatever coordinate system the domain requires.
+
+- In ARC: OBSERVER reads a pixel frame → produces `("obj", id, "centroid")`
+  as `(col, row)` integers on a grid.
+- In a home robot: OBSERVER fuses camera + LIDAR + IMU → produces
+  `("obj", id, "position")` as `(x, y, z)` floats in meters.
+
+The StateStore already stores positions as `Any`-typed values, so `(col, row)`
+and `(x, y, z, roll, pitch, yaw)` both fit without schema changes. The
+position tuple's dimensionality is implicit in the domain's OBSERVER.
+
+Similarly, spatial relations like `on_top_of`, `inside`, `near`, `in_room`
+are computed by the OBSERVER (or by a perception tool it delegates to) and
+written as `RelFact` entries. The relation vocabulary is already open-ended —
+adding 3D relation types is purely additive and requires no schema change.
+
+**OBSERVER perception tool:** For expensive perception pipelines (e.g.,
+3D scene reconstruction, object pose estimation, semantic segmentation),
+the OBSERVER can delegate to a specialized **perception tool** that runs
+asynchronously and writes results back to the StateStore. This keeps the
+OBSERVER itself lightweight (orchestration + fact writing) while the heavy
+computation lives in pluggable tools:
 
 ```
-("world", "coordinate_system")    → str   # "grid_2d" | "continuous_3d"
-("world", "reference_frame")      → str   # "pixel" | "room_kitchen" | "world"
-("world", "units")                → str   # "pixels" | "meters" | "cells"
-
-# Object position generalizes from (col, row) to:
-("obj", <id>, "position")         → tuple  # (x, y) for 2D, (x, y, z) for 3D
-("obj", <id>, "orientation")      → tuple  # (yaw,) for 2D, (roll, pitch, yaw) for 3D
-("obj", <id>, "dimensions")       → tuple  # (w, h) or (w, h, d)
-("obj", <id>, "reference_frame")  → str    # which frame this position is in
+OBSERVER  →  calls perception_tool("identify_objects", sensor_data)
+          →  perception_tool returns [{id, position, class, confidence}, ...]
+          →  OBSERVER writes StateFacts and RelFacts into StateStore
 ```
 
-**Fix — 3D spatial relations** (extend existing vocabulary):
+This is the same pattern as ARC's OBSERVER calling an LLM to interpret
+a game frame — the LLM *is* the perception tool.
 
-```
-"on_top_of"       (A, B)  {"contact": True}     # A is resting on B
-"inside"          (A, B)  {}                     # A is contained within B
-"underneath"      (A, B)  {}                     # A is beneath B
-"behind"          (A, B)  {"from_viewpoint": "robot"}
-"in_front_of"     (A, B)  {}
-"near"            (A, B)  {"distance_m": 0.3}
-"far_from"        (A, B)  {"distance_m": 5.2}
-"in_room"         (A, R)  {}                     # A is located in room R
-"on_surface"      (A, S)  {}                     # A is on surface S (table, shelf)
-```
-
-The existing 2D relations (`same_row`, `adjacent`, `left_of`, `above`, etc.)
-remain valid for ARC's grid world. The 3D relations are additive.
+**No schema changes required.** The StateStore's `Any`-typed values and
+open-ended relation vocabulary handle 2D and 3D transparently. The
+complexity lives in the OBSERVER and its perception tools, not in the
+store.
 
 ---
 
@@ -1109,7 +1119,7 @@ In ARC, all facts are volatile or session-scoped. No change to game code.
 | Add `persistence` field | StateFact | ARC uses "volatile", no code change |
 | Add `EventFact` type | StateStore | ARC doesn't use it, no code change |
 | Add entity namespaces (person, room, device, task) | Key conventions | ARC ignores them, no code change |
-| Add 3D spatial relations | RelFact vocabulary | ARC ignores them, no code change |
+| ~~Add 3D spatial relations~~ | ~~RelFact vocabulary~~ | **Not needed** — OBSERVER handles coordinate conversion |
 | Add social/functional/normative relations | RelFact vocabulary | ARC ignores them, no code change |
 | Add temporal relation types | RelFact vocabulary | ARC ignores them, no code change |
 | Structured `FactSource` | StateFact.source | ARC uses string shorthand, no code change |
