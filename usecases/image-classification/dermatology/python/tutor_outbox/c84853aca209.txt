@@ -1,0 +1,1 @@
+{"precondition_met": false, "would_predict": null, "observations": "Symmetric oval lesion with two browns and some central white haze/regression. No definite blue-white veil, no atypical pigment network, no streaks/pseudopods, no irregular dark peripheral globules unevenly distributed. Overall symmetric and not meeting strict melanoma-specific preconditions."}

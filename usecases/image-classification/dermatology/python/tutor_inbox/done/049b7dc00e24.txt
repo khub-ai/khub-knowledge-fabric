@@ -1,0 +1,7 @@
+{
+  "discriminating_feature": "peripheral_dark_globules_surrounding_central_regression",
+  "description": "In the TRUE POSITIVE melanomas, the topographic arrangement is: dark peripheral globules/dots at the rim surrounding a central or eccentric regression zone (gray-blue or pink-gray). In the FALSE POSITIVE nevus, the arrangement is inverted: a central dark structureless blotch with lighter pink-gray areas surrounding it peripherally — a 'dark center, light surround' pattern typical of certain dysplastic nevi. The key discriminator is therefore the spatial relationship: regression zone is central and dark globules are peripheral (melanoma), NOT dark blotch centrally with light surround (nevus).",
+  "present_in": "tp",
+  "confidence": "high",
+  "rationale": "The validator observations reveal a systematic topographic difference. TPs: 'central gray-blue/structureless regression area' with 'dark peripheral dots/globules unevenly concentrated around the periphery'. FP: 'central structureless dark zone with surrounding pink-gray areas' — i.e., the polarity is reversed. This inverted arrangement (dark center, light halo) is a recognized pattern in certain dysplastic/traumatized nevi and does not carry the same melanoma risk as the melanoma arrangement (light/gray center, dark peripheral dots). Adding an explicit requirement for this correct topographic polarity should eliminate this FP."
+}

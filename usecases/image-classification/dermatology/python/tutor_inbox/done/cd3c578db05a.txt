@@ -1,0 +1,6 @@
+{
+  "request_id": "cd3c578db05a",
+  "precondition_met": false,
+  "would_predict": null,
+  "observations": "Diffuse pink/erythematous skin with scattered light-brown pigment fragments — does not look like a discrete pigmented melanocytic lesion. No coherent border, no clear melanoma-specific structures (no atypical network, no streaks, no blue-white veil). Strict reading: preconditions not met."
+}

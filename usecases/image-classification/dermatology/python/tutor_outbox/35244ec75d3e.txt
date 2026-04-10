@@ -1,0 +1,1 @@
+{"precondition_met": false, "would_predict": null, "observations": "Small lesion, two browns, roughly symmetric, fading reticular border. No gray-blue, no white regression, no blue-white veil, no streaks/pseudopods, no atypical pigment network, no irregular dark peripheral globules. Multiple preconditions fail."}

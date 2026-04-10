@@ -1,0 +1,6 @@
+{
+  "request_id": "c5ecd03d7f2d",
+  "precondition_met": true,
+  "would_predict": "Melanoma",
+  "observations": "Mildly asymmetric lesion with a peripheral rim of irregular dark dots/globules of varying size and central blue-gray/white veil-like structureless area. Three tones present: dark brown, near-black peripheral dots, and central blue-gray/white. Border slightly notched. Blue-white veil and irregular peripheral dots are both melanoma-specific structures. Preconditions met."
+}

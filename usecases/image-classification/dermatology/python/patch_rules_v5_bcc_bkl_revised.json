@@ -1,0 +1,37 @@
+{
+  "version": 2,
+  "rules": [
+    {
+      "id": "r_001",
+      "condition": "[Patch rule \u2014 basal_cell_carcinoma_vs_benign_keratosis] Lesion is small and discretely bordered, surrounded by normal hair-bearing skin with multiple terminal hairs traversing the field; Central pigmentation consists of loosely aggregated brown-to-dark-brown dots and globules without uniform nesting or radial streaming; Peripheral lesion border fades irregularly into surrounding pinkish skin (moth-eaten edge) rather than forming a sharp, rolled, or translucent margin; Background skin shows diffuse pinkish-erythematous hue consistent with superficial vascular pattern, not arborizing telangiectatic vessels; No classic BCC structures present: no arborizing/branching vessels, no blue-gray ovoid nests, no leaf-like areas, no spoke-wheel or concentric structures; No ulceration or central erosion visible within the pigmented zone",
+      "action": "Classify as Benign Keratosis. Confidence: medium. Rule: When a small, centrally-located pigmented lesion on hair-bearing skin shows a loosely clustered arrangement of dark-brown to black globules and dots with a moth-eaten or irregular peripheral fading pattern, set against a diffuse pinkish-erythematous background with visible follicular openings and terminal hairs, and lacks arborizing vessels, leaf-like areas, or spoke-wheel structures, classify as Benign Keratosis.",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 0,
+          "successes": 0,
+          "failures": 0
+        }
+      },
+      "source": "expert_vlm:claude-sonnet-4-6",
+      "source_task": "basal_cell_carcinoma_vs_benign_keratosis_ISIC_0024420",
+      "tags": [
+        "derm-ham10000",
+        "basal_cell_carcinoma_vs_benign_keratosis",
+        "patch:o4-mini",
+        "triggered_by:basal_cell_carcinoma_vs_benign_keratosis_ISIC_0024420"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": "patch rule for basal_cell_carcinoma_vs_benign_keratosis triggered by basal_cell_carcinoma_vs_benign_keratosis_ISIC_0024420"
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 0,
+      "created": "2026-04-06T01:08:48",
+      "last_fired": null
+    }
+  ]
+}

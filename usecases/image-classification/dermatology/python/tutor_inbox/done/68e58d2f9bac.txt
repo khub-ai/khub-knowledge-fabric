@@ -1,0 +1,1 @@
+{"precondition_met": false, "would_predict": null, "observations": "Small dark red-purple lesion on pink skin, fairly symmetric and homogeneous in color (one to two tones of dark red-purple). Border smoothly fades. No atypical pigment network, no blue-white veil, no streaks, no irregular dark globules. Asymmetry, color-count, border, and structural-marker preconditions fail."}

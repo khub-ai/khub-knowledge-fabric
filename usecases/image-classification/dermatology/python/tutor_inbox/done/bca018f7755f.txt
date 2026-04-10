@@ -1,0 +1,16 @@
+{
+  "rule": "When a pigmented lesion contains gray-blue or blue-gray structureless areas (not organized into a network, not red-purple lacunae) alongside brown pigmented components and shows asymmetric, multi-zone architecture, classify as Melanoma.",
+  "feature": "gray_blue_structureless_areas_multicomponent",
+  "favors": "Melanoma",
+  "confidence": "high",
+  "preconditions": [
+    "Gray-blue or blue-gray structureless areas are present within the lesion — distinct patches of slate-gray or bluish-gray color without an organized network structure",
+    "Brown pigmented components are also present alongside the gray-blue areas (distinguishes from blue nevus, which is entirely blue-gray)",
+    "The gray-blue areas occupy only a portion of the lesion — NOT the entire lesion uniformly (uniform steel-blue homogeneous lesion = blue nevus, not melanoma)",
+    "Lesion is asymmetric in shape and/or pigment distribution",
+    "At least three distinct colors are visible (e.g., light tan/golden brown, dark brown, gray-blue)",
+    "No red/purple lacunae (rules out hemangioma as source of blue-gray color)",
+    "No seborrheic keratosis features (no milia-like cysts, no comedo-like openings)"
+  ],
+  "rationale": "The pupil hallucinated 'uniform pigmentation' and 'well-circumscribed' when the image clearly shows gray-blue structureless patches (lower-left quadrant) alongside multi-tonal brown areas — a multi-component melanoma. Gray-blue structureless areas in a melanocytic lesion represent either a blue-white veil (densely packed melanophages in the dermis overlying compact melanin) or regression with fibrosis; both are major melanoma-specific dermoscopic criteria. Benign melanocytic nevi do not produce focal gray-blue structureless patches alongside brown components — that combination is essentially diagnostic of melanoma. The pupil's failure was a catastrophic under-reading of color: it saw 'brown and tan' and stopped looking, missing the distinct gray-blue zone entirely."
+}

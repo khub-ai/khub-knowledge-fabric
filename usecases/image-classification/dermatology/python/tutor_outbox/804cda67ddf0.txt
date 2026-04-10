@@ -1,0 +1,1 @@
+{"precondition_met": false, "would_predict": null, "observations": "Diffuse pink lesion with scattered light-brown remnants. No definite blue-white veil, no atypical pigment network, no streaks/pseudopods, no irregular dark peripheral globules. Strict melanoma-specific structure preconditions fail."}

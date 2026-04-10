@@ -1,0 +1,872 @@
+{
+  "cheap_model": "o4-mini",
+  "expert_model": "gpt-4o",
+  "patch_rules_file": "C:\\_backup\\github\\khub-knowledge-fabric\\usecases\\image-classification\\dermatology\\python\\patch_rules_clean.json",
+  "dry_run": false,
+  "total_tasks": 18,
+  "failures_before": 7,
+  "rules_authored": 7,
+  "rules_accepted": 2,
+  "rules_registered": 2,
+  "cross_pair_events": [
+    {
+      "rule_id": "r_001",
+      "intended_pair": "actinic_keratosis_vs_benign_keratosis",
+      "fired_on_pair": "melanoma_vs_melanocytic_nevus",
+      "task_id": "melanoma_vs_melanocytic_nevus_ISIC_0024385",
+      "correct": false,
+      "flag": "QUALITY PROBLEM \u2014 pre-conditions too broad"
+    }
+  ],
+  "patch_records": [
+    {
+      "task_id": "melanoma_vs_melanocytic_nevus_ISIC_0024385",
+      "pair_id": "melanoma_vs_melanocytic_nevus",
+      "wrong_prediction": "Melanoma",
+      "correct_label": "Melanocytic Nevus",
+      "candidate_rule": {
+        "rule": "Natural language: When brown blotches are small, symmetric, with uniform color and smooth borders on a uniformly pink background, classify as Melanocytic Nevus.",
+        "feature": "<original feature key \u2014 unchanged>",
+        "favors": "Melanocytic Nevus",
+        "confidence": "<unchanged>",
+        "preconditions": [
+          "Brown blotches are small and symmetric",
+          "Blotches have uniform color",
+          "Blotches possess smooth, well-defined borders",
+          "The background is uniformly pink without significant variegation",
+          "Absence of atypical network",
+          "No presence of blue-white structures",
+          "Absence of irregular streaks or pseudopods"
+        ],
+        "rationale": "Melanocytic nevi typically present with small, symmetric blotches that have uniform coloring and smooth, well-defined borders. This contrasts with melanoma, which often has asymmetry, color variegation, and irregular borders.",
+        "added_preconditions": [
+          "Absence of atypical network",
+          "No presence of blue-white structures",
+          "Absence of irregular streaks or pseudopods"
+        ],
+        "completion_rationale": "The rule description implies typical features of a benign melanocytic nevus. However, to avoid misclassification as melanoma, it should also explicitly account for conditions that are atypical for a nevus, such as the presence of an atypical network, blue-white structures, or irregular streaks and pseudopods, which are often associated with melanoma."
+      },
+      "semantic_validation": {
+        "precondition_ratings": [
+          {
+            "precondition": "Brown blotches are small and symmetric",
+            "rating": "reliable",
+            "comment": "Symmetric and small blotches are typical of benign nevi and less common in melanoma."
+          },
+          {
+            "precondition": "Blotches have uniform color",
+            "rating": "reliable",
+            "comment": "Uniform color within blotches suggests benignity, whereas melanoma often shows color variation."
+          },
+          {
+            "precondition": "Blotches possess smooth, well-defined borders",
+            "rating": "reliable",
+            "comment": "Smooth and well-defined borders are characteristic of nevi, unlike the irregular borders in melanoma."
+          },
+          {
+            "precondition": "The background is uniformly pink without significant variegation",
+            "rating": "context_dependent",
+            "comment": "A uniformly pink background can be benign but may also appear in some melanomas, requiring careful assessment."
+          },
+          {
+            "precondition": "Absence of atypical network",
+            "rating": "reliable",
+            "comment": "An atypical network is a common feature of melanoma and its absence supports a nevus diagnosis."
+          },
+          {
+            "precondition": "No presence of blue-white structures",
+            "rating": "reliable",
+            "comment": "Blue-white structures are associated with melanoma and their absence is indicative of a benign lesion."
+          },
+          {
+            "precondition": "Absence of irregular streaks or pseudopods",
+            "rating": "reliable",
+            "comment": "Irregular streaks or pseudopods are characteristic of melanoma, so their absence suggests a nevus."
+          }
+        ],
+        "overall": "accept",
+        "rationale": "Most pre-conditions are reliable indicators of melanocytic nevi, with only the uniform pink background being context-dependent. The rule aligns well with established criteria for differentiating nevi from melanoma, and image validation is warranted."
+      },
+      "validation": {
+        "fires_on_trigger": true,
+        "tp": 7,
+        "fp": 0,
+        "tn": 8,
+        "fn": 1,
+        "precision": 1.0,
+        "recall": 0.875,
+        "accepted": true,
+        "rejection_reason": null,
+        "early_exited": false
+      },
+      "spectrum_history": [],
+      "accepted": true,
+      "registered": true
+    },
+    {
+      "task_id": "basal_cell_carcinoma_vs_benign_keratosis_ISIC_0024336",
+      "pair_id": "basal_cell_carcinoma_vs_benign_keratosis",
+      "wrong_prediction": "uncertain",
+      "correct_label": "Benign Keratosis",
+      "candidate_rule": {
+        "rule": "When a central homogenous pink to light brown area with a lack of distinct peripheral pigmentation is present, classify as benign keratosis.",
+        "feature": "central pink to light brown homogenous area",
+        "favors": "Benign Keratosis",
+        "confidence": "High",
+        "preconditions": [
+          "Presence of a central homogenous area with pink to light brown coloration",
+          "Absence of distinct, dark peripheral pigmentation",
+          "Texture resembling a 'stuck-on' appearance with slight elevation",
+          "Absence of arborizing blood vessels",
+          "Absence of blue-gray ovoid nests"
+        ],
+        "rationale": "Benign keratosis often presents as a homogenous, light pink to brown area with a 'stuck-on' appearance, typically lacking the distinct peripheral pigmentation that is common in malignant lesions like basal cell carcinoma. This visual pattern helps differentiate it from cancerous lesions.",
+        "added_preconditions": [
+          "Absence of arborizing blood vessels",
+          "Absence of blue-gray ovoid nests"
+        ],
+        "completion_rationale": "The original rule assumes some markers of Basal Cell Carcinoma (BCC) are absent, such as arborizing blood vessels and blue-gray ovoid nests, which are common in BCC but not in benign keratosis. These negative preconditions needed to be made explicit to prevent misclassification of lesions that lack these BCC-specific features."
+      },
+      "semantic_validation": {
+        "precondition_ratings": [
+          {
+            "precondition": "Presence of a central homogenous area with pink to light brown coloration",
+            "rating": "context_dependent",
+            "comment": "A central homogenous area can appear in both classes but is more commonly benign in certain patterns."
+          },
+          {
+            "precondition": "Absence of distinct, dark peripheral pigmentation",
+            "rating": "reliable",
+            "comment": "Benign keratosis typically lacks the distinct pigmentation seen in basal cell carcinoma."
+          },
+          {
+            "precondition": "Texture resembling a 'stuck-on' appearance with slight elevation",
+            "rating": "reliable",
+            "comment": "The stuck-on appearance with slight elevation is characteristic of benign keratosis."
+          },
+          {
+            "precondition": "Absence of arborizing blood vessels",
+            "rating": "reliable",
+            "comment": "Arborizing vessels are a hallmark feature of basal cell carcinoma."
+          },
+          {
+            "precondition": "Absence of blue-gray ovoid nests",
+            "rating": "reliable",
+            "comment": "Blue-gray ovoid nests are typically associated with basal cell carcinoma."
+          }
+        ],
+        "overall": "accept",
+        "rationale": "Most pre-conditions are reliable indicators for distinguishing benign keratosis from basal cell carcinoma. The rule combines several features which together increase specificity for benign keratosis. Proceeding to image validation is warranted."
+      },
+      "validation": {
+        "fires_on_trigger": false,
+        "tp": 0,
+        "fp": 0,
+        "tn": 8,
+        "fn": 8,
+        "precision": 0.0,
+        "recall": 0.0,
+        "accepted": false,
+        "rejection_reason": "did not fire on trigger"
+      },
+      "spectrum_history": [
+        {
+          "level": 0,
+          "label": "pre_completion",
+          "n_preconditions": 3,
+          "rule": {
+            "rule": "Natural language: When a central homogenous pink to light brown area with a lack of distinct peripheral pigmentation is present, classify as benign keratosis.",
+            "feature": "central_homogenous_area",
+            "favors": "Benign Keratosis",
+            "confidence": "high",
+            "preconditions": [
+              "Presence of a central homogenous area with pink to light brown coloration",
+              "Absence of distinct, dark peripheral pigmentation",
+              "Texture resembling a 'stuck-on' appearance with slight elevation"
+            ],
+            "rationale": "Benign keratosis often presents as a homogenous, light pink to brown area with a 'stuck-on' appearance, typically lacking the distinct peripheral pigmentation that is common in malignant lesions like basal cell carcinoma. This visual pattern helps differentiate it from cancerous lesions.",
+            "label": "pre_completion",
+            "level": 0
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 0,
+            "fp": 3,
+            "tn": 5,
+            "fn": 8,
+            "precision": 0.0,
+            "recall": 0.0,
+            "accepted": false,
+            "rejection_reason": "fp=3 > 1",
+            "early_exited": true
+          },
+          "accepted": false
+        },
+        {
+          "level": 1,
+          "label": "most_general",
+          "n_preconditions": 1,
+          "rule": {
+            "level": 1,
+            "label": "most_general",
+            "rule": "When a central homogenous area with pink to light brown coloration is present, classify as benign keratosis.",
+            "feature": "central_homogenous_area_pink_light_brown",
+            "favors": "Benign Keratosis",
+            "confidence": "low",
+            "preconditions": [
+              "Presence of a central homogenous area with pink to light brown coloration"
+            ],
+            "rationale": "This is the most visually noticeable feature that suggests benign keratosis, but it is also present in some basal cell carcinoma cases."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 0,
+            "fp": 3,
+            "tn": 5,
+            "fn": 8,
+            "precision": 0.0,
+            "recall": 0.0,
+            "accepted": false,
+            "rejection_reason": "fp=3 > 1",
+            "early_exited": true
+          },
+          "accepted": false
+        },
+        {
+          "level": 2,
+          "label": "moderate",
+          "n_preconditions": 2,
+          "rule": {
+            "level": 2,
+            "label": "moderate",
+            "rule": "When a central homogenous area with pink to light brown coloration and an absence of distinct, dark peripheral pigmentation are present, classify as benign keratosis.",
+            "feature": "central_homogenous_area_with_absence_of_dark_peripheral_pigmentation",
+            "favors": "Benign Keratosis",
+            "confidence": "medium",
+            "preconditions": [
+              "Presence of a central homogenous area with pink to light brown coloration",
+              "Absence of distinct, dark peripheral pigmentation"
+            ],
+            "rationale": "The absence of dark peripheral pigmentation helps to distinguish benign keratosis from lesions like basal cell carcinoma that often have more pronounced borders."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 7,
+            "fp": 2,
+            "tn": 6,
+            "fn": 1,
+            "precision": 0.778,
+            "recall": 0.875,
+            "accepted": false,
+            "rejection_reason": "fp=2 > 1",
+            "early_exited": false
+          },
+          "accepted": false
+        },
+        {
+          "level": 3,
+          "label": "original",
+          "n_preconditions": 0,
+          "rule": {
+            "level": 3,
+            "label": "original",
+            "rule": "When a central homogenous pink to light brown area with a lack of distinct peripheral pigmentation is present, classify as benign keratosis.",
+            "favors": "Benign Keratosis"
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 0,
+            "fp": 3,
+            "tn": 5,
+            "fn": 8,
+            "precision": 0.0,
+            "recall": 0.0,
+            "accepted": false,
+            "rejection_reason": "fp=3 > 1",
+            "early_exited": true
+          },
+          "accepted": false
+        },
+        {
+          "level": 4,
+          "label": "most_specific",
+          "n_preconditions": 3,
+          "rule": {
+            "level": 4,
+            "label": "most_specific",
+            "rule": "When a central homogenous pink to light brown area with a lack of distinct peripheral pigmentation and a texture resembling a 'stuck-on' appearance with slight elevation is present, classify as benign keratosis.",
+            "feature": "stuck_on_texture_slight_elevation",
+            "favors": "Benign Keratosis",
+            "confidence": "high",
+            "preconditions": [
+              "Presence of a central homogenous area with pink to light brown coloration",
+              "Absence of distinct, dark peripheral pigmentation",
+              "Texture resembling a 'stuck-on' appearance with slight elevation"
+            ],
+            "rationale": "Adding the texture resembling a 'stuck-on' appearance with slight elevation as a condition may help to differentiate benign keratosis more effectively, as this feature is less common in basal cell carcinoma."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 0,
+            "fp": 3,
+            "tn": 5,
+            "fn": 8,
+            "precision": 0.0,
+            "recall": 0.0,
+            "accepted": false,
+            "rejection_reason": "fp=3 > 1",
+            "early_exited": true
+          },
+          "accepted": false
+        }
+      ],
+      "accepted": false,
+      "registered": false
+    },
+    {
+      "task_id": "basal_cell_carcinoma_vs_benign_keratosis_ISIC_0024420",
+      "pair_id": "basal_cell_carcinoma_vs_benign_keratosis",
+      "wrong_prediction": "uncertain",
+      "correct_label": "Benign Keratosis",
+      "candidate_rule": {
+        "rule": "When subtle moth-eaten borders and a diffuse, network-like pattern within a tan to brown colored area are present, classify as Benign Keratosis.",
+        "feature": "subtle moth-eaten borders and diffuse network-like pattern in tan to brown area",
+        "favors": "Benign Keratosis",
+        "confidence": "unspecified",
+        "preconditions": [
+          "Presence of subtle, indistinct, moth-eaten borders around the lesion",
+          "Diffuse, network-like pattern within the lesion",
+          "Tan to brown coloration within the lesion",
+          "Absence of white, shiny structures typical of Basal Cell Carcinoma",
+          "Absence of arborizing blood vessels",
+          "Absence of ulceration"
+        ],
+        "rationale": "Benign Keratosis often exhibits a network-like pattern and irregular borders that can appear moth-eaten. These features help distinguish it from Basal Cell Carcinoma, which usually shows shiny white structures and more defined, pearly borders.",
+        "added_preconditions": [
+          "Absence of arborizing blood vessels",
+          "Absence of ulceration"
+        ],
+        "completion_rationale": "The expert likely assumed the absence of arborizing blood vessels and ulceration, which are common markers of Basal Cell Carcinoma. Including these as explicit pre-conditions strengthens the specificity of the rule by clarifying what features would lean towards the diagnosis of the other class, thus ensuring accuracy in classification."
+      },
+      "semantic_validation": {
+        "precondition_ratings": [
+          {
+            "precondition": "Presence of subtle, indistinct, moth-eaten borders around the lesion",
+            "rating": "reliable",
+            "comment": "Moth-eaten borders are more characteristic of benign keratosis compared to basal cell carcinoma."
+          },
+          {
+            "precondition": "Diffuse, network-like pattern within the lesion",
+            "rating": "context_dependent",
+            "comment": "While network patterns can occur in benign keratosis, they are not exclusive and may appear in other conditions."
+          },
+          {
+            "precondition": "Tan to brown coloration within the lesion",
+            "rating": "unreliable",
+            "comment": "Tan to brown coloration is common in many pigmented lesions, including both favored and other classes."
+          },
+          {
+            "precondition": "Absence of white, shiny structures typical of Basal Cell Carcinoma",
+            "rating": "reliable",
+            "comment": "Shiny white structures are indicative of basal cell carcinoma, thus their absence supports benign keratosis."
+          },
+          {
+            "precondition": "Absence of arborizing blood vessels",
+            "rating": "reliable",
+            "comment": "Arborizing vessels are a hallmark of basal cell carcinoma and their absence can indicate benign keratosis."
+          },
+          {
+            "precondition": "Absence of ulceration",
+            "rating": "reliable",
+            "comment": "Ulceration is often seen in basal cell carcinoma and its absence is compatible with benign keratosis."
+          }
+        ],
+        "overall": "revise",
+        "rationale": "The rule primarily leverages reliable features to differentiate benign keratosis from basal cell carcinoma. However, the pre-condition regarding coloration is unreliable due to its non-specific nature. The network-like pattern is also context-dependent. Addressing these concerns could improve the rule's robustness before proceeding to image validation."
+      },
+      "validation": {
+        "fires_on_trigger": true,
+        "tp": 0,
+        "fp": 3,
+        "tn": 5,
+        "fn": 8,
+        "precision": 0.0,
+        "recall": 0.0,
+        "accepted": false,
+        "rejection_reason": "fp=3 > 1",
+        "early_exited": true
+      },
+      "spectrum_history": [],
+      "accepted": false,
+      "registered": false
+    },
+    {
+      "task_id": "actinic_keratosis_vs_benign_keratosis_ISIC_0024646",
+      "pair_id": "actinic_keratosis_vs_benign_keratosis",
+      "wrong_prediction": "uncertain",
+      "correct_label": "Actinic Keratosis",
+      "candidate_rule": {
+        "rule": "When a pinkish background with white-to-yellow scale and an erythematous hue is present, classify as Actinic Keratosis.",
+        "feature": "Pinkish background with white-to-yellow scale",
+        "favors": "Actinic Keratosis",
+        "confidence": "High",
+        "preconditions": [
+          "Pinkish or reddish homogeneous background",
+          "Presence of white-to-yellow scale",
+          "Absence of sharp demarcation indicating a non-pigmented lesion",
+          "Presence of solar elastosis",
+          "Absence of milia-like cysts"
+        ],
+        "rationale": "The combination of a pinkish or reddish background with white-to-yellow scaling is characteristic of Actinic Keratosis, distinguishing it from Benign Keratosis which often lacks the erythematous background and presents with different scaling patterns or pigmentation.",
+        "added_preconditions": [
+          "Presence of solar elastosis",
+          "Absence of milia-like cysts"
+        ],
+        "completion_rationale": "The presence of solar elastosis is a common marker for actinic keratosis due to chronic sun exposure and should be explicitly mentioned as expected. The absence of milia-like cysts, typically associated with benign keratosis, should be considered to avoid misclassification."
+      },
+      "semantic_validation": {
+        "precondition_ratings": [
+          {
+            "precondition": "Pinkish or reddish homogeneous background",
+            "rating": "reliable",
+            "comment": "A pinkish background is typical for Actinic Keratosis, while benign keratosis often lacks this vascular appearance."
+          },
+          {
+            "precondition": "Presence of white-to-yellow scale",
+            "rating": "reliable",
+            "comment": "White-to-yellow scale is commonly associated with Actinic Keratosis due to its occurrence on sun-damaged skin."
+          },
+          {
+            "precondition": "Absence of sharp demarcation indicating a non-pigmented lesion",
+            "rating": "reliable",
+            "comment": "Sharp demarcation is often seen in benign keratinocytic lesions, while Actinic Keratosis tends to be less well-defined."
+          },
+          {
+            "precondition": "Presence of solar elastosis",
+            "rating": "context_dependent",
+            "comment": "Solar elastosis occurs due to sun damage but can appear in chronically sun-exposed areas without Actinic Keratosis."
+          },
+          {
+            "precondition": "Absence of milia-like cysts",
+            "rating": "reliable",
+            "comment": "Milia-like cysts are more characteristic of benign keratosis rather than Actinic Keratosis."
+          }
+        ],
+        "overall": "accept",
+        "rationale": "Most pre-conditions reliably differentiate Actinic Keratosis from benign keratosis, as they are associated with sun-damaged skin and typical clinical features of Actinic Keratosis. Solar elastosis is a context-dependent feature, but the overall logic of the rule is sound, justifying its progression for image validation."
+      },
+      "validation": {
+        "fires_on_trigger": false,
+        "tp": 0,
+        "fp": 0,
+        "tn": 8,
+        "fn": 8,
+        "precision": 0.0,
+        "recall": 0.0,
+        "accepted": false,
+        "rejection_reason": "did not fire on trigger"
+      },
+      "spectrum_history": [
+        {
+          "level": 0,
+          "label": "pre_completion",
+          "n_preconditions": 3,
+          "rule": {
+            "rule": "Natural language: When a pinkish background with white-to-yellow scale and an erythematous hue is present, classify as Actinic Keratosis.",
+            "feature": "pinkish_background_with_scale",
+            "favors": "Actinic Keratosis",
+            "confidence": "high",
+            "preconditions": [
+              "Pinkish or reddish homogeneous background",
+              "Presence of white-to-yellow scale",
+              "Absence of sharp demarcation indicating a non-pigmented lesion"
+            ],
+            "rationale": "The combination of a pinkish or reddish background with white-to-yellow scaling is characteristic of Actinic Keratosis, distinguishing it from Benign Keratosis which often lacks the erythematous background and presents with different scaling patterns or pigmentation.",
+            "label": "pre_completion",
+            "level": 0
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 8,
+            "fp": 3,
+            "tn": 5,
+            "fn": 0,
+            "precision": 0.727,
+            "recall": 1.0,
+            "accepted": false,
+            "rejection_reason": "fp=3 > 1",
+            "early_exited": true
+          },
+          "accepted": false
+        },
+        {
+          "level": 1,
+          "label": "most_general",
+          "n_preconditions": 1,
+          "rule": {
+            "level": 1,
+            "label": "most_general",
+            "rule": "When a pinkish or reddish homogeneous background is present, classify as Actinic Keratosis.",
+            "feature": "homogeneous_background_pinkish_reddish",
+            "favors": "Actinic Keratosis",
+            "confidence": "low",
+            "preconditions": [
+              "Pinkish or reddish homogeneous background"
+            ],
+            "rationale": "This is the core diagnostic signal for Actinic Keratosis, as both true positives and false positives share this feature, indicating it is essential yet not sufficient alone to classify correctly."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 8,
+            "fp": 3,
+            "tn": 5,
+            "fn": 0,
+            "precision": 0.727,
+            "recall": 1.0,
+            "accepted": false,
+            "rejection_reason": "fp=3 > 1",
+            "early_exited": true
+          },
+          "accepted": false
+        },
+        {
+          "level": 2,
+          "label": "moderate",
+          "n_preconditions": 2,
+          "rule": {
+            "level": 2,
+            "label": "moderate",
+            "rule": "When a pinkish or reddish homogeneous background and white-to-yellow scale are present, classify as Actinic Keratosis.",
+            "feature": "background_and_scale",
+            "favors": "Actinic Keratosis",
+            "confidence": "medium",
+            "preconditions": [
+              "Pinkish or reddish homogeneous background",
+              "Presence of white-to-yellow scale"
+            ],
+            "rationale": "Combining the pinkish or reddish homogeneous background with the white-to-yellow scale begins to differentiate from benign lesions, as both are characteristic of Actinic Keratosis."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 8,
+            "fp": 3,
+            "tn": 5,
+            "fn": 0,
+            "precision": 0.727,
+            "recall": 1.0,
+            "accepted": false,
+            "rejection_reason": "fp=3 > 1",
+            "early_exited": true
+          },
+          "accepted": false
+        },
+        {
+          "level": 3,
+          "label": "original",
+          "n_preconditions": 3,
+          "rule": {
+            "level": 3,
+            "label": "original",
+            "rule": "When a pinkish background with white-to-yellow scale and an erythematous hue is present, classify as Actinic Keratosis.",
+            "feature": "background_scale_erythematous",
+            "favors": "Actinic Keratosis",
+            "confidence": "high",
+            "preconditions": [
+              "Pinkish or reddish homogeneous background",
+              "Presence of white-to-yellow scale",
+              "Absence of sharp demarcation indicating a non-pigmented lesion"
+            ],
+            "rationale": "This rule combines all necessary traits identified through expert analysis, providing a strong basis for classification despite some false positives."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 7,
+            "fp": 3,
+            "tn": 5,
+            "fn": 1,
+            "precision": 0.7,
+            "recall": 0.875,
+            "accepted": false,
+            "rejection_reason": "fp=3 > 1",
+            "early_exited": true
+          },
+          "accepted": false
+        },
+        {
+          "level": 4,
+          "label": "most_specific",
+          "n_preconditions": 4,
+          "rule": {
+            "level": 4,
+            "label": "most_specific",
+            "rule": "When a pinkish background with white-to-yellow scale, an erythematous hue, and no sharp demarcation is present, and when the lesion size exceeds 5mm, classify as Actinic Keratosis.",
+            "feature": "size_and_background_scale_erythematous",
+            "favors": "Actinic Keratosis",
+            "confidence": "very high",
+            "preconditions": [
+              "Pinkish or reddish homogeneous background",
+              "Presence of white-to-yellow scale",
+              "Absence of sharp demarcation indicating a non-pigmented lesion",
+              "Lesion size exceeds 5mm"
+            ],
+            "rationale": "Adding lesion size may help distinguish Actinic Keratosis from Benign Keratosis in the absence of more reliable contrastive features, increasing specificity."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 8,
+            "fp": 3,
+            "tn": 5,
+            "fn": 0,
+            "precision": 0.727,
+            "recall": 1.0,
+            "accepted": false,
+            "rejection_reason": "fp=3 > 1",
+            "early_exited": true
+          },
+          "accepted": false
+        }
+      ],
+      "accepted": false,
+      "registered": false
+    },
+    {
+      "task_id": "actinic_keratosis_vs_benign_keratosis_ISIC_0024336",
+      "pair_id": "actinic_keratosis_vs_benign_keratosis",
+      "wrong_prediction": "Actinic Keratosis",
+      "correct_label": "Benign Keratosis",
+      "candidate_rule": {
+        "rule": "When a lesion displays moth-eaten border patterns and lacks a defined erythematous pseudonetwork, classify as benign keratosis.",
+        "feature": "moth-eaten border pattern",
+        "favors": "Benign Keratosis",
+        "confidence": "high",
+        "preconditions": [
+          "Presence of moth-eaten border pattern",
+          "Absence of a well-defined erythematous pseudonetwork",
+          "Color variation including light brown to dark brown areas",
+          "Absence of ulceration",
+          "Presence of a granular surface texture"
+        ],
+        "rationale": "The moth-eaten border pattern and lack of a defined erythematous pseudonetwork distinguish benign keratosis from actinic keratosis, which typically presents with more uniform erythema and less irregular borders.",
+        "added_preconditions": [
+          "Absence of ulceration",
+          "Presence of a granular surface texture"
+        ],
+        "completion_rationale": "Benign Keratosis lesions typically do not exhibit ulceration, which is a feature more commonly associated with more serious conditions, such as actinic keratosis. Additionally, a granular surface texture is often observed in benign keratosis, distinguishing it from other lesions. These implicit assumptions were made explicit to prevent misclassification and strengthen the rule."
+      },
+      "semantic_validation": {
+        "precondition_ratings": [
+          {
+            "precondition": "Presence of moth-eaten border pattern",
+            "rating": "reliable",
+            "comment": "The moth-eaten border pattern is typically associated with benign skin lesions and rarely seen in actinic keratosis."
+          },
+          {
+            "precondition": "Absence of a well-defined erythematous pseudonetwork",
+            "rating": "reliable",
+            "comment": "A well-defined erythematous pseudonetwork is more characteristic of actinic keratosis and its absence supports benign keratosis."
+          },
+          {
+            "precondition": "Color variation including light brown to dark brown areas",
+            "rating": "unreliable",
+            "comment": "Color variation from light to dark brown can be seen in both benign and actinic keratoses."
+          },
+          {
+            "precondition": "Absence of ulceration",
+            "rating": "context_dependent",
+            "comment": "While absence of ulceration is common in benign keratosis, actinic keratosis often lacks ulceration as well unless advanced."
+          },
+          {
+            "precondition": "Presence of a granular surface texture",
+            "rating": "reliable",
+            "comment": "Granular surface texture is more indicative of benign lesions, such as seborrheic keratosis."
+          }
+        ],
+        "overall": "revise",
+        "rationale": "Several reliable pre-conditions exist, particularly the moth-eaten border and surface texture; however, the color variation is unreliable across classes. The absence of ulceration can also occur in actinic keratoses, necessitating revision before testing."
+      },
+      "validation": {
+        "fires_on_trigger": true,
+        "tp": 7,
+        "fp": 2,
+        "tn": 6,
+        "fn": 1,
+        "precision": 0.778,
+        "recall": 0.875,
+        "accepted": false,
+        "rejection_reason": "fp=2 > 1",
+        "early_exited": false
+      },
+      "spectrum_history": [],
+      "accepted": false,
+      "registered": false
+    },
+    {
+      "task_id": "actinic_keratosis_vs_benign_keratosis_ISIC_0024420",
+      "pair_id": "actinic_keratosis_vs_benign_keratosis",
+      "wrong_prediction": "uncertain",
+      "correct_label": "Benign Keratosis",
+      "candidate_rule": {
+        "rule": "When there is a brown globular pattern with scattered keratin plugs and surrounded by light pink coloration, classify as Benign Keratosis.",
+        "feature": "brown globular pattern with scattered keratin plugs",
+        "favors": "Benign Keratosis",
+        "confidence": "unchanged",
+        "preconditions": [
+          "Presence of a brown globular pattern",
+          "Scattered keratin plugs observable within the lesion",
+          "Surrounding light pink coloration or erythematous background",
+          "Absence of fine linear vessels",
+          "Absence of a scaly surface",
+          "Absence of a sandpaper texture upon palpation"
+        ],
+        "rationale": "The brown globular pattern with a background erythema and keratin plugs is indicative of Benign Keratosis. These features differentiate it from Actinic Keratosis, which often shows more surface scale and a less globular, more diffuse pigmentation pattern.",
+        "added_preconditions": [
+          "Absence of fine linear vessels",
+          "Absence of a scaly surface",
+          "Absence of a sandpaper texture upon palpation"
+        ],
+        "completion_rationale": "The expert assumes that certain dermoscopic features indicative of Actinic Keratosis, such as fine linear vessels, a scaly surface, and a sandpaper texture, are absent in Benign Keratosis because they would contradict the favored classification. Making these absences explicit prevents misclassification when only considering the positive features listed."
+      },
+      "semantic_validation": {
+        "precondition_ratings": [
+          {
+            "precondition": "Presence of a brown globular pattern",
+            "rating": "context_dependent",
+            "comment": "While brown globules can suggest benign lesions like solar lentigines, they may also appear in other lesions, thus not solely indicative of benign keratosis."
+          },
+          {
+            "precondition": "Scattered keratin plugs observable within the lesion",
+            "rating": "context_dependent",
+            "comment": "Keratin plugs can be noted in both types but are more common in benign keratosis, especially if mixed with other benign indicators."
+          },
+          {
+            "precondition": "Surrounding light pink coloration or erythematous background",
+            "rating": "unreliable",
+            "comment": "Light pink or erythematous background can be seen in both benign and actinic lesions, so it is not sufficiently discriminatory."
+          },
+          {
+            "precondition": "Absence of fine linear vessels",
+            "rating": "unreliable",
+            "comment": "Fine linear vessels are not specific to actinic keratosis and can be absent in both, making their absence non-discriminatory."
+          },
+          {
+            "precondition": "Absence of a scaly surface",
+            "rating": "reliable",
+            "comment": "A scaly surface is more characteristic of actinic keratosis, so its absence can support a diagnosis of benign keratosis."
+          },
+          {
+            "precondition": "Absence of a sandpaper texture upon palpation",
+            "rating": "reliable",
+            "comment": "Sandpaper texture is a hallmark of actinic keratosis, thus its absence supports the likelihood of benign keratosis."
+          }
+        ],
+        "overall": "revise",
+        "rationale": "Two of the pre-conditions are reliably discriminatory, but several are either context-dependent or unreliable on their own, which could compromise diagnostic accuracy. It is advisable to revise the rule to ensure that all pre-conditions lean towards greater reliability before proceeding to image validation."
+      },
+      "validation": {
+        "fires_on_trigger": true,
+        "tp": 3,
+        "fp": 2,
+        "tn": 6,
+        "fn": 5,
+        "precision": 0.6,
+        "recall": 0.375,
+        "accepted": false,
+        "rejection_reason": "fp=2 > 1",
+        "early_exited": false
+      },
+      "spectrum_history": [],
+      "accepted": false,
+      "registered": false
+    },
+    {
+      "task_id": "actinic_keratosis_vs_benign_keratosis_ISIC_0024495",
+      "pair_id": "actinic_keratosis_vs_benign_keratosis",
+      "wrong_prediction": "uncertain",
+      "correct_label": "Benign Keratosis",
+      "candidate_rule": {
+        "rule": "Natural language: When a lesion exhibits a central, homogenous, light to dark brown color with indistinct borders and lacks surrounding erythema or scaling, classify as Benign Keratosis.",
+        "feature": "<original feature key \u2014 unchanged>",
+        "favors": "Benign Keratosis",
+        "confidence": "<unchanged>",
+        "preconditions": [
+          "The lesion has a central, homogenous coloration",
+          "The color is light to dark brown",
+          "The borders of the lesion are indistinct",
+          "There is no surrounding erythema",
+          "There is no visible scaling",
+          "The lesion lacks a follicular plugging pattern",
+          "There are no red pseudonetworks present",
+          "There are no hyperkeratotic scales"
+        ],
+        "rationale": "The central homogenous brown color with indistinct borders is characteristic of Benign Keratosis and helps differentiate it from Actinic Keratosis, which typically shows erythema and scaling.",
+        "added_preconditions": [
+          "The lesion lacks a follicular plugging pattern",
+          "There are no red pseudonetworks present",
+          "There are no hyperkeratotic scales"
+        ],
+        "completion_rationale": "The expert assumed the absence of features typically seen in actinic keratosis, such as follicular plugging, red pseudonetworks, and hyperkeratotic scales, which are atypical for benign keratosis. Making these implicit negative conditions explicit ensures the rule does not misclassify lesions with these characteristics."
+      },
+      "semantic_validation": {
+        "precondition_ratings": [
+          {
+            "precondition": "The lesion has a central, homogenous coloration",
+            "rating": "reliable",
+            "comment": "Central, homogenous coloration is typical of benign keratosis and less common in actinic keratosis."
+          },
+          {
+            "precondition": "The color is light to dark brown",
+            "rating": "context_dependent",
+            "comment": "While light to dark brown color is common in benign keratoses, it can also appear in some actinic keratoses depending on individual factors like pigmentation."
+          },
+          {
+            "precondition": "The borders of the lesion are indistinct",
+            "rating": "unreliable",
+            "comment": "Indistinct borders are not specific to benign keratosis and can occur in various skin lesions, including actinic keratosis."
+          },
+          {
+            "precondition": "There is no surrounding erythema",
+            "rating": "reliable",
+            "comment": "Absence of surrounding erythema is more consistent with benign keratosis as actinic keratosis often presents with erythema."
+          },
+          {
+            "precondition": "There is no visible scaling",
+            "rating": "reliable",
+            "comment": "Benign keratosis typically lacks the scaling seen in actinic keratosis, which often peels or flakes."
+          },
+          {
+            "precondition": "The lesion lacks a follicular plugging pattern",
+            "rating": "unreliable",
+            "comment": "Follicular plugging can be found in both conditions, depending on other factors."
+          },
+          {
+            "precondition": "There are no red pseudonetworks present",
+            "rating": "reliable",
+            "comment": "Red pseudonetworks are usually associated with actinic damage, commonly seen in actinic keratosis."
+          },
+          {
+            "precondition": "There are no hyperkeratotic scales",
+            "rating": "reliable",
+            "comment": "Hyperkeratotic scales are typically present in actinic keratosis and not in benign keratosis."
+          }
+        ],
+        "overall": "revise",
+        "rationale": "While several pre-conditions are reliable and differentiate benign keratosis from actinic keratosis, some key elements remain unreliable or context-dependent. This could lead to incorrect classification, so it is necessary to revise and refine these pre-conditions for better accuracy."
+      },
+      "validation": {
+        "fires_on_trigger": true,
+        "tp": 4,
+        "fp": 1,
+        "tn": 7,
+        "fn": 4,
+        "precision": 0.8,
+        "recall": 0.5,
+        "accepted": true,
+        "rejection_reason": null,
+        "early_exited": false
+      },
+      "spectrum_history": [],
+      "accepted": true,
+      "registered": true
+    }
+  ]
+}

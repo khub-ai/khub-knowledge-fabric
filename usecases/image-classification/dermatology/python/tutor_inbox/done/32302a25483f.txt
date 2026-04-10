@@ -1,0 +1,7 @@
+{
+  "discriminating_feature": "central_or_diffuse_regression_distribution",
+  "description": "In the TP cases, the pink-white regression areas are either centrally located or diffusely distributed throughout the lesion body. In the FP case, the regression (pink-white) areas are concentrated at the PERIPHERY while the CENTER of the lesion is near-black/dark — an inverted topographic polarity.",
+  "present_in": "tp",
+  "confidence": "high",
+  "rationale": "Both TP cases show regression structures that are central (TP2: 'central pink-white/milky area') or diffuse throughout (TP1: 'diffuse pink-white/milky-white regression areas intermixed throughout the lesion body'). The FP case shows the opposite arrangement: pink-white at the periphery with near-black pigment centrally. This inverted pattern — dark center, pale periphery — is characteristic of a dysplastic nevus with peripheral halo-like depigmentation or an inflamed nevus, not of a regressing melanoma. In regressing superficial spreading melanoma, regression replaces the tumor mass at the center or is distributed across the lesion; it does not produce a peripheral pale rim with a preserved dark core. Adding a condition that regression must NOT be restricted to the periphery (with the center remaining dark) would tighten the rule to exclude this FP pattern."
+}

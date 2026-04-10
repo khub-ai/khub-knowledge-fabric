@@ -1,0 +1,218 @@
+{
+  "cheap_model": "o4-mini",
+  "expert_model": "claude-sonnet-4-6",
+  "patch_rules_file": "C:\\_backup\\github\\khub-knowledge-fabric\\usecases\\image-classification\\dermatology\\python\\patch_rules_clean.json",
+  "dry_run": false,
+  "total_tasks": 6,
+  "failures_before": 2,
+  "rules_authored": 2,
+  "rules_accepted": 0,
+  "rules_registered": 0,
+  "cross_pair_events": [],
+  "patch_records": [
+    {
+      "task_id": "basal_cell_carcinoma_vs_benign_keratosis_ISIC_0024336",
+      "pair_id": "basal_cell_carcinoma_vs_benign_keratosis",
+      "wrong_prediction": "uncertain",
+      "correct_label": "Benign Keratosis",
+      "candidate_rule": {
+        "rule": "When a lesion displays a central zone of mixed brown-to-violaceous granular pigmentation with a 'stuck-on' milia-like white clods or comedo-like openings embedded within a rough, cerebriform surface texture, surrounded by a peripheral halo of faint brown fingerprint-like or lacy pigmentation on a background with no arborizing vessels, leaf-like areas, or spoke-wheel structures, classify as Benign Keratosis.",
+        "feature": "stuck-on cerebriform surface with milia-like clods and fingerprint-like peripheral pigmentation",
+        "favors": "Benign Keratosis",
+        "confidence": "high",
+        "preconditions": [
+          "Central lesion area shows heterogeneous brown and violaceous granular pigmentation with a rough, clodded or cerebriform surface texture",
+          "Presence of milia-like white clods or comedo-like openings (yellowish/brown plugs) within the lesion center",
+          "Peripheral zone exhibits faint brown fingerprint-like, lacy, or gyri-pattern pigmentation fading into surrounding skin",
+          "Complete absence of arborizing (telangiectatic) vessels, leaf-like areas, spoke-wheel structures, or blue-gray ovoid nests",
+          "No ulceration or classic blue-gray globule arrays characteristic of BCC",
+          "Overall lesion boundary is well-demarcated but irregular, consistent with a stuck-on keratotic plaque",
+          "Lesion surface appears verrucous, warty, or hyperkeratotic in overall texture, consistent with an epidermal origin rather than a dermal or follicular one",
+          "Color palette is restricted to shades of tan, brown, dark brown, and/or violaceous without prominent blue-white veil or structureless white areas suggesting dermal invasion",
+          "No atypical vascular structures (dotted, irregular, or polymorphous vessels) that would indicate a melanocytic or other non-keratosis diagnosis",
+          "Absence of melanocytic-specific structures such as pigment network, streaks/pseudopods, or regression structures (white scar-like areas with peppering) that would favor a melanocytic lesion"
+        ],
+        "rationale": "Benign keratoses (seborrheic keratoses) characteristically show milia-like cysts, comedo-like openings, cerebriform surface, and peripheral fingerprint/lacy pigmentation \u2014 all reflecting their epidermal origin and keratin plugging. Basal Cell Carcinoma, by contrast, requires at least one of the following: arborizing vessels, blue-gray ovoid nests, leaf-like areas, spoke-wheel structures, or ulceration. The violaceous hue in this image reflects superficial ectatic vessels within a thickened epidermis (common in irritated SK), not the stromal vascularity of BCC. The peripheral lacy/fingerprint pattern is a hallmark of flat SK and is never seen in BCC, making it a strong discriminating feature.",
+        "added_preconditions": [
+          "Lesion surface appears verrucous, warty, or hyperkeratotic in overall texture, consistent with an epidermal origin rather than a dermal or follicular one",
+          "Color palette is restricted to shades of tan, brown, dark brown, and/or violaceous without prominent blue-white veil or structureless white areas suggesting dermal invasion",
+          "No atypical vascular structures (dotted, irregular, or polymorphous vessels) that would indicate a melanocytic or other non-keratosis diagnosis",
+          "Absence of melanocytic-specific structures such as pigment network, streaks/pseudopods, or regression structures (white scar-like areas with peppering) that would favor a melanocytic lesion"
+        ],
+        "completion_rationale": "The expert assumed that a trained dermoscopist would automatically recognize the lesion as epidermal/keratotic in origin (verrucous-hyperkeratotic surface) and would not confuse it with melanocytic lesions bearing regression or network structures that can superficially mimic lacy pigmentation. Additionally, the absence of a blue-white veil or structureless white zones \u2014 markers of dermal invasion seen in pigmented BCC or melanoma \u2014 was taken for granted as an obvious background exclusion criterion. Finally, the absence of atypical vascular patterns was implied but not stated, closing a loophole where vascular lesions with incidental keratotic surface features could otherwise trigger the rule."
+      },
+      "semantic_validation": {
+        "precondition_ratings": [
+          {
+            "precondition": "Central lesion area shows heterogeneous brown and violaceous granular pigmentation with a rough, clodded or cerebriform surface texture",
+            "rating": "reliable",
+            "comment": "Cerebriform/clodded surface texture with brown-violaceous granular pigmentation is a hallmark of seborrheic keratosis and is rarely mimicked by BCC, which typically lacks this epidermal surface architecture."
+          },
+          {
+            "precondition": "Presence of milia-like white clods or comedo-like openings (yellowish/brown plugs) within the lesion center",
+            "rating": "reliable",
+            "comment": "Milia-like cysts and comedo-like openings are classic diagnostic criteria for seborrheic keratosis and are not characteristic features of BCC."
+          },
+          {
+            "precondition": "Peripheral zone exhibits faint brown fingerprint-like, lacy, or gyri-pattern pigmentation fading into surrounding skin",
+            "rating": "reliable",
+            "comment": "Fingerprint-like and lacy peripheral pigmentation are recognized patterns in flat seborrheic keratoses and solar lentigines, and are not described as features of BCC."
+          },
+          {
+            "precondition": "Complete absence of arborizing (telangiectatic) vessels, leaf-like areas, spoke-wheel structures, or blue-gray ovoid nests",
+            "rating": "reliable",
+            "comment": "These are the primary BCC-specific vascular and pigmentary structures; their complete absence effectively excludes pigmented BCC in most cases."
+          },
+          {
+            "precondition": "No ulceration or classic blue-gray globule arrays characteristic of BCC",
+            "rating": "reliable",
+            "comment": "Ulceration and blue-gray globule arrays are important BCC indicators whose absence meaningfully reduces BCC probability, though ulceration can occasionally occur in inflamed SKs."
+          },
+          {
+            "precondition": "Overall lesion boundary is well-demarcated but irregular, consistent with a stuck-on keratotic plaque",
+            "rating": "context_dependent",
+            "comment": "Well-demarcated but irregular borders are typical of SK but can also be seen in superficial BCC; this feature alone is not sufficiently discriminating and relies on co-occurring SK-specific features."
+          },
+          {
+            "precondition": "Lesion surface appears verrucous, warty, or hyperkeratotic in overall texture, consistent with an epidermal origin rather than a dermal or follicular one",
+            "rating": "reliable",
+            "comment": "Verrucous, warty, or hyperkeratotic surface strongly supports an epidermal keratinocytic origin (SK) and is inconsistent with BCC, which typically presents with a smooth, translucent, or pearly surface."
+          },
+          {
+            "precondition": "Color palette is restricted to shades of tan, brown, dark brown, and/or violaceous without prominent blue-white veil or structureless white areas suggesting dermal invasion",
+            "rating": "context_dependent",
+            "comment": "While blue-white veil is more associated with melanoma, its absence does not reliably exclude BCC, which can present with shiny white structures or blue-gray rather than blue-white coloration; this pre-condition may be insufficiently specific for BCC exclusion alone."
+          },
+          {
+            "precondition": "No atypical vascular structures (dotted, irregular, or polymorphous vessels) that would indicate a melanocytic or other non-keratosis diagnosis",
+            "rating": "unreliable",
+            "comment": "This pre-condition targets exclusion of melanocytic lesions rather than BCC specifically, and dotted or irregular vessels are not a primary feature used to distinguish BCC from SK, making it a weak discriminator for this particular class pair."
+          },
+          {
+            "precondition": "Absence of melanocytic-specific structures such as pigment network, streaks/pseudopods, or regression structures (white scar-like areas with peppering) that would favor a melanocytic lesion",
+            "rating": "unreliable",
+            "comment": "This pre-condition addresses melanocytic vs. non-melanocytic differentiation rather than SK vs. BCC, providing no discriminatory value for the specific class pair being evaluated."
+          }
+        ],
+        "overall": "revise",
+        "rationale": "The core logic of this rule is sound: combining SK-specific positive features (milia-like cysts, comedo-like openings, cerebriform texture, fingerprint pigmentation) with exclusion of BCC-specific features (arborizing vessels, leaf-like areas, spoke-wheel structures, blue-gray ovoid nests) provides a clinically defensible classification framework. However, pre-conditions 9 and 10 are misdirected, targeting melanocytic lesion exclusion rather than BCC exclusion, wasting gate capacity and potentially misclassifying pigmented BCCs that also lack melanocytic structures. Pre-conditions 6 and 8 are context-dependent and should be tightened or deprioritized. The rule should be revised to remove or redirect the melanocytic-exclusion gates (9 and 10) and refocus all pre-conditions strictly on the SK-vs-BCC discriminant axis."
+      },
+      "validation": {
+        "fires_on_trigger": false,
+        "tp": 1,
+        "fp": 0,
+        "tn": 8,
+        "fn": 7,
+        "precision": 1.0,
+        "recall": 0.125,
+        "accepted": false,
+        "rejection_reason": "did not fire on trigger"
+      },
+      "spectrum_history": [],
+      "accepted": false,
+      "registered": false
+    },
+    {
+      "task_id": "basal_cell_carcinoma_vs_benign_keratosis_ISIC_0024420",
+      "pair_id": "basal_cell_carcinoma_vs_benign_keratosis",
+      "wrong_prediction": "uncertain",
+      "correct_label": "Benign Keratosis",
+      "candidate_rule": {
+        "rule": "When a small, poorly-defined pigmented lesion on hairy skin shows a diffuse, moth-eaten or milia-like cluster of brown-to-dark granules arranged in an irregular but flat aggregation without arborizing vessels, leaf-like structures, spoke-wheel areas, or blue-gray ovoid nests, and the surrounding skin shows normal hair follicles and a pinkish-white background with no ulceration or rolled borders, classify as Benign Keratosis.",
+        "feature": "milia-like or comedo-opening granules in flat pigmented lesion without BCC structural patterns",
+        "favors": "Benign Keratosis",
+        "confidence": "moderate",
+        "preconditions": [
+          "Lesion is small and poorly marginated, appearing as a flat pigmented cluster rather than a raised nodule",
+          "Pigmentation consists of brown to dark-brown granules or comedo-like aggregates without structured BCC patterns (no leaf-like areas, no spoke-wheel structures, no blue-gray ovoid nests)",
+          "Absence of arborizing (telangiectatic) vessels \u2014 the hallmark vascular pattern of BCC \u2014 within or at the periphery of the lesion",
+          "Background skin is pinkish-white with normal hair follicles distributed across the field, consistent with a hair-bearing anatomical site",
+          "No ulceration, no shiny white structureless areas (chrysalis structures), and no rolled pearly borders visible",
+          "Pigment pattern is milia-like or comedo-opening-like, consistent with seborrheic keratosis or lentigo-type benign keratosis",
+          "No blue-gray dots or granules arranged in a pepper-like or concentric pattern that would suggest pigmented BCC or melanocytic lesion",
+          "No melanoma-associated features such as atypical pigment network, regression structures (white scar-like areas combined with blue-gray peppering), or irregular streaks/pseudopods",
+          "Overall lesion color is limited to shades of tan, brown, or dark brown without zones of gray, blue, or white that would raise suspicion for BCC or melanoma",
+          "Lesion surface texture, where discernible, is consistent with a keratotic or flat epidermal origin (e.g., stuck-on appearance or flat macular quality) rather than a translucent, pearly, or dermal quality typical of BCC"
+        ],
+        "rationale": "Basal Cell Carcinoma on dermoscopy characteristically displays arborizing vessels, blue-gray ovoid nests, leaf-like structures, spoke-wheel areas, and/or ulceration. This lesion shows none of these features. Instead, it presents as a flat cluster of brownish-dark granules consistent with comedo-like openings or milia-like cysts seen in seborrheic keratosis, set against normal hair-bearing skin. The absence of any BCC-specific vascular or structural criteria combined with a granular, matte pigment arrangement strongly favors Benign Keratosis and should override model uncertainty.",
+        "added_preconditions": [
+          "No blue-gray dots or granules arranged in a pepper-like or concentric pattern that would suggest pigmented BCC or melanocytic lesion",
+          "No melanoma-associated features such as atypical pigment network, regression structures (white scar-like areas combined with blue-gray peppering), or irregular streaks/pseudopods",
+          "Overall lesion color is limited to shades of tan, brown, or dark brown without zones of gray, blue, or white that would raise suspicion for BCC or melanoma",
+          "Lesion surface texture, where discernible, is consistent with a keratotic or flat epidermal origin (e.g., stuck-on appearance or flat macular quality) rather than a translucent, pearly, or dermal quality typical of BCC"
+        ],
+        "completion_rationale": "The expert implicitly assumed that the lesion lacks any blue-gray coloration or peppering (which would point toward pigmented BCC or regressing melanoma) and that the overall color palette stays within the brown range expected for benign keratosis. They also assumed the surface quality reads as epidermal/keratotic rather than the translucent, pearly dermal quality characteristic of BCC \u2014 a tactile-visual distinction so fundamental to BCC recognition that experienced dermoscopists apply it automatically without stating it. Making these background exclusions explicit closes loopholes where a rule-checker might fire the rule on a pigmented BCC that happens to lack the classic structural patterns yet still carries the coloration or texture cues that betray its nature."
+      },
+      "semantic_validation": {
+        "precondition_ratings": [
+          {
+            "precondition": "Lesion is small and poorly marginated, appearing as a flat pigmented cluster rather than a raised nodule",
+            "rating": "unreliable",
+            "comment": "Both pigmented BCC and early seborrheic keratosis/lentigo can present as small, flat, poorly marginated lesions, so size and flatness alone do not reliably distinguish the two classes."
+          },
+          {
+            "precondition": "Pigmentation consists of brown to dark-brown granules or comedo-like aggregates without structured BCC patterns (no leaf-like areas, no spoke-wheel structures, no blue-gray ovoid nests)",
+            "rating": "reliable",
+            "comment": "The explicit exclusion of the three major BCC-specific pigmented structures (leaf-like areas, spoke-wheel, blue-gray ovoid nests) makes this a strong positive gate for benign keratosis when combined with comedo-like or granular brown pigment."
+          },
+          {
+            "precondition": "Absence of arborizing (telangiectatic) vessels \u2014 the hallmark vascular pattern of BCC \u2014 within or at the periphery of the lesion",
+            "rating": "reliable",
+            "comment": "Arborizing vessels are highly specific for BCC; their confirmed absence meaningfully reduces BCC probability, though small superficial BCCs can occasionally lack them."
+          },
+          {
+            "precondition": "Background skin is pinkish-white with normal hair follicles distributed across the field, consistent with a hair-bearing anatomical site",
+            "rating": "unreliable",
+            "comment": "BCCs commonly arise on hair-bearing skin (e.g., scalp, face) and can show a similar background, so this feature does not discriminate between the two classes."
+          },
+          {
+            "precondition": "No ulceration, no shiny white structureless areas (chrysalis structures), and no rolled pearly borders visible",
+            "rating": "context_dependent",
+            "comment": "Absence of ulceration and chrysalis structures is supportive but only moderately discriminating because early or small BCCs may lack these features while still being BCC."
+          },
+          {
+            "precondition": "Pigment pattern is milia-like or comedo-opening-like, consistent with seborrheic keratosis or lentigo-type benign keratosis",
+            "rating": "reliable",
+            "comment": "Milia-like cysts and comedo-like openings are dermoscopic hallmarks of seborrheic keratosis and are rarely seen in BCC, making this a strong positive indicator."
+          },
+          {
+            "precondition": "No blue-gray dots or granules arranged in a pepper-like or concentric pattern that would suggest pigmented BCC or melanocytic lesion",
+            "rating": "reliable",
+            "comment": "Concentric or pepper-like blue-gray granules are characteristic of pigmented BCC and melanocytic lesions; their absence supports a benign keratosis classification."
+          },
+          {
+            "precondition": "No melanoma-associated features such as atypical pigment network, regression structures (white scar-like areas combined with blue-gray peppering), or irregular streaks/pseudopods",
+            "rating": "context_dependent",
+            "comment": "While excluding melanoma features is appropriate, this pre-condition addresses a third class (melanoma) rather than directly discriminating benign keratosis from BCC, making it only indirectly relevant to the stated rule."
+          },
+          {
+            "precondition": "Overall lesion color is limited to shades of tan, brown, or dark brown without zones of gray, blue, or white that would raise suspicion for BCC or melanoma",
+            "rating": "reliable",
+            "comment": "Blue, gray, or white color zones are strongly associated with BCC and melanoma; a lesion restricted to tan-to-dark-brown hues is consistent with benign keratosis."
+          },
+          {
+            "precondition": "Lesion surface texture, where discernible, is consistent with a keratotic or flat epidermal origin (e.g., stuck-on appearance or flat macular quality) rather than a translucent, pearly, or dermal quality typical of BCC",
+            "rating": "context_dependent",
+            "comment": "A stuck-on or keratotic surface is a good positive indicator for seborrheic keratosis, but texture assessment is subjective and may be difficult to apply consistently on hairy or poorly-visualized skin."
+          }
+        ],
+        "overall": "revise",
+        "rationale": "The rule contains several strong BCC-exclusion criteria (absence of leaf-like areas, spoke-wheel, blue-gray ovoid nests, arborizing vessels, and blue-gray granular patterns) alongside positive keratosis markers (milia-like cysts, comedo openings, tan-brown-only color), which form a sound core logic. However, two pre-conditions (hair-bearing background, small flat appearance) are unreliable discriminators because BCC routinely occurs in the same anatomical context and morphology, and should be removed or tightened. Additionally, pre-condition 8 addresses melanoma rather than BCC, diluting the rule's focus, and the texture-based pre-condition is too subjective for consistent application; these should be revised before image validation."
+      },
+      "validation": {
+        "fires_on_trigger": false,
+        "tp": 1,
+        "fp": 0,
+        "tn": 8,
+        "fn": 7,
+        "precision": 1.0,
+        "recall": 0.125,
+        "accepted": false,
+        "rejection_reason": "did not fire on trigger"
+      },
+      "spectrum_history": [],
+      "accepted": false,
+      "registered": false
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+{"precondition_met": false, "would_predict": null, "observations": "Roughly round, fairly symmetric dark red-brown lesion with smooth border on pink skin. One to two tones of dark red-brown only, no gray-blue, no white regression, no peripheral irregular pigment. No atypical network, no streaks, no blue-white veil, no irregular dark globules. Multiple preconditions fail."}

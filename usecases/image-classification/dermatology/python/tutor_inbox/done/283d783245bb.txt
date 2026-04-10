@@ -1,0 +1,6 @@
+{
+  "request_id": "283d783245bb",
+  "precondition_met": false,
+  "would_predict": null,
+  "observations": "Roughly oval, fairly symmetric red-brown lesion with smooth, well-defined border on pink skin. One tone of dark red-brown. No 3-color variation, no atypical pigment network, no streaks, no blue-white veil. Strict reading: asymmetry, 3-color, irregular-border, and melanoma-structure preconditions all not met."
+}

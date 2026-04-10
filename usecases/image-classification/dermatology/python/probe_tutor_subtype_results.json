@@ -1,0 +1,274 @@
+[
+  {
+    "melanoma_subtype": "superficial_spreading",
+    "confidence_in_subtype": "high",
+    "subtype_rationale": "The lesion demonstrates classic features of superficial spreading melanoma with irregular radial growth pattern, multiple colors, and asymmetric pigment distribution characteristic of horizontal growth phase.",
+    "key_features_visible": [
+      "Asymmetric pigmentation",
+      "Irregular borders with pseudopods/radial streaming",
+      "Multiple colors (dark brown, light brown, black)",
+      "Atypical pigment network",
+      "Regression features (white areas within lesion)",
+      "Blue-white veil focally",
+      "Irregular dots and globules",
+      "Structureless areas"
+    ],
+    "features_absent": [
+      "Nodular component",
+      "Ulceration",
+      "Parallel ridge pattern (acral)",
+      "Amelanotic areas predominating",
+      "Annular-granular pattern of lentigo maligna"
+    ],
+    "classic_ABCD_summary": "Asymmetry: Present in both axes. Border: Highly irregular with sharp cutoff and pseudopods. Color: Variegated with at least 3-4 shades (light brown, dark brown, black, white regression). Diameter: Appears >6mm.",
+    "overall_diagnosis": "Melanoma",
+    "diagnosis_confidence": "high",
+    "image_id": "ISIC_0028029",
+    "true_label": "Melanoma",
+    "correct_diagnosis": true
+  },
+  {
+    "melanoma_subtype": "superficial_spreading",
+    "confidence_in_subtype": "medium",
+    "subtype_rationale": "The lesion shows an irregular pigment network with variation in mesh thickness, peripheral fading with irregular borders, and multiple brown-red color tones suggesting radial growth phase typical of superficial spreading melanoma.",
+    "key_features_visible": [
+      "Atypical pigment network with irregular mesh",
+      "Color variegation (brown, dark brown, reddish tones)",
+      "Asymmetric structure",
+      "Irregular borders with pseudopods/radial streaming at periphery",
+      "Regression areas (pinkish-white zones)",
+      "Blue-gray granules/peppering centrally"
+    ],
+    "features_absent": [
+      "Blue-white veil (not prominent)",
+      "Ulceration",
+      "Parallel ridge pattern (acral)",
+      "Nodular/raised component",
+      "Amelanotic areas"
+    ],
+    "classic_ABCD_summary": "Asymmetry: present in both axes; Border: irregular with ill-defined edges and peripheral extensions; Color: 3+ colors including light brown, dark brown, and blue-gray; Diameter: appears >6mm based on dermoscopic field",
+    "overall_diagnosis": "Melanoma",
+    "diagnosis_confidence": "high",
+    "image_id": "ISIC_0027793",
+    "true_label": "Melanoma",
+    "correct_diagnosis": true
+  },
+  {
+    "melanoma_subtype": "lentigo_maligna",
+    "confidence_in_subtype": "medium",
+    "subtype_rationale": "The lesion shows characteristic features of lentigo maligna including annular-granular pattern, asymmetric pigmented follicular openings, and rhomboidal structures on sun-damaged skin with background solar lentigines.",
+    "key_features_visible": [
+      "Annular-granular structures",
+      "Asymmetric pigmented follicular openings",
+      "Irregular pigment network with rhomboidal structures",
+      "Multiple brown-gray colors",
+      "Background chronic sun damage with solar lentigines",
+      "Irregular border with peripheral fade",
+      "Structureless brown-gray areas"
+    ],
+    "features_absent": [
+      "Blue-white veil",
+      "Atypical vessels",
+      "Nodular component",
+      "Ulceration",
+      "Shiny white structures",
+      "Parallel ridge pattern"
+    ],
+    "classic_ABCD_summary": "Asymmetry: present in both axes; Border: irregular with ill-defined edges fading into surrounding skin; Color: variegated browns and gray tones; Diameter: appears >6mm with characteristic slow radial spread pattern",
+    "overall_diagnosis": "Melanoma",
+    "diagnosis_confidence": "medium",
+    "image_id": "ISIC_0025791",
+    "true_label": "Melanoma",
+    "correct_diagnosis": true
+  },
+  {
+    "melanoma_subtype": "superficial_spreading",
+    "confidence_in_subtype": "medium",
+    "subtype_rationale": "The lesion shows a predominantly flat growth pattern with multiple colors and regression features (white scarring/peppering), characteristic of superficial spreading melanoma. The irregular pigment network remnants and blue-white veil areas support this classification.",
+    "key_features_visible": [
+      "Blue-white veil/regression structures",
+      "Irregular pigment network (remnants)",
+      "Multiple colors (brown, blue-gray, pink, white)",
+      "Asymmetric structure",
+      "Peppering/granularity",
+      "Irregular blotches",
+      "Pink-violet structureless areas"
+    ],
+    "features_absent": [
+      "Parallel ridge pattern (acral)",
+      "Lentigo maligna features (rhomboidal structures)",
+      "Nodular/ulcerated component",
+      "Regular pigment network",
+      "Comedo-like openings",
+      "Milia-like cysts"
+    ],
+    "classic_ABCD_summary": "Asymmetry: present in both axes; Border: irregular with ill-defined edges; Color: highly variegated with brown, blue-gray, pink, and white regression areas; Diameter: appears >6mm based on image context",
+    "overall_diagnosis": "Melanoma",
+    "diagnosis_confidence": "high",
+    "image_id": "ISIC_0030034",
+    "true_label": "Melanoma",
+    "correct_diagnosis": true
+  },
+  {
+    "melanoma_subtype": "superficial_spreading",
+    "confidence_in_subtype": "medium",
+    "subtype_rationale": "The lesion shows irregular pigment distribution with multiple colors spreading horizontally across the skin surface, characteristic radial growth phase pattern, and lacks the acral or facial location features of other subtypes.",
+    "key_features_visible": [
+      "Asymmetric pigmentation",
+      "Irregular brown-tan structureless areas",
+      "Blue-gray granules/peppering (regression features)",
+      "Irregular pigment network remnants",
+      "Multiple brown shades (light and dark brown)",
+      "Irregular borders with pseudopods/radial streaming at periphery",
+      "Off-center darker areas"
+    ],
+    "features_absent": [
+      "Nodular/raised component",
+      "Parallel ridge pattern (acral)",
+      "Rhomboidal structures (lentigo maligna)",
+      "Amelanotic areas",
+      "Typical pigment network",
+      "Comedo-like openings",
+      "Milia-like cysts"
+    ],
+    "classic_ABCD_summary": "Asymmetry: Present in both axes. Border: Irregular with indistinct edges and peripheral extension. Color: Multiple shades including light brown, dark brown, and blue-gray suggesting regression. Diameter: Appears >6mm based on image scale.",
+    "overall_diagnosis": "Melanoma",
+    "diagnosis_confidence": "high",
+    "image_id": "ISIC_0025663",
+    "true_label": "Melanoma",
+    "correct_diagnosis": true
+  },
+  {
+    "melanoma_subtype": "superficial_spreading",
+    "confidence_in_subtype": "low",
+    "subtype_rationale": "The lesion shows irregular brown pigmentation with heterogeneous coloration suggesting possible radial growth phase, though the image quality and small size limit definitive subtyping.",
+    "key_features_visible": [
+      "Irregular pigment distribution",
+      "Heterogeneous brown coloration",
+      "Asymmetric pigment pattern",
+      "Ill-defined borders",
+      "Structureless brown areas"
+    ],
+    "features_absent": [
+      "Blue-white veil",
+      "Atypical pigment network clearly defined",
+      "Regression structures",
+      "Nodular component",
+      "Ulceration",
+      "Atypical vascular pattern"
+    ],
+    "classic_ABCD_summary": "Asymmetry: present in both axes; Border: irregular and poorly defined; Color: heterogeneous brown with darker focal areas; Diameter: appears relatively small but concerning pattern",
+    "overall_diagnosis": "Uncertain",
+    "diagnosis_confidence": "low",
+    "image_id": "ISIC_0030996",
+    "true_label": "Melanocytic Nevus",
+    "correct_diagnosis": false
+  },
+  {
+    "melanoma_subtype": "amelanotic",
+    "confidence_in_subtype": "medium",
+    "subtype_rationale": "The lesion shows predominantly pink-red coloration with minimal melanin pigmentation, polymorphous vascular pattern with dotted and linear irregular vessels, and milky-red areas characteristic of amelanotic/hypomelanotic melanoma.",
+    "key_features_visible": [
+      "Polymorphous vascular pattern",
+      "Dotted vessels",
+      "Linear irregular vessels",
+      "Milky-red/pink structureless areas",
+      "Slight residual brown pigmentation centrally",
+      "Irregular vessel distribution",
+      "Pink-white background"
+    ],
+    "features_absent": [
+      "Typical pigment network",
+      "Blue-white veil",
+      "Pseudopods/streaks",
+      "Globules",
+      "Dense melanin pigmentation",
+      "Regression structures"
+    ],
+    "classic_ABCD_summary": "Asymmetry present in both axes; borders are irregular and ill-defined; color is predominantly pink-red with subtle brown tones centrally (hypomelanotic); diameter appears >6mm. The lack of typical melanocytic features with atypical vascular pattern is concerning.",
+    "overall_diagnosis": "Melanoma",
+    "diagnosis_confidence": "medium",
+    "image_id": "ISIC_0030613",
+    "true_label": "Melanocytic Nevus",
+    "correct_diagnosis": false
+  },
+  {
+    "melanoma_subtype": "superficial_spreading",
+    "confidence_in_subtype": "medium",
+    "subtype_rationale": "The lesion shows a relatively flat appearance with variegated brown pigmentation and an irregular network pattern, consistent with superficial spreading melanoma in radial growth phase.",
+    "key_features_visible": [
+      "Atypical pigment network with irregular meshes",
+      "Multiple regression structures (white scar-like areas within lesion)",
+      "Color variegation (light and dark brown tones)",
+      "Irregular dots/globules",
+      "Asymmetric pigment distribution",
+      "Peppering/granularity"
+    ],
+    "features_absent": [
+      "Blue-white veil",
+      "Nodular component",
+      "Atypical vessels",
+      "Ulceration",
+      "Parallel ridge pattern",
+      "Lentigo maligna pattern (annular-granular structures)"
+    ],
+    "classic_ABCD_summary": "Asymmetry: present in both axes; Border: irregular with indistinct edges superiorly; Color: 2-3 shades of brown with focal hypopigmented regression areas; Diameter: appears >6mm",
+    "overall_diagnosis": "Melanoma",
+    "diagnosis_confidence": "medium",
+    "image_id": "ISIC_0027441",
+    "true_label": "Melanocytic Nevus",
+    "correct_diagnosis": false
+  },
+  {
+    "melanoma_subtype": "superficial_spreading",
+    "confidence_in_subtype": "medium",
+    "subtype_rationale": "The lesion shows an irregular pigment network with areas of regression and multiple brown dots distributed irregularly, consistent with superficial spreading melanoma in radial growth phase.",
+    "key_features_visible": [
+      "Atypical pigment network with variable mesh thickness",
+      "Multiple irregular brown dots/globules",
+      "Areas of regression (pinkish-white structureless zones)",
+      "Asymmetric pigment distribution",
+      "Irregular border with fading edges"
+    ],
+    "features_absent": [
+      "Blue-white veil",
+      "Thick nodular component",
+      "Parallel ridge pattern (acral)",
+      "Amelanotic vessels",
+      "Rhomboidal structures (lentigo maligna)"
+    ],
+    "classic_ABCD_summary": "Asymmetry: Present in both axes. Border: Irregular with ill-defined edges. Color: Brown with variation in intensity, areas of lighter regression. Diameter: Appears >6mm.",
+    "overall_diagnosis": "Melanoma",
+    "diagnosis_confidence": "medium",
+    "image_id": "ISIC_0027061",
+    "true_label": "Melanocytic Nevus",
+    "correct_diagnosis": false
+  },
+  {
+    "melanoma_subtype": "unknown",
+    "confidence_in_subtype": "low",
+    "subtype_rationale": "This lesion appears to be a benign melanocytic nevus rather than melanoma. The features present are consistent with a common acquired nevus, not a melanoma subtype.",
+    "key_features_visible": [
+      "Relatively symmetric globular pattern",
+      "Brown pigmentation with uniform coloration",
+      "Regular globules/dots centrally",
+      "Small diameter (appears <6mm)",
+      "Reasonably well-defined borders"
+    ],
+    "features_absent": [
+      "Atypical pigment network",
+      "Blue-white veil",
+      "Irregular streaks or pseudopods",
+      "Regression structures",
+      "Multiple colors (red, white, blue-gray)",
+      "Irregular dots/globules at periphery",
+      "Asymmetric pigmentation pattern"
+    ],
+    "classic_ABCD_summary": "Asymmetry: Relatively symmetric structure; Border: Reasonably regular and well-defined; Color: Homogeneous brown without concerning polychromia; Diameter: Appears small, likely <6mm",
+    "overall_diagnosis": "Melanocytic Nevus",
+    "diagnosis_confidence": "medium",
+    "image_id": "ISIC_0027970",
+    "true_label": "Melanocytic Nevus",
+    "correct_diagnosis": true
+  }
+]

@@ -1,0 +1,86 @@
+{
+  "cheap_model": "o4-mini",
+  "expert_model": "claude-sonnet-4-6",
+  "patch_rules_file": "C:\\_backup\\github\\khub-knowledge-fabric\\usecases\\image-classification\\dermatology\\python\\patch_rules_v5_bcc_spectrum.json",
+  "dry_run": false,
+  "total_tasks": 6,
+  "failures_before": 2,
+  "rules_authored": 2,
+  "rules_accepted": 2,
+  "rules_registered": 2,
+  "cross_pair_events": [],
+  "patch_records": [
+    {
+      "task_id": "basal_cell_carcinoma_vs_benign_keratosis_ISIC_0024336",
+      "pair_id": "basal_cell_carcinoma_vs_benign_keratosis",
+      "wrong_prediction": "uncertain",
+      "correct_label": "Benign Keratosis",
+      "candidate_rule": {
+        "rule": "When a lesion shows a central zone of mixed brown-to-violaceous pigmentation with a 'moth-eaten' or finely granular, milia-like white clod texture interspersed within the pigmented area, surrounded by a peripheral halo of scattered brown dots/globules fading into normal skin without arborizing vessels or blue-gray ovoid nests, classify as Benign Keratosis.",
+        "feature": "milia_like_cysts_with_fading_brown_granular_periphery",
+        "favors": "Benign Keratosis",
+        "confidence": "high",
+        "preconditions": [
+          "Central pigmented area contains coarse white-to-cream granular inclusions (milia-like cysts or comedo-like openings) embedded within brownish-violaceous pigment",
+          "Peripheral zone shows scattered brown dots/globules or 'moth-eaten' edge fading gradually into surrounding skin without a sharp border",
+          "Color palette is mixed brown, gray-brown, and dull violaceous \u2014 NOT pearly white or translucent",
+          "No arborizing (tree-like) telangiectasias visible anywhere in the lesion",
+          "No blue-gray ovoid nests or spoke-wheel structures present",
+          "Lesion surface appears somewhat dull and keratotic rather than shiny or translucent"
+        ],
+        "rationale": "Seborrheic keratosis and other benign keratoses characteristically display milia-like cysts (white clods), comedo-like openings, and a finely granular or 'moth-eaten' peripheral edge with scattered brown dots fading into normal skin. The mixed brownish-violaceous hue with embedded white granular foci is a hallmark of keratinizing benign lesions. Basal cell carcinoma, by contrast, would show arborizing vessels, blue-gray ovoid nests, shiny white areas (chrysalis structures), or spoke-wheel patterns \u2014 none of which are present here. The model's uncertainty likely arose from the violaceous pigmentation, but the coarse white inclusions and gradually fading granular periphery are incompatible with BCC and strongly favor Benign Keratosis."
+      },
+      "validation": {
+        "fires_on_trigger": true,
+        "tp": 4,
+        "fp": 0,
+        "tn": 8,
+        "fn": 4,
+        "precision": 1.0,
+        "recall": 0.5,
+        "accepted": true,
+        "rejection_reason": null
+      },
+      "spectrum_history": [],
+      "accepted": true,
+      "registered": true
+    },
+    {
+      "task_id": "basal_cell_carcinoma_vs_benign_keratosis_ISIC_0024420",
+      "pair_id": "basal_cell_carcinoma_vs_benign_keratosis",
+      "wrong_prediction": "uncertain",
+      "correct_label": "Benign Keratosis",
+      "candidate_rule": {
+        "rule": "When a small, ill-defined pigmented lesion on hairy skin shows a disorganized cluster of brown-to-dark granules and dots WITHOUT arborizing vessels, without pearly/translucent areas, and without ulceration or blue-gray ovoid nests, set against a diffuse pink background with prominent terminal hairs, classify as Benign Keratosis.",
+        "feature": "granular_dot_cluster_without_bcc_vascular_structures",
+        "favors": "Benign Keratosis",
+        "confidence": "medium",
+        "preconditions": [
+          "Lesion is small and relatively flat with ill-defined, irregular borders",
+          "Pigmentation consists of loosely aggregated brown/dark-brown granules, dots, and clods in a clustered but disorganized arrangement",
+          "Background skin is diffusely pink/erythematous with visible terminal hairs passing through or around the lesion",
+          "Absence of arborizing (telangiectatic) vessels, which are hallmark of BCC",
+          "Absence of pearly, translucent, or shiny white areas",
+          "Absence of blue-gray ovoid nests or multiple blue-gray globules",
+          "Absence of ulceration or erosion",
+          "Pigment pattern is mottled/moth-eaten rather than structurally organized (no clear pigment network, streaks, or spoke-wheel areas)"
+        ],
+        "rationale": "Basal Cell Carcinoma on dermoscopy characteristically shows arborizing vessels, blue-gray ovoid nests, shiny white structures, and/or ulceration. This lesion lacks all BCC-specific vascular and structural features. Instead, it displays a loosely clustered, granular brownish pigment aggregate on a pink, hair-bearing background \u2014 a pattern consistent with a seborrheic keratosis or lentigo-type benign keratosis in a body-hair-bearing area. The model's uncertainty likely arose from the small size, irregular clustering of dark pigment, and lack of classic SK features (milia-like cysts, comedo-like openings); however, the systematic absence of all BCC hallmarks should redirect classification toward Benign Keratosis."
+      },
+      "validation": {
+        "fires_on_trigger": true,
+        "tp": 6,
+        "fp": 1,
+        "tn": 7,
+        "fn": 2,
+        "precision": 0.857,
+        "recall": 0.75,
+        "accepted": true,
+        "rejection_reason": null
+      },
+      "spectrum_history": [],
+      "accepted": true,
+      "registered": true
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "request_id": "286e4d503dbd",
+  "precondition_met": false,
+  "would_predict": null,
+  "observations": "Roughly round, fairly symmetric dark brown lesion with smooth fading border on pink skin. One tone (dark brown). No 3-color variation, no atypical pigment network, no streaks, no blue-white veil. Strict reading: preconditions not met."
+}

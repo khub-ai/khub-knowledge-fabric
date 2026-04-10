@@ -1,0 +1,6 @@
+{
+  "request_id": "bb97409e4904",
+  "precondition_met": true,
+  "would_predict": "Melanoma",
+  "observations": "Asymmetric lesion with notched/scalloped border. Three+ colors visible: dark brown, lighter brown, and central pink-red zone. Pigment heterogeneous, with dark patches adjacent to lighter and pink areas. Irregular dots/globules unevenly distributed at the periphery. Not a uniform reticular network and not a symmetric globular nevus. Preconditions met."
+}

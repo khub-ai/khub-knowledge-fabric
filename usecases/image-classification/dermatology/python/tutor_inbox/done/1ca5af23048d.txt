@@ -1,0 +1,46 @@
+{
+  "precondition_ratings": [
+    {
+      "precondition": "Lesion contains pink-white or milky-white areas within the body of the lesion (not just at the border) — regression structures",
+      "rating": "reliable",
+      "comment": "Regression structures (milky-white areas) are a well-established melanoma sign; benign nevi essentially never show true regression white areas within the lesion body."
+    },
+    {
+      "precondition": "Fine dark granular peppering visible: multiple tiny punctate dark dots scattered across the lesion, not organized into globules or a network",
+      "rating": "reliable",
+      "comment": "Peppering (fine granules of residual melanin in the superficial dermis) is a hallmark of regressing melanoma; benign nevi with dots have them organized into globules or a network, not scattered diffusely."
+    },
+    {
+      "precondition": "Overall pigmentation is diffuse and granular/dusty in texture, lacking a well-organized honeycomb reticular network",
+      "rating": "reliable",
+      "comment": "Benign reticular nevi have a clearly organized honeycomb mesh; diffuse granular/dusty texture without network structure is inconsistent with a benign reticular nevus."
+    },
+    {
+      "precondition": "At least three color components present: light brown, medium/dark brown, AND pink-white/milky",
+      "rating": "reliable",
+      "comment": "Polychromia with pink-white is a strong melanoma indicator; benign nevi are typically one or two shades of brown without true white/pink regression components."
+    },
+    {
+      "precondition": "Lesion is asymmetric",
+      "rating": "context_dependent",
+      "comment": "Asymmetry alone is insufficient to discriminate — dysplastic nevi can be asymmetric — but as a corroborative condition alongside regression and peppering it adds meaningful support."
+    },
+    {
+      "precondition": "No seborrheic keratosis features (no milia-like cysts, no comedo-like openings, no sharp 'stuck-on' border)",
+      "rating": "reliable",
+      "comment": "Necessary exclusion: SK can show white areas (milia cysts) that could superficially mimic regression; this condition cleanly separates them."
+    },
+    {
+      "precondition": "Lesion is flat or minimally elevated — not a raised dome-shaped or nodular lesion (regression-peppering pattern applies to superficial spreading morphology, not nodular melanoma)",
+      "rating": "reliable",
+      "comment": "Regression-with-peppering is a superficial spreading melanoma pattern; applying this rule to nodular or raised lesions would be inappropriate and this exclusion correctly prevents that."
+    },
+    {
+      "precondition": "No features suggesting a non-melanocytic lesion: no red/purple lacunae (hemangioma), no central white patch with peripheral pigment ring (dermatofibroma)",
+      "rating": "reliable",
+      "comment": "Hemangiomas and dermatofibromas can show pinkish-white areas that could superficially satisfy condition 1; this exclusion correctly gates out non-melanocytic mimics."
+    }
+  ],
+  "overall": "accept",
+  "rationale": "The core of this rule — regression structures combined with peppering and disorganized pigmentation — is a well-validated constellation for superficial spreading melanoma with regression; it is highly specific for melanoma and rarely seen in benign nevi. The one context_dependent condition (asymmetry) is not the primary discriminator but is corroborative and does no harm alongside the stronger regression/peppering conditions. The background exclusion conditions (SK, nodular, non-melanocytic) are sound and necessary. Safe to proceed to image validation."
+}

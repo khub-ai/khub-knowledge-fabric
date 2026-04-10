@@ -1,0 +1,248 @@
+{
+  "cheap_model": "meta-llama/llama-4-maverick",
+  "expert_model": "gpt-4o",
+  "patch_rules_file": "C:\\_backup\\github\\khub-knowledge-fabric\\usecases\\image-classification\\dermatology\\python\\patch_rules_clean.json",
+  "dry_run": false,
+  "total_tasks": 6,
+  "failures_before": 1,
+  "rules_authored": 1,
+  "rules_accepted": 1,
+  "rules_registered": 1,
+  "cross_pair_events": [],
+  "patch_records": [
+    {
+      "task_id": "melanoma_vs_melanocytic_nevus_ISIC_0024392",
+      "pair_id": "melanoma_vs_melanocytic_nevus",
+      "wrong_prediction": "Melanoma",
+      "correct_label": "Melanocytic Nevus",
+      "candidate_rule": {
+        "level": 3,
+        "label": "original",
+        "rule": "When a lesion reveals a symmetrical feathered pattern with uniform pigmentation and a central darker area blending smoothly into a lighter periphery, classify as Melanocytic Nevus.",
+        "feature": "symmetrical_feathered_uniform_pattern_central_darker_area",
+        "favors": "Melanocytic Nevus",
+        "confidence": "high",
+        "preconditions": [
+          "The lesion is mostly symmetrical in shape",
+          "There is a feathered or speckled pigmentation pattern",
+          "The central area is darker but transitions smoothly into a lighter peripheral zone",
+          "Overall uniformity in pigmentation across the lesion"
+        ],
+        "rationale": "This rule captures all observed key features of a Melanocytic Nevus and aligns closely with its known dermatological presentation."
+      },
+      "semantic_validation": {
+        "precondition_ratings": [
+          {
+            "precondition": "The lesion is mostly symmetrical in shape",
+            "rating": "reliable",
+            "comment": "Symmetry is more commonly associated with benign lesions like melanocytic nevi."
+          },
+          {
+            "precondition": "There is a feathered or speckled pigmentation pattern",
+            "rating": "context_dependent",
+            "comment": "Feathering can appear in both nevi and melanomas and needs context like border regularity."
+          },
+          {
+            "precondition": "The central area is darker but transitions smoothly into a lighter peripheral zone",
+            "rating": "reliable",
+            "comment": "Smooth color transition is more typical of benign nevi compared to the abrupt changes in melanoma."
+          },
+          {
+            "precondition": "Overall uniformity in pigmentation across the lesion",
+            "rating": "reliable",
+            "comment": "Uniform pigmentation is characteristic of benign lesions."
+          },
+          {
+            "precondition": "The lesion has a regular border",
+            "rating": "reliable",
+            "comment": "Regular borders are typically associated with benign lesions rather than melanomas."
+          },
+          {
+            "precondition": "Diameter of the lesion is less than 6mm",
+            "rating": "reliable",
+            "comment": "Lesions under 6mm are usually benign, but growth trends are also important."
+          }
+        ],
+        "overall": "accept",
+        "rationale": "Most pre-conditions are reliable indicators of melanocytic nevi as opposed to melanomas. While the feathered or speckled pigmentation pattern can be context dependent, it is accompanied by other strong indicators of benign lesions. The rule is structurally sound and suitable for image validation."
+      },
+      "validation": {
+        "fires_on_trigger": true,
+        "tp": 6,
+        "fp": 1,
+        "tn": 7,
+        "fn": 2,
+        "precision": 0.857,
+        "recall": 0.75,
+        "accepted": true,
+        "rejection_reason": null,
+        "early_exited": false
+      },
+      "spectrum_history": [
+        {
+          "level": 0,
+          "label": "pre_completion",
+          "n_preconditions": 4,
+          "rule": {
+            "rule": "Natural language: When a lesion reveals a symmetrical feathered pattern with uniform pigmentation and a central darker area blending smoothly into a lighter periphery, classify as Melanocytic Nevus.",
+            "feature": "symmetrical_feathered_pattern",
+            "favors": "Melanocytic Nevus",
+            "confidence": "high",
+            "preconditions": [
+              "The lesion is mostly symmetrical in shape",
+              "There is a feathered or speckled pigmentation pattern",
+              "The central area is darker but transitions smoothly into a lighter peripheral zone",
+              "Overall uniformity in pigmentation across the lesion"
+            ],
+            "rationale": "The symmetry and smooth transition of pigmentation in the lesion suggest a benign nature typical of melanocytic nevi. These features are less commonly seen in melanoma, which often exhibits pronounced asymmetry, abrupt color changes, and irregular borders.",
+            "label": "pre_completion",
+            "level": 0
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 5,
+            "fp": 2,
+            "tn": 6,
+            "fn": 3,
+            "precision": 0.714,
+            "recall": 0.625,
+            "accepted": false,
+            "rejection_reason": "fp=2 > 1",
+            "early_exited": false
+          },
+          "accepted": false
+        },
+        {
+          "level": 1,
+          "label": "most_general",
+          "n_preconditions": 1,
+          "rule": {
+            "level": 1,
+            "label": "most_general",
+            "rule": "When a lesion is mostly symmetrical in shape, classify as Melanocytic Nevus.",
+            "feature": "symmetrical_shape",
+            "favors": "Melanocytic Nevus",
+            "confidence": "medium",
+            "preconditions": [
+              "The lesion is mostly symmetrical in shape"
+            ],
+            "rationale": "Symmetrical shape is a core characteristic of Melanocytic Nevus, commonly observed in true positive cases and less discriminatory in false positives."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 8,
+            "fp": 2,
+            "tn": 6,
+            "fn": 0,
+            "precision": 0.8,
+            "recall": 1.0,
+            "accepted": false,
+            "rejection_reason": "fp=2 > 1",
+            "early_exited": false
+          },
+          "accepted": false
+        },
+        {
+          "level": 2,
+          "label": "moderate",
+          "n_preconditions": 2,
+          "rule": {
+            "level": 2,
+            "label": "moderate",
+            "rule": "When a lesion is mostly symmetrical in shape and has a feathered or speckled pigmentation pattern, classify as Melanocytic Nevus.",
+            "feature": "symmetrical_shape_and_feathered_pattern",
+            "favors": "Melanocytic Nevus",
+            "confidence": "medium",
+            "preconditions": [
+              "The lesion is mostly symmetrical in shape",
+              "There is a feathered or speckled pigmentation pattern"
+            ],
+            "rationale": "Combining symmetry with a feathered pigmentation pattern begins to refine the focus towards Melanocytic Nevus by adding a second aspect of the nevus appearance."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 6,
+            "fp": 2,
+            "tn": 6,
+            "fn": 2,
+            "precision": 0.75,
+            "recall": 0.75,
+            "accepted": false,
+            "rejection_reason": "fp=2 > 1",
+            "early_exited": false
+          },
+          "accepted": false
+        },
+        {
+          "level": 3,
+          "label": "original",
+          "n_preconditions": 4,
+          "rule": {
+            "level": 3,
+            "label": "original",
+            "rule": "When a lesion reveals a symmetrical feathered pattern with uniform pigmentation and a central darker area blending smoothly into a lighter periphery, classify as Melanocytic Nevus.",
+            "feature": "symmetrical_feathered_uniform_pattern_central_darker_area",
+            "favors": "Melanocytic Nevus",
+            "confidence": "high",
+            "preconditions": [
+              "The lesion is mostly symmetrical in shape",
+              "There is a feathered or speckled pigmentation pattern",
+              "The central area is darker but transitions smoothly into a lighter peripheral zone",
+              "Overall uniformity in pigmentation across the lesion"
+            ],
+            "rationale": "This rule captures all observed key features of a Melanocytic Nevus and aligns closely with its known dermatological presentation."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 6,
+            "fp": 1,
+            "tn": 7,
+            "fn": 2,
+            "precision": 0.857,
+            "recall": 0.75,
+            "accepted": true,
+            "rejection_reason": null,
+            "early_exited": false
+          },
+          "accepted": true
+        },
+        {
+          "level": 4,
+          "label": "most_specific",
+          "n_preconditions": 5,
+          "rule": {
+            "level": 4,
+            "label": "most_specific",
+            "rule": "When a lesion reveals a symmetrical feathered pattern with uniform pigmentation, a central darker area blending smoothly into a lighter periphery, and is smaller than 6mm in diameter, classify as Melanocytic Nevus.",
+            "feature": "symmetrical_feathered_uniform_pattern_central_darker_area_small_size",
+            "favors": "Melanocytic Nevus",
+            "confidence": "high",
+            "preconditions": [
+              "The lesion is mostly symmetrical in shape",
+              "There is a feathered or speckled pigmentation pattern",
+              "The central area is darker but transitions smoothly into a lighter peripheral zone",
+              "Overall uniformity in pigmentation across the lesion",
+              "The lesion is smaller than 6mm in diameter"
+            ],
+            "rationale": "Adding a size constraint aligns with common criteria distinguishing nevus from melanoma, which tends to be larger, thereby increasing specificity."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 5,
+            "fp": 0,
+            "tn": 8,
+            "fn": 3,
+            "precision": 1.0,
+            "recall": 0.625,
+            "accepted": true,
+            "rejection_reason": null,
+            "early_exited": false
+          },
+          "accepted": true
+        }
+      ],
+      "accepted": true,
+      "registered": true
+    }
+  ]
+}

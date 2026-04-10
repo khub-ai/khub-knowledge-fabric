@@ -1,0 +1,1 @@
+{"precondition_met": false, "would_predict": null, "observations": "Small roughly symmetric round brown lesion with central darker stippling — fairly uniform brown, one to two tones. Border smooth and oval with gradual fade. No gray-blue, no white regression, no atypical pigment network, no streaks/pseudopods, no irregular dot/globule pattern. Multiple preconditions fail."}

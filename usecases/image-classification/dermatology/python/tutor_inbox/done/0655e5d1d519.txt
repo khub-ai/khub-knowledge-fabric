@@ -1,0 +1,1 @@
+{"precondition_met": false, "would_predict": null, "observations": "Diffuse light brown patch with fading, ill-defined borders. Predominantly one to two tones of tan/brown — no gray-blue, black, or white regression. No atypical pigment network, no streaks, no blue-white veil, no irregular dark globules. Color count and structural-marker preconditions fail."}

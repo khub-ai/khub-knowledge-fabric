@@ -1,0 +1,1 @@
+{"precondition_met": false, "would_predict": null, "observations": "Small roughly oval dark red-brown lesion on pink skin, fairly symmetric and homogeneous (one tone of dark red-brown). Border smoothly fades. No atypical pigment network, no streaks, no blue-white veil, no irregular dark globules. Multiple preconditions fail."}

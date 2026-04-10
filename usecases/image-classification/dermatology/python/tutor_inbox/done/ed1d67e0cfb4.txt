@@ -1,0 +1,6 @@
+{
+  "request_id": "ed1d67e0cfb4",
+  "precondition_met": true,
+  "would_predict": "Melanoma",
+  "observations": "Asymmetric lesion with multiple distinct colors: gray-blue patches at upper left, brown areas, and pink/white regression-like zones. Border is irregular and scalloped. Blue-gray/white area is consistent with a blue-white veil (a melanoma-specific structure). Pigment distribution clearly heterogeneous. Not a uniform reticular network or symmetric globular nevus. Preconditions met."
+}

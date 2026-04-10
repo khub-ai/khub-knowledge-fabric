@@ -1,0 +1,6 @@
+{
+  "request_id": "6eb955bc2a77",
+  "precondition_met": false,
+  "would_predict": null,
+  "observations": "Small fragmented brown lesion on pink skin, mostly one tone (light/medium brown) with diffuse fading borders. No 3-color variation, no atypical pigment network, no streaks, no blue-white veil. Strict reading: preconditions not met."
+}

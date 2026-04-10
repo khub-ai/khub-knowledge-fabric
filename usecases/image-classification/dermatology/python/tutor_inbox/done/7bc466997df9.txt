@@ -1,0 +1,6 @@
+{
+  "request_id": "7bc466997df9",
+  "precondition_met": false,
+  "would_predict": null,
+  "observations": "Small irregular dark brown patch on hairy pink/erythematous scalp skin with a small red focus. Lesion is poorly defined with no clear border outline. Pigment is essentially one tone of dark brown over pink background; no clear gray-blue, no white regression. No blue-white veil, no clearly atypical pigment network or streaks/pseudopods, no melanoma-specific structures. Strict reading: 3-color, irregular-border, and melanoma-structure preconditions not clearly met."
+}

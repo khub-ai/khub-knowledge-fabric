@@ -1,0 +1,79 @@
+{
+  "cheap_model": "o4-mini",
+  "expert_model": "claude-sonnet-4-6",
+  "patch_rules_file": "C:\\_backup\\github\\khub-knowledge-fabric\\usecases\\image-classification\\dermatology\\python\\patch_rules_v5_ak_bkl.json",
+  "dry_run": false,
+  "total_tasks": 6,
+  "failures_before": 2,
+  "rules_authored": 2,
+  "rules_accepted": 0,
+  "rules_registered": 0,
+  "cross_pair_events": [],
+  "patch_records": [
+    {
+      "task_id": "actinic_keratosis_vs_benign_keratosis_ISIC_0024336",
+      "pair_id": "actinic_keratosis_vs_benign_keratosis",
+      "wrong_prediction": "uncertain",
+      "correct_label": "Benign Keratosis",
+      "candidate_rule": {
+        "rule": "When a lesion shows a central zone of structureless pinkish-to-violaceous hue surrounded by loosely arranged, fine hairpin-like or fissured whitish-grey clods (milia-like cysts or comedo-like openings in a cerebriform arrangement), set against a diffuse background of scattered light-brown granular pigmentation on pale skin, classify as Benign Keratosis.",
+        "feature": "cerebriform_fissured_pattern_with_milia_like_clods_and_violaceous_structureless_center",
+        "favors": "Benign Keratosis",
+        "confidence": "high",
+        "preconditions": [
+          "Central structureless zone with pinkish, purplish, or violaceous coloration (suggestive of regression or dermal melanin/vasculature typical of seborrhoeic keratosis)",
+          "Presence of whitish-grey clod-like structures arranged in a loosely cerebriform or fissured pattern at the lesion periphery or throughout (milia-like cysts and/or comedo-like openings)",
+          "Absence of atypical pigment network, irregular dots/globules, or radial streaming typical of Actinic Keratosis",
+          "Background skin showing diffuse fine granular light-brown pigmentation consistent with sun-damaged skin, but lesion itself lacks the strawberry pattern (red pseudo-network with follicular openings) of Actinic Keratosis",
+          "Overall lesion border is relatively well-demarcated with a rounded or lobulated outline rather than the ill-defined, erythematous, scaly border of Actinic Keratosis"
+        ],
+        "rationale": "Benign Keratosis (seborrhoeic keratosis) characteristically displays milia-like cysts, comedo-like openings, and a cerebriform surface architecture in dermoscopy. The violaceous/pinkish structureless central area reflects the thick, acanthotic epidermis or invaginated keratin typical of SK. In contrast, Actinic Keratosis exhibits a strawberry pattern with erythematous pseudo-network surrounding unfilled follicular openings, surface scale, and often a rosette sign under polarized light. The combination of whitish fissured clods, lobulated outline, and absence of follicular pseudo-network reliably separates SK from AK even on sun-damaged skin."
+      },
+      "validation": {
+        "fires_on_trigger": true,
+        "tp": 2,
+        "fp": 1,
+        "tn": 7,
+        "fn": 6,
+        "precision": 0.667,
+        "recall": 0.25,
+        "accepted": false
+      },
+      "accepted": false,
+      "registered": false
+    },
+    {
+      "task_id": "actinic_keratosis_vs_benign_keratosis_ISIC_0024420",
+      "pair_id": "actinic_keratosis_vs_benign_keratosis",
+      "wrong_prediction": "Actinic Keratosis",
+      "correct_label": "Benign Keratosis",
+      "candidate_rule": {
+        "rule": "When a lesion on hair-bearing skin shows a central cluster of brown-to-dark-brown pigment with a moth-eaten or lacy/reticulated internal pattern, surrounded by individual pigmented hair follicle ostia or comma-shaped brown structures, set against a pink background with visible terminal hairs, classify as Benign Keratosis (seborrhoeic keratosis or lentigo-type benign keratosis).",
+        "feature": "lacy_clustered_brown_pigment_with_follicular_units_on_hair_bearing_skin",
+        "favors": "Benign Keratosis",
+        "confidence": "medium",
+        "preconditions": [
+          "Lesion is located on hair-bearing skin with multiple visible terminal hairs traversing the field",
+          "Central pigmented area forms a discrete, roughly oval cluster rather than diffuse ill-defined spread across the entire field",
+          "Pigment within the cluster shows variable brown tones (light brown to dark brown/black) with an irregular but internally structured, lacy or reticulated arrangement \u2014 not a homogeneous structureless blush",
+          "Small dark brown puncta or comma-shaped structures consistent with pigmented follicular openings are visible at the periphery or within the cluster",
+          "Background skin shows a pink, slightly vascular hue but WITHOUT the diffuse strawberry-pattern vessels, white circles around follicles, or surface scale typical of actinic keratosis",
+          "No clearly defined surface scale, erythematous follicular halos, or rosette structures that would indicate actinic keratosis"
+        ],
+        "rationale": "Actinic keratosis on hair-bearing skin typically displays a 'strawberry pattern' \u2014 diffuse erythema, white perifollicular halos, and surface scale \u2014 with structureless pink-red pigmentation. In contrast, this image shows a focal, discrete cluster of variably pigmented brown structures with an internal lacy texture and pigmented follicular units, which is characteristic of a benign keratosis (seborrhoeic keratosis or solar lentigo variant) on hair-bearing skin. The discreteness and internal structure of the pigment cluster, combined with the absence of perifollicular white halos or scale, are the key features that should override a misclassification driven purely by the pink, sun-damaged background."
+      },
+      "validation": {
+        "fires_on_trigger": true,
+        "tp": 5,
+        "fp": 3,
+        "tn": 5,
+        "fn": 3,
+        "precision": 0.625,
+        "recall": 0.625,
+        "accepted": false
+      },
+      "accepted": false,
+      "registered": false
+    }
+  ]
+}

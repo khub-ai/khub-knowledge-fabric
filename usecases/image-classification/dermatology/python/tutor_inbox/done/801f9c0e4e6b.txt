@@ -1,0 +1,6 @@
+{
+  "request_id": "801f9c0e4e6b",
+  "precondition_met": true,
+  "would_predict": "Melanoma",
+  "observations": "Asymmetric ulcerated/bleeding nodule with multiple distinct colors: red/pink, blue-gray, black, and white areas. Border is irregular. Prominent blue-white veil-like area at the upper portion and a near-black focus at the right side. Pigment distribution clearly heterogeneous. Not a uniform reticular network or symmetric globular nevus. Preconditions met."
+}

@@ -1,0 +1,7 @@
+{
+  "discriminating_feature": "gray_blue_as_lighter_intermediate_zone_not_central_dark_blotch",
+  "description": "In the TP cases, the gray-blue area is a LIGHTER intermediate zone relative to the surrounding dark brown pigment — it is visibly paler than the darkest brown components, consistent with true regression (melanophages producing a pale gray-blue against darker surviving tumor). In the FP case, the gray-blue is described as the 'central-dark zone' — it is the DARKEST component of the lesion, not a lighter intermediate. This inverted brightness relationship indicates deep melanin scattering (Tyndall effect from densely pigmented dermal nevus cells) rather than regression.",
+  "present_in": "tp",
+  "confidence": "medium",
+  "rationale": "Regression gray-blue in melanoma arises from melanophages in the dermis replacing partially destroyed tumor — the area is LIGHTER than the adjacent intact dark malignant melanin, creating a pale-to-intermediate gray-blue zone against darker surrounding tissue. Deep nevus gray-blue arises from Tyndall scattering of densely packed deep melanocytes and tends to be the lesion's DARKEST or most deeply pigmented zone, not a lighter area surrounded by darker brown. Checking whether the gray-blue is lighter or darker than the surrounding brown is a practical way to distinguish regression gray-blue (lighter) from deep-nevus gray-blue (darker or coequal with the darkest zone)."
+}

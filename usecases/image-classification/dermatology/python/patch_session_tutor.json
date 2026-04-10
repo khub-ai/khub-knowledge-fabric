@@ -1,0 +1,90 @@
+{
+  "cheap_model": "gpt-4o",
+  "expert_model": "claude-tutor",
+  "patch_rules_file": "C:\\_backup\\github\\khub-knowledge-fabric\\usecases\\image-classification\\dermatology\\python\\patch_rules_clean.json",
+  "dry_run": false,
+  "total_tasks": 6,
+  "failures_before": 1,
+  "rules_authored": 1,
+  "rules_accepted": 0,
+  "rules_registered": 0,
+  "cross_pair_events": [],
+  "patch_records": [
+    {
+      "task_id": "actinic_keratosis_vs_benign_keratosis_ISIC_0024336",
+      "pair_id": "actinic_keratosis_vs_benign_keratosis",
+      "wrong_prediction": "Actinic Keratosis",
+      "correct_label": "Benign Keratosis",
+      "candidate_rule": {
+        "rule": "When a lesion is a sharply demarcated brown-dominant patch sitting on non-erythematous skin, with no visible surface scale, no white/yellow crust, and no telangiectasia, classify as Benign Keratosis.",
+        "feature": "sharp_brown_patch_no_inflammation",
+        "favors": "Benign Keratosis",
+        "confidence": "high",
+        "preconditions": [
+          "Dominant lesion color is brown or tan (not pink, red, or skin-colored)",
+          "Lesion has a sharply demarcated, well-defined border against the surrounding skin",
+          "Background skin around the lesion is NOT diffusely pink or erythematous",
+          "No fine white scale, keratotic plugs, or yellowish crust visible on the lesion surface",
+          "No telangiectatic vessels (no thin radiating or arborizing red lines on or around the lesion)",
+          "Pigment is the dominant visual feature of the lesion (the lesion is primarily defined by its brown pigmentation, not by vascular or keratotic structures)"
+        ],
+        "rationale": "Actinic keratosis in this dataset reliably presents with at least one of: pink/erythematous background, fine surface scale, or visible telangiectasia \u2014 these are inflammatory/keratotic features driven by sun damage. A sharply demarcated brown patch with none of those features is far more consistent with a flat seborrheic keratosis, solar lentigo, or lichen planus-like keratosis (all grouped under Benign Keratosis in HAM10000). The pupil failed here by projecting AK template features (\"scaly,\" \"pink,\" \"whitish crust\") onto an image where none of those features are actually present \u2014 a perceptual hallucination. This rule forces the pupil to verify the absence of all three AK hallmarks before committing, which targets that exact failure mode.",
+        "added_preconditions": [
+          "Pigment is the dominant visual feature of the lesion (the lesion is primarily defined by its brown pigmentation, not by vascular or keratotic structures)"
+        ],
+        "completion_rationale": "The original rule excludes AK hallmarks (pink background, scale, crust, telangiectasia) but does not state the positive expectation that BKL is fundamentally a pigmented lesion. Adding 'pigment is the dominant feature' is a low-risk positive marker that holds across SK, solar lentigo, and LPLK subtypes of BKL without over-tightening. I deliberately did NOT add SK-specific markers (milia-like cysts, comedo-like openings, cerebriform pattern) because these are absent in solar lentigo and LPLK variants and would over-restrict the rule."
+      },
+      "semantic_validation": {
+        "precondition_ratings": [
+          {
+            "precondition": "Dominant lesion color is brown or tan (not pink, red, or skin-colored)",
+            "rating": "reliable",
+            "comment": "AK is dominantly erythematous/pink in dermoscopy; brown-dominance strongly favors a pigmented BKL variant (SK, solar lentigo, LPLK)."
+          },
+          {
+            "precondition": "Lesion has a sharply demarcated, well-defined border against the surrounding skin",
+            "rating": "context_dependent",
+            "comment": "Pigmented BKL is typically sharply bordered, but some AKs (especially hyperkeratotic ones) can also have crisp edges; use only in combination with the other features."
+          },
+          {
+            "precondition": "Background skin around the lesion is NOT diffusely pink or erythematous",
+            "rating": "reliable",
+            "comment": "Diffuse perilesional erythema is a hallmark of sun-damaged AK skin; its absence argues strongly against AK."
+          },
+          {
+            "precondition": "No fine white scale, keratotic plugs, or yellowish crust visible on the lesion surface",
+            "rating": "reliable",
+            "comment": "Surface scale and keratotic plugs are core AK markers in dermoscopy; their absence is a strong negative gate for AK."
+          },
+          {
+            "precondition": "No telangiectatic vessels (no thin radiating or arborizing red lines on or around the lesion)",
+            "rating": "reliable",
+            "comment": "Glomerular/arborizing vessels are characteristic of AK and superficial BCC; their absence rules out the typical AK vascular pattern."
+          },
+          {
+            "precondition": "Pigment is the dominant visual feature of the lesion (the lesion is primarily defined by its brown pigmentation, not by vascular or keratotic structures)",
+            "rating": "reliable",
+            "comment": "Pigment-dominance is a positive marker for BKL across all its subtypes (SK, solar lentigo, LPLK) and is uncharacteristic of typical AK."
+          }
+        ],
+        "overall": "accept",
+        "rationale": "Five of six pre-conditions are reliable dermoscopic discriminators between BKL and AK, and the sixth (sharp border) is appropriately marked context-dependent and used only in combination with the others. The rule excludes the three core AK hallmarks (pink background, scale/crust, telangiectasia) and adds positive pigment-dominance \u2014 a balanced, well-grounded gate. Safe to proceed to image validation."
+      },
+      "validation": {
+        "fires_on_trigger": true,
+        "tp": 2,
+        "fp": 1,
+        "tn": 7,
+        "fn": 6,
+        "precision": 0.667,
+        "recall": 0.25,
+        "accepted": false,
+        "rejection_reason": "precision=0.67 < 0.75",
+        "early_exited": false
+      },
+      "spectrum_history": [],
+      "accepted": false,
+      "registered": false
+    }
+  ]
+}

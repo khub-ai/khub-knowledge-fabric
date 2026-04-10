@@ -1,0 +1,51 @@
+{
+  "precondition_ratings": [
+    {
+      "precondition": "Gray-blue or blue-gray structureless areas are present within the lesion — distinct patches of slate-gray or bluish-gray color without an organized network structure",
+      "rating": "reliable",
+      "comment": "Gray-blue structureless areas (blue-white veil / regression with fibrosis) are a major melanoma-specific dermoscopic criterion and are essentially absent in benign melanocytic nevi."
+    },
+    {
+      "precondition": "Brown pigmented components are also present alongside the gray-blue areas (distinguishes from blue nevus, which is entirely blue-gray)",
+      "rating": "reliable",
+      "comment": "The mixed brown + gray-blue composition is the defining feature that separates melanoma with regression from blue nevus, which is uniformly steel-blue throughout."
+    },
+    {
+      "precondition": "The gray-blue areas occupy only a portion of the lesion — NOT the entire lesion uniformly (uniform steel-blue homogeneous lesion = blue nevus, not melanoma)",
+      "rating": "reliable",
+      "comment": "Focal partial gray-blue involvement alongside brown zones is characteristic of melanoma regression; uniform steel-blue occupying the entire lesion is the blue nevus pattern."
+    },
+    {
+      "precondition": "Lesion is asymmetric in shape and/or pigment distribution",
+      "rating": "context_dependent",
+      "comment": "Asymmetry alone is insufficient to discriminate — dysplastic nevi can be asymmetric — but it is a sound corroborative condition alongside the gray-blue criterion."
+    },
+    {
+      "precondition": "At least three distinct colors are visible (e.g., light tan/golden brown, dark brown, gray-blue)",
+      "rating": "reliable",
+      "comment": "Polychromia including gray-blue is a well-established melanoma indicator; benign nevi are typically one or two shades of brown without a gray-blue component."
+    },
+    {
+      "precondition": "No red/purple lacunae (rules out hemangioma as source of blue-gray color)",
+      "rating": "reliable",
+      "comment": "Necessary exclusion: hemangioma lacunae are red-purple and can superficially resemble a blue-gray zone; this condition cleanly separates vascular from melanocytic gray-blue."
+    },
+    {
+      "precondition": "No seborrheic keratosis features (no milia-like cysts, no comedo-like openings)",
+      "rating": "reliable",
+      "comment": "SK can have dark pigmented areas but always shows characteristic milia-like cysts or comedo-like openings; their absence excludes SK as a mimic."
+    },
+    {
+      "precondition": "Lesion is flat or only minimally elevated — not a raised blue-gray nodule (a raised bluish nodule suggests blue nevus or pigmented nodular basal cell carcinoma rather than melanoma)",
+      "rating": "reliable",
+      "comment": "Gray-blue structures from regression in melanoma occur in flat/superficial spreading lesions; a raised blue-gray nodule shifts the differential to blue nevus or pigmented BCC."
+    },
+    {
+      "precondition": "No features of dermatofibroma: no shiny central white patch surrounded exclusively by a delicate pigment network restricted to the periphery",
+      "rating": "reliable",
+      "comment": "Necessary but rarely triggered exclusion: the dermatofibroma pigment pattern (central white scar + peripheral-only network) is sufficiently distinct that including it prevents a rare but possible mimic."
+    }
+  ],
+  "overall": "accept",
+  "rationale": "The core of this rule — focal gray-blue structureless areas alongside brown components, occupying only part of the lesion — is one of the strongest single-feature melanoma indicators in dermoscopy. The exclusion conditions (blue nevus, hemangioma, SK, BCC, dermatofibroma) are all clinically sound and target genuine mimics of gray-blue coloration. The one context_dependent condition (asymmetry) is corroborative rather than primary and does not weaken the rule. Safe to proceed to image validation."
+}

@@ -1,0 +1,6 @@
+{
+  "request_id": "ceb43f8a673d",
+  "precondition_met": false,
+  "would_predict": null,
+  "observations": "Oval, fairly symmetric brown lesion with smooth fading borders. Mostly two shades of brown with subtle stippling. No 3-color variation, no atypical pigment network, no streaks, no blue-white veil. Strict reading: preconditions not met."
+}

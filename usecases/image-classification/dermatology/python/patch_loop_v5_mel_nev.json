@@ -1,0 +1,82 @@
+{
+  "cheap_model": "o4-mini",
+  "expert_model": "claude-sonnet-4-6",
+  "patch_rules_file": "C:\\_backup\\github\\khub-knowledge-fabric\\usecases\\image-classification\\dermatology\\python\\patch_rules_v5_loop.json",
+  "dry_run": false,
+  "total_tasks": 6,
+  "failures_before": 2,
+  "rules_authored": 2,
+  "rules_accepted": 2,
+  "rules_registered": 2,
+  "cross_pair_events": [],
+  "patch_records": [
+    {
+      "task_id": "melanoma_vs_melanocytic_nevus_ISIC_0024385",
+      "pair_id": "melanoma_vs_melanocytic_nevus",
+      "wrong_prediction": "Melanoma",
+      "correct_label": "Melanocytic Nevus",
+      "candidate_rule": {
+        "rule": "When multiple small, discrete, round-to-oval foci of dark red-brown clustered dots/globules are present on a pink/erythematous background, each focus is well-circumscribed with no true peripheral streaking or radial extensions, the surrounding skin shows diffuse uniform erythema rather than structureless melanin pigmentation, and the brown material between foci appears thin and bridging rather than forming a continuous tumoral mass, classify as Melanocytic Nevus (angiomatous/Reed nevus variant or benign nevus with vascular pattern).",
+        "feature": "discrete_clustered_globule_foci_on_erythematous_background",
+        "favors": "Melanocytic Nevus",
+        "confidence": "high",
+        "preconditions": [
+          "Two or more small, sharply bordered foci of clustered dark red-brown dots or globules visible as distinct units",
+          "Background skin is diffusely pink/erythematous without structureless brown or grey pigment sheets",
+          "No true radial streaming, pseudopods, or spitzoid peripheral projections extending beyond the globule clusters",
+          "Absence of a continuous, irregularly pigmented network or regression structures (white scar-like areas, blue-grey peppering)",
+          "Brown pigment connecting the foci, if present, is faint and linear/bridging rather than forming an irregular solid plaque",
+          "Overall lesion architecture consists of isolated vascular-appearing globular clusters rather than a single asymmetric tumoral mass"
+        ],
+        "rationale": "The model misinterpreted spatially separated benign clustered globule foci as a single asymmetric melanoma. In melanoma, irregular pigmentation forms a confluent, structurally complex lesion with continuous atypical network, regression, and/or true streaks. Here, the pattern of discrete, well-circumscribed dark-red globule clusters on a plain erythematous background \u2014 with only thin bridging pigment between them \u2014 is characteristic of a benign melanocytic nevus (e.g., a compound or Reed nevus with prominent globules and vascular blush), not melanoma. The diffuse background erythema without underlying brown structureless areas further argues against melanoma, where erythema typically accompanies, rather than replaces, pigmented structure."
+      },
+      "validation": {
+        "fires_on_trigger": true,
+        "tp": 1,
+        "fp": 0,
+        "tn": 8,
+        "fn": 7,
+        "precision": 1.0,
+        "recall": 0.125,
+        "accepted": true
+      },
+      "accepted": true,
+      "registered": true
+    },
+    {
+      "task_id": "melanoma_vs_melanocytic_nevus_ISIC_0024392",
+      "pair_id": "melanoma_vs_melanocytic_nevus",
+      "wrong_prediction": "Melanoma",
+      "correct_label": "Melanocytic Nevus",
+      "candidate_rule": {
+        "rule": "When a lesion displays a homogeneous diffuse reddish-brown to dark-red coloration with a 'strawberry-jam' or blood-red hue distributed throughout the lesion in a structureless but symmetric pattern, without discrete white regression structures, atypical pigment network, or focal blue-white veil, classify as Melanocytic Nevus (specifically a deep congenital or dysplastic nevus with diffuse reddish pigmentation).",
+        "feature": "homogeneous_reddish_brown_diffuse_structureless_pattern",
+        "favors": "Melanocytic Nevus",
+        "confidence": "medium",
+        "preconditions": [
+          "Dominant color is a uniform reddish-brown to dark-red ('blood-red' or 'port-wine') hue occupying the majority of the lesion surface",
+          "Color distribution is roughly symmetric from center to periphery, even if borders appear slightly irregular",
+          "Absence of discrete blue-white veil as a focal slab-like structure",
+          "Absence of atypical vascular structures (dotted, irregular, or polymorphous vessels) within the lesion",
+          "Absence of true regression structures (white scarring, peppering) superimposed on the pigment",
+          "Borders, while not perfectly smooth, show a gradual, feathered fade into surrounding skin rather than abrupt focal notching",
+          "No focal nodular or raised component visible dermoscopically",
+          "Overall lesion size is moderate (roughly <10 mm equivalent in field of view) without satellite lesions"
+        ],
+        "rationale": "The model misclassified this nevus as melanoma based on apparent asymmetry and structureless areas. However, diffuse homogeneous reddish-brown structureless pigmentation is a recognized pattern in melanocytic nevi \u2014 particularly congenital or Reed/Spitz-spectrum nevi \u2014 where the reddish hue reflects densely packed melanocytes with variable vascularity rather than malignant dedifferentiation. True melanoma typically shows focal, heterogeneous color zones (grey, white, blue) with polymorphous vessels or discrete blue-white veil, and lacks the overall monochromatic reddish symmetry seen here. The feathered, symmetric peripheral fading further supports a benign diagnosis, distinguishing this pattern from the abrupt, irregular border notching characteristic of melanoma."
+      },
+      "validation": {
+        "fires_on_trigger": true,
+        "tp": 1,
+        "fp": 0,
+        "tn": 8,
+        "fn": 7,
+        "precision": 1.0,
+        "recall": 0.125,
+        "accepted": true
+      },
+      "accepted": true,
+      "registered": true
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "rule": "When a melanocytic lesion shows diffuse pink-white or milky-white regression areas intermixed with fine dark granular peppering (fine punctate dark dots distributed across the lesion), and the overall pigmentation pattern is disorganized/granular rather than a well-formed organized reticular network, classify as Melanoma.",
+  "feature": "diffuse_regression_with_peppering",
+  "favors": "Melanoma",
+  "confidence": "high",
+  "preconditions": [
+    "Lesion contains pink-white or milky-white areas within the body of the lesion (not just at the border) — regression structures",
+    "Fine dark granular peppering visible: multiple tiny punctate dark dots scattered across the lesion, not organized into globules or a network",
+    "Overall pigmentation is diffuse and granular/dusty in texture, lacking a well-organized honeycomb reticular network",
+    "At least three color components present: light brown, medium/dark brown, AND pink-white/milky",
+    "Lesion is asymmetric",
+    "No seborrheic keratosis features (no milia-like cysts, no comedo-like openings, no sharp 'stuck-on' border)"
+  ],
+  "rationale": "The pupil hallucinated a 'reticular pattern with scattered globules' consistent with a benign nevus, but the actual pattern is regression-with-peppering: diffuse milky-white areas (regressed dermis) combined with fine dark granular peppering (residual melanin in the superficial dermis after partial regression). This combination is a well-established dermoscopic sign of melanoma — it indicates prior or ongoing regression of malignant cells. A true benign reticular nevus shows a well-organized honeycomb/fishnet network with uniform mesh size and no milky-white regression zones. The confusion arises because peppering can superficially resemble 'dots/globules' at low magnification, but the key discriminating features are (1) the milky-white regression areas, (2) the disorganized granular texture replacing any network structure, and (3) the multi-color composition including pink-white. These features together are inconsistent with a benign nevus and strongly favor melanoma."
+}

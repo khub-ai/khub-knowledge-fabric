@@ -1,0 +1,6 @@
+{
+  "request_id": "c7b3d004f839",
+  "precondition_met": true,
+  "would_predict": "Melanoma",
+  "observations": "Asymmetric lesion with brown peripheral pigment ring and central pink-white structureless area suggestive of regression. Three tones present: dark brown rim, lighter brown, and central pink/white. Pigment heterogeneous (dark patches adjacent to pink/white). Border slightly notched. Not a uniform reticular network or symmetric globular nevus. Preconditions met."
+}

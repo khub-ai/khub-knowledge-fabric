@@ -1,0 +1,1 @@
+{"precondition_met": false, "would_predict": null, "observations": "Acral-appearing lesion with parallel furrow/ridge pattern and brown specks, faint pink background. No blue-white veil, no atypical pigment network, no streaks/pseudopods, no irregular dark peripheral globules unevenly distributed. Strict melanoma-specific structure preconditions fail."}

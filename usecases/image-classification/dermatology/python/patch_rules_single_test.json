@@ -1,0 +1,69 @@
+{
+  "version": 2,
+  "rules": [
+    {
+      "id": "r_001",
+      "condition": "[Patch rule \u2014 melanoma_vs_melanocytic_nevus] Regression structures are present: a gray-blue or pink-gray structureless area within the lesion; Irregular dark peripheral dots or globules are present at the rim of the lesion",
+      "action": "Classify as Melanoma. Confidence: medium. Rule: When a dermoscopic lesion shows regression structures (gray-blue or pink-gray structureless areas) combined with irregular dark peripheral dots or globules \u2014 classify as Melanoma.",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 0,
+          "successes": 0,
+          "failures": 0
+        }
+      },
+      "source": "expert_vlm:claude-tutor",
+      "source_task": "melanoma_vs_melanocytic_nevus_ISIC_0024315",
+      "tags": [
+        "derm-ham10000",
+        "melanoma_vs_melanocytic_nevus",
+        "patch:qwen/qwen3-vl-8b-instruct",
+        "triggered_by:melanoma_vs_melanocytic_nevus_ISIC_0024315"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": "patch rule for melanoma_vs_melanocytic_nevus triggered by melanoma_vs_melanocytic_nevus_ISIC_0024315"
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 0,
+      "created": "2026-04-08T10:59:14",
+      "last_fired": null
+    },
+    {
+      "id": "r_002",
+      "condition": "[Patch rule \u2014 melanoma_vs_melanocytic_nevus] Lesion contains pink-white or milky-white areas within the body of the lesion (not just at the border) \u2014 regression structures; Fine dark granular peppering visible: multiple tiny punctate dark dots scattered across the lesion, not organized into globules or a network; Overall pigmentation is diffuse and granular/dusty in texture, lacking a well-organized honeycomb reticular network; At least three color components present: light brown, medium/dark brown, AND pink-white/milky; Lesion is asymmetric; No seborrheic keratosis features (no milia-like cysts, no comedo-like openings, no sharp 'stuck-on' border); Lesion is flat or minimally elevated \u2014 not a raised dome-shaped or nodular lesion (regression-peppering pattern applies to superficial spreading morphology, not nodular melanoma); No features suggesting a non-melanocytic lesion: no red/purple lacunae (hemangioma), no central white patch with peripheral pigment ring (dermatofibroma); Regression areas are centrally located or diffusely distributed throughout the lesion \u2014 NOT a pattern where white/pale areas are restricted to the periphery while the lesion center remains dark/near-black (that inverted polarity pattern indicates a dysplastic nevus with halo-like depigmentation, not melanoma regression)",
+      "action": "Classify as Melanoma. Confidence: high. Rule: When a melanocytic lesion shows diffuse pink-white or milky-white regression areas intermixed with fine dark granular peppering (fine punctate dark dots distributed across the lesion), and the overall pigmentation pattern is disorganized/granular rather than a well-formed organized reticular network, AND the regression areas are centrally located or diffusely distributed throughout (NOT restricted to the periphery with a preserved dark center), classify as Melanoma.",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 0,
+          "successes": 0,
+          "failures": 0
+        }
+      },
+      "source": "expert_vlm:claude-tutor",
+      "source_task": "melanoma_vs_melanocytic_nevus_ISIC_0024333",
+      "tags": [
+        "derm-ham10000",
+        "melanoma_vs_melanocytic_nevus",
+        "patch:qwen/qwen3-vl-8b-instruct",
+        "triggered_by:melanoma_vs_melanocytic_nevus_ISIC_0024333"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": "patch rule for melanoma_vs_melanocytic_nevus triggered by melanoma_vs_melanocytic_nevus_ISIC_0024333"
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 0,
+      "created": "2026-04-08T11:47:03",
+      "last_fired": null
+    }
+  ]
+}

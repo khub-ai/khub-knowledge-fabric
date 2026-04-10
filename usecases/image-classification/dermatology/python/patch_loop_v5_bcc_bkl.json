@@ -1,0 +1,82 @@
+{
+  "cheap_model": "o4-mini",
+  "expert_model": "claude-sonnet-4-6",
+  "patch_rules_file": "C:\\_backup\\github\\khub-knowledge-fabric\\usecases\\image-classification\\dermatology\\python\\patch_rules_v5_bcc_bkl.json",
+  "dry_run": false,
+  "total_tasks": 6,
+  "failures_before": 2,
+  "rules_authored": 2,
+  "rules_accepted": 0,
+  "rules_registered": 0,
+  "cross_pair_events": [],
+  "patch_records": [
+    {
+      "task_id": "basal_cell_carcinoma_vs_benign_keratosis_ISIC_0024336",
+      "pair_id": "basal_cell_carcinoma_vs_benign_keratosis",
+      "wrong_prediction": "uncertain",
+      "correct_label": "Benign Keratosis",
+      "candidate_rule": {
+        "rule": "When a lesion displays a central area of mixed brown-pink-violaceous hues with a 'moth-eaten' or finely granular, loosely arranged texture (resembling milia-like cysts or comedo-like openings dispersed within a structureless zone), surrounded by a peripheral halo of faint brownish pigment network fading into normal skin \u2014 without arborizing telangiectasias, leaf-like areas, or spoke-wheel structures \u2014 classify as Benign Keratosis.",
+        "feature": "granular_mixed_pigmentation_with_fading_peripheral_halo",
+        "favors": "Benign Keratosis",
+        "confidence": "medium",
+        "preconditions": [
+          "Central zone shows mixed brown, pink, and violaceous coloration without discrete nodular or pearly quality",
+          "Texture within the central zone is finely granular, loosely structured, or moth-eaten in appearance \u2014 consistent with milia-like cysts or comedone-like openings characteristic of seborrheic keratosis",
+          "Peripheral rim shows diffuse, faint brownish pigmentation that gradually fades into the surrounding skin (no sharp, well-demarcated border typical of BCC)",
+          "Absence of arborizing (branching) telangiectasias \u2014 the hallmark vascular feature of Basal Cell Carcinoma",
+          "Absence of leaf-like areas, spoke-wheel structures, or blue-gray ovoid nests characteristic of BCC",
+          "No ulceration or erosion centrally",
+          "Overall lesion architecture is flat-to-slightly-raised without a rolled or pearlescent border"
+        ],
+        "rationale": "Benign keratosis (seborrheic keratosis or lichenoid keratosis) frequently presents with mixed brown-violaceous-pink hues and a granular or moth-eaten internal texture due to milia-like cysts and comedo openings. The peripheral pigment fades gradually rather than forming the sharp, translucent rolled border of BCC. The critical distinguishing feature is the absence of arborizing telangiectasias and blue-gray ovoid nests that define BCC. When the model encounters this mixed-pigment granular pattern without BCC-specific vascular or structural features, it should favor Benign Keratosis over BCC."
+      },
+      "validation": {
+        "fires_on_trigger": true,
+        "tp": 6,
+        "fp": 2,
+        "tn": 6,
+        "fn": 2,
+        "precision": 0.75,
+        "recall": 0.75,
+        "accepted": false
+      },
+      "accepted": false,
+      "registered": false
+    },
+    {
+      "task_id": "basal_cell_carcinoma_vs_benign_keratosis_ISIC_0024420",
+      "pair_id": "basal_cell_carcinoma_vs_benign_keratosis",
+      "wrong_prediction": "uncertain",
+      "correct_label": "Benign Keratosis",
+      "candidate_rule": {
+        "rule": "When a small, ill-defined pigmented lesion on hairy skin shows a moth-eaten or milia-like central aggregation of brown-to-dark granules arranged in a loosely clustered, non-structured pattern WITHOUT arborizing vessels, spoke-wheel structures, or leaf-like areas, and the surrounding skin displays prominent terminal hairs and diffuse pink-red vascular blush consistent with normal skin, classify as Benign Keratosis.",
+        "feature": "granular_brown_aggregate_without_bcc_structures_on_hairy_skin",
+        "favors": "Benign Keratosis",
+        "confidence": "medium",
+        "preconditions": [
+          "Small pigmented lesion set within hairy skin background with multiple terminal hairs visible across the field",
+          "Central zone composed of loosely aggregated brown and dark-brown granules or clods with no sharp geometric organization",
+          "Absence of arborizing (tree-like) telangiectatic vessels \u2014 the hallmark of BCC",
+          "Absence of spoke-wheel areas, leaf-like structures, or blue-gray ovoid nests characteristic of BCC",
+          "Diffuse pink-to-light-red background blush consistent with normal vascularized skin rather than BCC's pearly or translucent quality",
+          "No ulceration, blue-white veil, or shiny white structures (chrysalis) visible",
+          "Lesion borders are ill-defined and fading rather than raised or pearly-edged"
+        ],
+        "rationale": "Basal Cell Carcinoma requires at least one of its specific dermoscopic criteria (arborizing vessels, blue-gray ovoid nests, spoke-wheel structures, leaf-like areas, ulceration, or shiny white strands) to be diagnosed. This lesion on hairy skin shows only loosely aggregated brown granules \u2014 a pattern consistent with a flat seborrheic keratosis or lentigo-type benign keratosis \u2014 without any of the obligate BCC features. The hairy-skin context and the granular, non-structured pigment pattern strongly favor a benign keratosis. Models may hesitate because the dark central clod mimics a BCC nest, but the complete absence of BCC-specific vascular and structural patterns should tip classification toward Benign Keratosis."
+      },
+      "validation": {
+        "fires_on_trigger": true,
+        "tp": 6,
+        "fp": 3,
+        "tn": 5,
+        "fn": 2,
+        "precision": 0.667,
+        "recall": 0.75,
+        "accepted": false
+      },
+      "accepted": false,
+      "registered": false
+    }
+  ]
+}

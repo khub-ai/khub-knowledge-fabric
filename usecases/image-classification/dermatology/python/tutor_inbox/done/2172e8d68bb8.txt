@@ -1,0 +1,22 @@
+{
+  "rule": "When a pigmented lesion contains gray-blue or blue-gray structureless areas (not organized into a network, not red-purple lacunae) alongside brown pigmented components and shows asymmetric, multi-zone architecture, classify as Melanoma.",
+  "feature": "gray_blue_structureless_areas_multicomponent",
+  "favors": "Melanoma",
+  "confidence": "high",
+  "preconditions": [
+    "Gray-blue or blue-gray structureless areas are present within the lesion — distinct patches of slate-gray or bluish-gray color without an organized network structure",
+    "Brown pigmented components are also present alongside the gray-blue areas (distinguishes from blue nevus, which is entirely blue-gray)",
+    "The gray-blue areas occupy only a portion of the lesion — NOT the entire lesion uniformly (uniform steel-blue homogeneous lesion = blue nevus, not melanoma)",
+    "Lesion is asymmetric in shape and/or pigment distribution",
+    "At least three distinct colors are visible (e.g., light tan/golden brown, dark brown, gray-blue)",
+    "No red/purple lacunae (rules out hemangioma as source of blue-gray color)",
+    "No seborrheic keratosis features (no milia-like cysts, no comedo-like openings)",
+    "Lesion is flat or only minimally elevated — not a raised blue-gray nodule (a raised bluish nodule suggests blue nevus or pigmented nodular basal cell carcinoma rather than melanoma)",
+    "No features of dermatofibroma: no shiny central white patch surrounded exclusively by a delicate pigment network restricted to the periphery"
+  ],
+  "added_preconditions": [
+    "Lesion is flat or only minimally elevated — not a raised blue-gray nodule (a raised bluish nodule suggests blue nevus or pigmented nodular basal cell carcinoma rather than melanoma)",
+    "No features of dermatofibroma: no shiny central white patch surrounded exclusively by a delicate pigment network restricted to the periphery"
+  ],
+  "completion_rationale": "The expert implicitly assumed this is a flat melanocytic lesion, not a raised nodular lesion — because blue-white veil and gray-blue regression structures in melanoma occur in flat superficial spreading lesions, whereas a raised blue-gray nodule points to blue nevus or pigmented nodular BCC. The dermatofibroma exclusion is needed because dermatofibromas can rarely show peripheral pigmentation with a central white-gray area that could superficially mimic focal gray-blue structures; the dermatofibroma pattern is distinct (shiny central white + peripheral-only network) but a naive classifier needs it made explicit."
+}

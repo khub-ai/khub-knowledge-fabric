@@ -1,0 +1,1 @@
+{"precondition_met": false, "would_predict": null, "observations": "Faint diffuse light brown patch on pink skin with ill-defined border. Predominantly one tone of light brown. No atypical pigment network, no blue-white veil, no streaks, no clearly irregular dark globules. Multiple preconditions fail under strict reading."}

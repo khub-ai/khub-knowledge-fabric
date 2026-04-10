@@ -1,0 +1,6 @@
+{
+  "request_id": "c4eef94561f6",
+  "precondition_met": false,
+  "would_predict": null,
+  "observations": "Faint asymmetric brown stippling on pink skin with diffuse fading borders. Mostly 2 colors (light brown + pink). No blue-gray, no blue-white veil, no atypical pigment network or streaks. Borders not notched. Strict reading: 3-color, irregular-border, and melanoma-structure preconditions not met."
+}

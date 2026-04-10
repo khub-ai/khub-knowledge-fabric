@@ -1,0 +1,183 @@
+{
+  "cheap_model": "o4-mini",
+  "expert_model": "claude-sonnet-4-6",
+  "patch_rules_file": "C:\\_backup\\github\\khub-knowledge-fabric\\usecases\\image-classification\\dermatology\\python\\patch_rules_v5_ak_bkl_revised.json",
+  "dry_run": false,
+  "total_tasks": 6,
+  "failures_before": 2,
+  "rules_authored": 2,
+  "rules_accepted": 0,
+  "rules_registered": 0,
+  "cross_pair_events": [],
+  "patch_records": [
+    {
+      "task_id": "actinic_keratosis_vs_benign_keratosis_ISIC_0024336",
+      "pair_id": "actinic_keratosis_vs_benign_keratosis",
+      "wrong_prediction": "uncertain",
+      "correct_label": "Benign Keratosis",
+      "candidate_rule": {
+        "rule": "When a lesion displays a central zone of cerebriform or fissured surface texture with moth-eaten or cryptlike white structureless areas interspersed among brown-to-dark-brown pigmentation, surrounded by a faint peripheral haze of scattered brown granules on a pale background, classify as Benign Keratosis.",
+        "feature": "cerebriform_fissured_texture_with_white_clefts_and_peripheral_brown_haze",
+        "favors": "Benign Keratosis",
+        "confidence": "high",
+        "preconditions": [
+          "Central lesion shows a lobulated, cerebriform or warty surface architecture with visible surface fissures or crypts",
+          "Presence of white or pale structureless cleft-like areas (comedo-like openings or milia-like cysts equivalent) embedded within the brown pigmented zone",
+          "Overall coloration includes multiple shades of brown (light tan to dark brown) plus focal violaceous/purplish hues consistent with seborrheic keratosis subtype",
+          "Peripheral border shows a diffuse, ill-defined haze of scattered fine brown granules rather than a sharp pigmented network or atypical vascular pattern",
+          "Absence of a well-formed atypical pigment network, irregular streaks, or dotted/irregular vascular pattern that would suggest actinic keratosis or melanoma",
+          "Background skin appears pale/photodamaged but lesion itself is well-demarcated from surrounding skin by its raised, textured appearance"
+        ],
+        "rationale": "Benign keratosis (seborrheic keratosis) characteristically shows cerebriform surface architecture, comedo-like openings, milia-like cysts, and a stuck-on appearance with mixed brown tones and pale clefts. Actinic keratosis instead shows a strawberry pattern (erythematous pseudo-network with hair follicle openings), surface scale, or a dotted/glomerular vascular pattern on an erythematous base. The combination of lobulated brown pigmentation with white fissured clefts and peripheral brown granule haze \u2014 without vascular prominence or erythema \u2014 is strongly characteristic of benign keratosis and should override uncertainty in the model."
+      },
+      "validation": {
+        "fires_on_trigger": false,
+        "tp": 1,
+        "fp": 0,
+        "tn": 8,
+        "fn": 7,
+        "precision": 1.0,
+        "recall": 0.125,
+        "accepted": false,
+        "rejection_reason": "did not fire on trigger"
+      },
+      "revision_history": [
+        {
+          "attempt": 0,
+          "rule": {
+            "rule": "When a lesion displays a central zone of cerebriform or fissured surface texture with moth-eaten or cryptlike white structureless areas interspersed among brown-to-dark-brown pigmentation, surrounded by a faint peripheral haze of scattered brown granules on a pale background, classify as Benign Keratosis.",
+            "feature": "cerebriform_fissured_texture_with_white_clefts_and_peripheral_brown_haze",
+            "favors": "Benign Keratosis",
+            "confidence": "high",
+            "preconditions": [
+              "Central lesion shows a lobulated, cerebriform or warty surface architecture with visible surface fissures or crypts",
+              "Presence of white or pale structureless cleft-like areas (comedo-like openings or milia-like cysts equivalent) embedded within the brown pigmented zone",
+              "Overall coloration includes multiple shades of brown (light tan to dark brown) plus focal violaceous/purplish hues consistent with seborrheic keratosis subtype",
+              "Peripheral border shows a diffuse, ill-defined haze of scattered fine brown granules rather than a sharp pigmented network or atypical vascular pattern",
+              "Absence of a well-formed atypical pigment network, irregular streaks, or dotted/irregular vascular pattern that would suggest actinic keratosis or melanoma",
+              "Background skin appears pale/photodamaged but lesion itself is well-demarcated from surrounding skin by its raised, textured appearance"
+            ],
+            "rationale": "Benign keratosis (seborrheic keratosis) characteristically shows cerebriform surface architecture, comedo-like openings, milia-like cysts, and a stuck-on appearance with mixed brown tones and pale clefts. Actinic keratosis instead shows a strawberry pattern (erythematous pseudo-network with hair follicle openings), surface scale, or a dotted/glomerular vascular pattern on an erythematous base. The combination of lobulated brown pigmentation with white fissured clefts and peripheral brown granule haze \u2014 without vascular prominence or erythema \u2014 is strongly characteristic of benign keratosis and should override uncertainty in the model."
+          },
+          "validation": {
+            "fires_on_trigger": false,
+            "tp": 1,
+            "fp": 0,
+            "tn": 8,
+            "fn": 7,
+            "precision": 1.0,
+            "recall": 0.125,
+            "accepted": false,
+            "rejection_reason": "did not fire on trigger"
+          },
+          "accepted": false
+        }
+      ],
+      "accepted": false,
+      "registered": false
+    },
+    {
+      "task_id": "actinic_keratosis_vs_benign_keratosis_ISIC_0024420",
+      "pair_id": "actinic_keratosis_vs_benign_keratosis",
+      "wrong_prediction": "Actinic Keratosis",
+      "correct_label": "Benign Keratosis",
+      "candidate_rule": {
+        "rule": "When a lesion on hair-bearing skin shows a focal, well-circumscribed cluster of brown-to-dark-brown pigmentation with a moth-eaten or irregular but condensed central core, surrounded by discrete coiled or curved hair shafts emerging from the lesion center, set against a diffusely vascular pink background lacking surface scale or strawberry-pattern vessels, classify as Benign Keratosis.",
+        "feature": "comedone_like_keratin_plug_internal_structure",
+        "favors": "Benign Keratosis",
+        "confidence": "high",
+        "preconditions": [
+          "Lesion is located on hair-bearing skin with multiple terminal hair shafts visible across the field",
+          "Pigmentation is concentrated in a discrete, roughly oval focal cluster rather than diffusely spread across a broad field",
+          "The pigment cluster contains mixed brown and dark-brown tones suggesting keratin or melanin aggregation (consistent with comedone-like or seborrheic architecture), even if classic comedo openings are not overtly prominent at this magnification",
+          "Hair shafts pass through or emerge near the lesion center, indicating a follicle-associated or adnexal component rather than an epidermal surface lesion",
+          "Background skin shows diffuse fine vascular ectasia (pink hue) but lacks the coarse dotted/glomerular vessels and surface whitish scale of actinic keratosis",
+          "Lesion border, while irregular, is spatially confined rather than ill-defined and merging imperceptibly with surrounding skin",
+          "No strawberry-pattern (red pseudonetwork with follicular white halos) or rosette structures are present",
+          "The pigment cluster displays visible internal comedone-like or keratin-plug architecture (discrete punctate dark openings, moth-eaten voids, or follicular keratin aggregates within the dark core) rather than a uniform or homogeneous condensed brown pigment mass without internal structural detail"
+        ],
+        "rationale": "The original rule correctly identified the gross morphology of a follicle-associated pigmented lesion on vascular skin, but all seven prior pre-conditions could be satisfied by a non-specific condensed brown pigment cluster as seen in the actinic keratosis false positives. The discriminating hallmark of true seborrheic keratosis (benign keratosis) architecture is the presence of internal comedone openings, keratin-plug structures, or moth-eaten voids within the pigment core \u2014 features explicitly noted in true positive validator observations but absent in false positive descriptions, which report only a generic condensed brown cluster. Adding this eighth pre-condition requires the validator to confirm genuine internal seborrheic architectural detail before the rule fires, thereby excluding actinic keratosis cases that mimic the gross appearance but lack this diagnostic microstructure.",
+        "revision_note": "Added a pre-condition requiring visible internal comedone-like or keratin-plug structural detail within the pigment core, because true positive Benign Keratosis cases show this hallmark seborrheic architecture while false positive Actinic Keratosis cases present only a featureless condensed brown pigment cluster."
+      },
+      "validation": {
+        "fires_on_trigger": false,
+        "tp": 1,
+        "fp": 1,
+        "tn": 7,
+        "fn": 7,
+        "precision": 0.5,
+        "recall": 0.125,
+        "accepted": false,
+        "rejection_reason": "did not fire on trigger"
+      },
+      "revision_history": [
+        {
+          "attempt": 0,
+          "rule": {
+            "rule": "When a lesion on hair-bearing skin shows a focal, well-circumscribed cluster of brown-to-dark-brown pigmentation with a moth-eaten or irregular but condensed central core, surrounded by discrete coiled or curved hair shafts emerging from the lesion center, set against a diffusely vascular pink background lacking surface scale or strawberry-pattern vessels, classify as Benign Keratosis.",
+            "feature": "focal_pigmented_cluster_with_coiled_hairs_on_vascular_background",
+            "favors": "Benign Keratosis",
+            "confidence": "medium",
+            "preconditions": [
+              "Lesion is located on hair-bearing skin with multiple terminal hair shafts visible across the field",
+              "Pigmentation is concentrated in a discrete, roughly oval focal cluster rather than diffusely spread across a broad field",
+              "The pigment cluster contains mixed brown and dark-brown tones suggesting keratin or melanin aggregation (consistent with comedone-like or seborrheic architecture), even if classic comedo openings are not overtly prominent at this magnification",
+              "Hair shafts pass through or emerge near the lesion center, indicating a follicle-associated or adnexal component rather than an epidermal surface lesion",
+              "Background skin shows diffuse fine vascular ectasia (pink hue) but lacks the coarse dotted/glomerular vessels and surface whitish scale of actinic keratosis",
+              "Lesion border, while irregular, is spatially confined rather than ill-defined and merging imperceptibly with surrounding skin",
+              "No strawberry-pattern (red pseudonetwork with follicular white halos) or rosette structures are present"
+            ],
+            "rationale": "Actinic keratosis on hair-bearing skin typically presents with a diffuse, ill-defined erythematous field showing dotted/glomerular vessels, follicular white halos (strawberry pattern), and superficial scale \u2014 not a condensed focal pigment cluster. Benign keratosis (seborrheic keratosis or pigmented follicular keratosis) in hair-bearing areas can appear as a compact, dark-brown aggregated cluster associated with follicular ostia, lacking the vascular pattern hallmarks of AK. The model was misled by the absence of textbook comedo openings and by the vascular pink background; however, the focal, bounded, multi-tonal brown cluster with associated follicular elements and absence of AK-specific vascular structures should redirect classification to Benign Keratosis."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 5,
+            "fp": 4,
+            "tn": 4,
+            "fn": 3,
+            "precision": 0.556,
+            "recall": 0.625,
+            "accepted": false,
+            "rejection_reason": "fp=4 > 1"
+          },
+          "accepted": false
+        },
+        {
+          "attempt": 1,
+          "rule": {
+            "rule": "When a lesion on hair-bearing skin shows a focal, well-circumscribed cluster of brown-to-dark-brown pigmentation with a moth-eaten or irregular but condensed central core, surrounded by discrete coiled or curved hair shafts emerging from the lesion center, set against a diffusely vascular pink background lacking surface scale or strawberry-pattern vessels, classify as Benign Keratosis.",
+            "feature": "comedone_like_keratin_plug_internal_structure",
+            "favors": "Benign Keratosis",
+            "confidence": "high",
+            "preconditions": [
+              "Lesion is located on hair-bearing skin with multiple terminal hair shafts visible across the field",
+              "Pigmentation is concentrated in a discrete, roughly oval focal cluster rather than diffusely spread across a broad field",
+              "The pigment cluster contains mixed brown and dark-brown tones suggesting keratin or melanin aggregation (consistent with comedone-like or seborrheic architecture), even if classic comedo openings are not overtly prominent at this magnification",
+              "Hair shafts pass through or emerge near the lesion center, indicating a follicle-associated or adnexal component rather than an epidermal surface lesion",
+              "Background skin shows diffuse fine vascular ectasia (pink hue) but lacks the coarse dotted/glomerular vessels and surface whitish scale of actinic keratosis",
+              "Lesion border, while irregular, is spatially confined rather than ill-defined and merging imperceptibly with surrounding skin",
+              "No strawberry-pattern (red pseudonetwork with follicular white halos) or rosette structures are present",
+              "The pigment cluster displays visible internal comedone-like or keratin-plug architecture (discrete punctate dark openings, moth-eaten voids, or follicular keratin aggregates within the dark core) rather than a uniform or homogeneous condensed brown pigment mass without internal structural detail"
+            ],
+            "rationale": "The original rule correctly identified the gross morphology of a follicle-associated pigmented lesion on vascular skin, but all seven prior pre-conditions could be satisfied by a non-specific condensed brown pigment cluster as seen in the actinic keratosis false positives. The discriminating hallmark of true seborrheic keratosis (benign keratosis) architecture is the presence of internal comedone openings, keratin-plug structures, or moth-eaten voids within the pigment core \u2014 features explicitly noted in true positive validator observations but absent in false positive descriptions, which report only a generic condensed brown cluster. Adding this eighth pre-condition requires the validator to confirm genuine internal seborrheic architectural detail before the rule fires, thereby excluding actinic keratosis cases that mimic the gross appearance but lack this diagnostic microstructure.",
+            "revision_note": "Added a pre-condition requiring visible internal comedone-like or keratin-plug structural detail within the pigment core, because true positive Benign Keratosis cases show this hallmark seborrheic architecture while false positive Actinic Keratosis cases present only a featureless condensed brown pigment cluster."
+          },
+          "validation": {
+            "fires_on_trigger": false,
+            "tp": 1,
+            "fp": 1,
+            "tn": 7,
+            "fn": 7,
+            "precision": 0.5,
+            "recall": 0.125,
+            "accepted": false,
+            "rejection_reason": "did not fire on trigger"
+          },
+          "accepted": false
+        }
+      ],
+      "accepted": false,
+      "registered": false
+    }
+  ]
+}

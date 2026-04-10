@@ -1,0 +1,1 @@
+{"precondition_met": false, "would_predict": null, "observations": "Lesion with multiple milia-like white cysts, comedo-like openings, and fingerprint/cerebriform pattern — classic seborrheic keratosis appearance. No blue-white veil, no atypical pigment network, no streaks/pseudopods, no irregular dark peripheral globules. Strict melanoma-specific structure preconditions fail."}

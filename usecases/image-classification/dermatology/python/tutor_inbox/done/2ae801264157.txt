@@ -1,0 +1,14 @@
+{
+  "precondition_ratings": [
+    {"precondition": "Lesion is clearly asymmetric — one half is not a mirror image of the other in shape OR pigment distribution", "rating": "reliable", "comment": "Asymmetry is the 'A' of the ABCD rule and a core melanoma discriminator."},
+    {"precondition": "At least three distinct colors are visible within the lesion (e.g. light brown, dark brown/black, gray-blue, pink-red, white regression area)", "rating": "reliable", "comment": "Color variegation ≥3 hues is a well-established melanoma marker; banal nevi are typically one or two hues of brown."},
+    {"precondition": "Border is irregular, notched, or scalloped — not smooth/round/oval", "rating": "reliable", "comment": "Border irregularity is the 'B' of ABCD and discriminates melanoma from typical round/oval nevi."},
+    {"precondition": "Pigment distribution is heterogeneous (dark patches next to lighter or pink/white areas), not a uniform brown of a banal nevus", "rating": "reliable", "comment": "Heterogeneous pigmentation overlaps with color variegation but adds spatial irregularity, a melanoma marker."},
+    {"precondition": "DO NOT demand ulceration, bleeding, or clinical history of growth — those are NOT required for a dermoscopic melanoma call; the visual ABCD-style features above are themselves sufficient", "rating": "reliable", "comment": "Meta-rule preventing the pupil's specific failure mode (waiving melanoma diagnosis when ulceration absent); necessary instruction."},
+    {"precondition": "An atypical pigment network (broadened, branched, abruptly cut off at the periphery) OR streaks/pseudopods radiating from the edge OR a blue-white veil OR irregular dots/globules unevenly distributed is present — at least one of these melanoma-specific dermoscopic structures", "rating": "reliable", "comment": "These are the formal melanoma-specific dermoscopic structures from pattern analysis; presence of any one is highly specific."},
+    {"precondition": "The lesion is NOT a uniform reticular network with regular meshwork and gradual fade-out at the periphery (the classic banal nevus pattern)", "rating": "reliable", "comment": "Excludes the most common banal nevus pattern."},
+    {"precondition": "The lesion does NOT consist of evenly-sized, evenly-distributed brown globules in a symmetric arrangement (the classic globular nevus pattern)", "rating": "reliable", "comment": "Excludes the second classic banal nevus pattern."}
+  ],
+  "overall": "accept",
+  "rationale": "The rule combines the canonical ABCD summary features with the formal melanoma-specific dermoscopic structures and explicit exclusions of the two classic banal nevus patterns. Together these are highly specific for melanoma over melanocytic nevus and directly target the pupil's documented failure mode (inverted feature mapping plus demanding ulceration). Safe to proceed to image-level validation."
+}

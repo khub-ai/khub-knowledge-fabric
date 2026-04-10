@@ -1,0 +1,137 @@
+{
+  "summary": {
+    "correct": 1,
+    "total": 1,
+    "accuracy": 1.0,
+    "avg_ms": 30364.0,
+    "total_cost_usd": 0.003022,
+    "avg_cost_usd": 0.003022,
+    "total_input_tokens": 6877,
+    "total_output_tokens": 1371,
+    "total_cache_creation": 0,
+    "total_cache_read": 0,
+    "total_api_calls": 5,
+    "model": "claude-sonnet-4-6",
+    "dataset": "derm-ham10000",
+    "timestamp": "2026-04-08T13:02:21Z",
+    "rules": {
+      "total": 2,
+      "active": 2,
+      "candidates": 0,
+      "flagged": 0,
+      "deprecated": 0,
+      "archived": 0,
+      "total_fired": 0,
+      "total_succeeded": 0
+    }
+  },
+  "per_pair": {
+    "melanoma_vs_melanocytic_nevus": {
+      "correct": 1,
+      "total": 1,
+      "accuracy": 1.0
+    }
+  },
+  "tasks": [
+    {
+      "task_id": "melanoma_vs_melanocytic_nevus_ISIC_0024400",
+      "pair_id": "melanoma_vs_melanocytic_nevus",
+      "predicted_label": "Melanoma",
+      "correct_label": "Melanoma",
+      "correct": true,
+      "confidence": 0.85,
+      "rounds_completed": 4,
+      "revisions": 0,
+      "duration_ms": 30364,
+      "cost_usd": 0.003022,
+      "input_tokens": 6877,
+      "cache_creation_tokens": 0,
+      "cache_read_tokens": 0,
+      "output_tokens": 1371,
+      "api_calls": 5,
+      "model": "claude-sonnet-4-6",
+      "dataset": "derm-ham10000",
+      "rule_ids_fired": [
+        "r_001",
+        "r_002"
+      ],
+      "feature_record": {
+        "features": {
+          "pigment_network_regularity": {
+            "value": "irregular",
+            "confidence": 0.8
+          },
+          "border_regularity": {
+            "value": "irregular",
+            "confidence": 0.7
+          },
+          "color_uniformity": {
+            "value": "multicolored",
+            "confidence": 0.9
+          },
+          "globules_distribution": {
+            "value": "asymmetric",
+            "confidence": 0.6
+          },
+          "regression_structures_present": {
+            "value": "yes",
+            "confidence": 0.7
+          },
+          "blue_white_veil_present": {
+            "value": "no",
+            "confidence": 0.9
+          },
+          "vascular_structures_present": {
+            "value": "no",
+            "confidence": 0.9
+          },
+          "regression_area_location": {
+            "value": "diffuse",
+            "confidence": 0.7
+          },
+          "pigment_granularity": {
+            "value": "reticular",
+            "confidence": 0.8
+          },
+          "dark_dots_present": {
+            "value": "yes",
+            "confidence": 0.7
+          },
+          "atypical_network_present": {
+            "value": "present \u2014 atypical/irregular",
+            "confidence": 0.7
+          },
+          "peripheral_dots_globules": {
+            "value": "yes \u2014 asymmetric or peripheral clustering",
+            "confidence": 0.6
+          }
+        },
+        "notes": "The lesion shows a mixture of brown and reddish tones, with some areas of depigmentation. There are scattered dark dots and some globules, mostly concentrated in the center and mid-periphery. The pigment network appears irregular and fragmented. Regression structures are visible as whitish areas, distributed diffusely. No vascular structures are apparent."
+      },
+      "decision": {
+        "label": "Melanoma",
+        "confidence": 0.85,
+        "reasoning": "Rule r_002 is applied with high confidence. The lesion shows diffuse pink-white regression areas (confirmed by 'regression_structures_present: yes' and 'regression_area_location: diffuse'), fine dark granular peppering (confirmed by 'dark_dots_present: yes' and 'pigment_granularity: reticular' \u2014 though reticular may suggest network, dark dots are scattered and punctate), overall pigmentation is multicolored (brown and reddish tones \u2014 satisfying condition 4), lesion is asymmetric (implied by 'globules_distribution: asymmetric'), and no seborrheic keratosis features or non-melanocytic features are present. The lesion lacks a well-formed reticular network (pigment_network_regularity: irregular), and the regression areas are diffuse, not restricted to the periphery \u2014 satisfying condition 9. Rule r_001 is not applied because while regression structures are present, there is no clear evidence of irregular dark peripheral dots or globules at the rim \u2014 the peripheral dots/globules are noted as 'asymmetric or peripheral clustering' with only medium confidence, so it does not meet the HARD GATE criteria for r_001. Rule r_002 is the stronger and more complete match, and its conditions are fully satisfied.",
+        "applied_rules": [
+          "r_002"
+        ],
+        "features_used": [
+          "regression_structures_present",
+          "regression_area_location",
+          "dark_dots_present",
+          "pigment_granularity",
+          "color_uniformity",
+          "globules_distribution",
+          "atypical_network_present",
+          "notes"
+        ]
+      },
+      "verification": {
+        "consistent": true,
+        "confidence": 0.0,
+        "revision_signal": "",
+        "notes": "The test image shows irregular pigment network, multicolored pigmentation, diffuse regression structures, and asymmetric globules \u2014 features consistent with Melanoma reference images. No pathognomonic features of Melanocytic Nevus (e.g., well-defined reticular network, symmetric globules) are clearly present. The decision aligns with the visual evidence without contradiction."
+      }
+    }
+  ]
+}

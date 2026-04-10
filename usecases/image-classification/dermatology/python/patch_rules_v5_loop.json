@@ -1,0 +1,69 @@
+{
+  "version": 2,
+  "rules": [
+    {
+      "id": "r_001",
+      "condition": "[Patch rule \u2014 melanoma_vs_melanocytic_nevus] Two or more small, sharply bordered foci of clustered dark red-brown dots or globules visible as distinct units; Background skin is diffusely pink/erythematous without structureless brown or grey pigment sheets; No true radial streaming, pseudopods, or spitzoid peripheral projections extending beyond the globule clusters; Absence of a continuous, irregularly pigmented network or regression structures (white scar-like areas, blue-grey peppering); Brown pigment connecting the foci, if present, is faint and linear/bridging rather than forming an irregular solid plaque; Overall lesion architecture consists of isolated vascular-appearing globular clusters rather than a single asymmetric tumoral mass",
+      "action": "Classify as Melanocytic Nevus. Confidence: high. Rule: When multiple small, discrete, round-to-oval foci of dark red-brown clustered dots/globules are present on a pink/erythematous background, each focus is well-circumscribed with no true peripheral streaking or radial extensions, the surrounding skin shows diffuse uniform erythema rather than structureless melanin pigmentation, and the brown material between foci appears thin and bridging rather than forming a continuous tumoral mass, classify as Melanocytic Nevus (angiomatous/Reed nevus variant or benign nevus with vascular pattern).",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 0,
+          "successes": 0,
+          "failures": 0
+        }
+      },
+      "source": "expert_vlm:claude-sonnet-4-6",
+      "source_task": "melanoma_vs_melanocytic_nevus_ISIC_0024385",
+      "tags": [
+        "derm-ham10000",
+        "melanoma_vs_melanocytic_nevus",
+        "patch:o4-mini",
+        "triggered_by:melanoma_vs_melanocytic_nevus_ISIC_0024385"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": "patch rule for melanoma_vs_melanocytic_nevus triggered by melanoma_vs_melanocytic_nevus_ISIC_0024385"
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 0,
+      "created": "2026-04-05T12:11:13",
+      "last_fired": null
+    },
+    {
+      "id": "r_002",
+      "condition": "[Patch rule \u2014 melanoma_vs_melanocytic_nevus] Dominant color is a uniform reddish-brown to dark-red ('blood-red' or 'port-wine') hue occupying the majority of the lesion surface; Color distribution is roughly symmetric from center to periphery, even if borders appear slightly irregular; Absence of discrete blue-white veil as a focal slab-like structure; Absence of atypical vascular structures (dotted, irregular, or polymorphous vessels) within the lesion; Absence of true regression structures (white scarring, peppering) superimposed on the pigment; Borders, while not perfectly smooth, show a gradual, feathered fade into surrounding skin rather than abrupt focal notching; No focal nodular or raised component visible dermoscopically; Overall lesion size is moderate (roughly <10 mm equivalent in field of view) without satellite lesions",
+      "action": "Classify as Melanocytic Nevus. Confidence: medium. Rule: When a lesion displays a homogeneous diffuse reddish-brown to dark-red coloration with a 'strawberry-jam' or blood-red hue distributed throughout the lesion in a structureless but symmetric pattern, without discrete white regression structures, atypical pigment network, or focal blue-white veil, classify as Melanocytic Nevus (specifically a deep congenital or dysplastic nevus with diffuse reddish pigmentation).",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 0,
+          "successes": 0,
+          "failures": 0
+        }
+      },
+      "source": "expert_vlm:claude-sonnet-4-6",
+      "source_task": "melanoma_vs_melanocytic_nevus_ISIC_0024392",
+      "tags": [
+        "derm-ham10000",
+        "melanoma_vs_melanocytic_nevus",
+        "patch:o4-mini",
+        "triggered_by:melanoma_vs_melanocytic_nevus_ISIC_0024392"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": "patch rule for melanoma_vs_melanocytic_nevus triggered by melanoma_vs_melanocytic_nevus_ISIC_0024392"
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 0,
+      "created": "2026-04-05T12:12:48",
+      "last_fired": null
+    }
+  ]
+}

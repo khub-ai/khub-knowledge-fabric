@@ -1,0 +1,14 @@
+{
+  "rule": "When a pigmented lesion is asymmetric AND shows three or more distinct colors (e.g. dark brown plus gray-blue plus pink/red or white) AND has an irregular/notched border, classify as Melanoma. Do NOT require ulceration — these dermoscopic features alone are sufficient evidence of melanoma; nevi are typically symmetric, one-or-two-toned brown, with smooth borders.",
+  "feature": "asymmetry_multicolor_irregular_border",
+  "favors": "Melanoma",
+  "confidence": "high",
+  "preconditions": [
+    "Lesion is clearly asymmetric — one half is not a mirror image of the other in shape OR pigment distribution",
+    "At least three distinct colors are visible within the lesion (e.g. light brown, dark brown/black, gray-blue, pink-red, white regression area)",
+    "Border is irregular, notched, or scalloped — not smooth/round/oval",
+    "Pigment distribution is heterogeneous (dark patches next to lighter or pink/white areas), not a uniform brown of a banal nevus",
+    "DO NOT demand ulceration, bleeding, or clinical history of growth — those are NOT required for a dermoscopic melanoma call; the visual ABCD-style features above are themselves sufficient"
+  ],
+  "rationale": "The pupil correctly perceived asymmetry, irregular borders, and color variegation but then inverted the feature→class mapping — calling those 'typical of nevi' and demanding ulceration before it would diagnose melanoma. In dermoscopy the opposite is true: asymmetry + multicolor + irregular borders are the canonical melanoma triad (the ABCD rule), while a banal nevus is symmetric, monochromatic brown, with smooth borders. Ulceration is a late/optional finding, not a precondition. The corrective rule re-anchors the pupil's feature→class mapping and explicitly forbids it from waiving the call when ulceration is absent."
+}

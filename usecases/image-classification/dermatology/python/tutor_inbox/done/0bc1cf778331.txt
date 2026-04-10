@@ -1,0 +1,17 @@
+{
+  "rule": "When the lesion is highly asymmetric with at least three distinct hues (light brown, dark brown, gray-blue or pink-gray regression area), has an irregular notched border, shows irregular dark peripheral globules unevenly concentrated on one side, and contains a central structureless pink-gray or gray-blue regression zone — classify as Melanoma. Do NOT require ulceration or clinical history of growth; these dermoscopic features are themselves sufficient.",
+  "feature": "asymmetric_multicolor_regression_irregular_globules",
+  "favors": "Melanoma",
+  "confidence": "high",
+  "preconditions": [
+    "Lesion is clearly asymmetric in both shape and pigment distribution",
+    "At least three distinct colors are present: light brown, dark brown, and either gray-blue or pink-gray (regression structures)",
+    "Border is irregular and notched, not smooth or oval",
+    "Irregular dark peripheral globules or dots are present and unevenly distributed — concentrated on one side or one pole",
+    "A central or eccentric structureless pink-gray or gray-blue zone is present (regression)",
+    "The lesion does NOT consist of a uniform reticular network with regular meshwork and gradual fade-out (banal nevus pattern)",
+    "The lesion does NOT show evenly-sized, evenly-distributed globules in a symmetric arrangement (globular nevus pattern)",
+    "DO NOT require ulceration, bleeding, or clinical history of growth — the dermoscopic multi-component pattern above is sufficient"
+  ],
+  "rationale": "The pupil correctly identified asymmetry and irregular borders but then incorrectly discounted them by requiring clinical features (ulceration, rapid growth) that are not visible dermoscopically. The key discriminating features here are the multi-component pattern: regression zone (gray-blue structureless area), uneven peripheral globules, and 3+ hues together — none of which appear in a typical banal nevus. The corrective rule targets this exact failure mode by explicitly prohibiting the demand for ulceration."
+}

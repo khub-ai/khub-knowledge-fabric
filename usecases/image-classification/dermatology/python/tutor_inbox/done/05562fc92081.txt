@@ -1,0 +1,6 @@
+{
+  "request_id": "05562fc92081",
+  "precondition_met": false,
+  "would_predict": null,
+  "observations": "Small fairly symmetric oval brown lesion with smooth border. Two shades of brown only — no gray-blue, no pink-red, no white. No blue-white veil, no atypical pigment network or streaks. Strict reading: 3-color, irregular-border, and melanoma-structure preconditions not met."
+}

@@ -1,0 +1,143 @@
+{
+  "summary": {
+    "correct": 0,
+    "total": 1,
+    "accuracy": 0.0,
+    "avg_ms": 24502.0,
+    "total_cost_usd": 0.03059,
+    "avg_cost_usd": 0.03059,
+    "total_input_tokens": 7592,
+    "total_output_tokens": 1161,
+    "total_cache_creation": 0,
+    "total_cache_read": 0,
+    "total_api_calls": 5,
+    "model": "claude-sonnet-4-6",
+    "dataset": "derm-ham10000",
+    "timestamp": "2026-04-07T11:45:19Z",
+    "rules": {
+      "total": 1,
+      "active": 1,
+      "candidates": 0,
+      "flagged": 0,
+      "deprecated": 0,
+      "archived": 0,
+      "total_fired": 0,
+      "total_succeeded": 0
+    }
+  },
+  "per_pair": {
+    "actinic_keratosis_vs_benign_keratosis": {
+      "correct": 0,
+      "total": 1,
+      "accuracy": 0.0
+    }
+  },
+  "tasks": [
+    {
+      "task_id": "actinic_keratosis_vs_benign_keratosis_ISIC_0024336",
+      "pair_id": "actinic_keratosis_vs_benign_keratosis",
+      "predicted_label": "Actinic Keratosis",
+      "correct_label": "Benign Keratosis",
+      "correct": false,
+      "confidence": 0.8,
+      "rounds_completed": 4,
+      "revisions": 0,
+      "duration_ms": 24502,
+      "cost_usd": 0.03059,
+      "input_tokens": 7592,
+      "cache_creation_tokens": 0,
+      "cache_read_tokens": 0,
+      "output_tokens": 1161,
+      "api_calls": 5,
+      "model": "claude-sonnet-4-6",
+      "dataset": "derm-ham10000",
+      "rule_ids_fired": [
+        "r_001"
+      ],
+      "feature_record": {
+        "features": {
+          "pigment_network": {
+            "value": "uncertain/not visible",
+            "confidence": 0.1
+          },
+          "border_characteristics": {
+            "value": "irregular with notching",
+            "confidence": 0.8
+          },
+          "color_variation": {
+            "value": "multiple colors",
+            "confidence": 0.7
+          },
+          "globules_and_dots": {
+            "value": "uncertain/not visible",
+            "confidence": 0.1
+          },
+          "regression_structures": {
+            "value": "blue-gray peppering",
+            "confidence": 0.7
+          },
+          "vascular_structures": {
+            "value": "uncertain/not visible",
+            "confidence": 0.2
+          },
+          "keratosis_specific_structures": {
+            "value": "uncertain/not visible",
+            "confidence": 0.1
+          },
+          "symmetry": {
+            "value": "uncertain/not visible",
+            "confidence": 0.1
+          },
+          "strawberry_pattern_present": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "dotted_vessels_erythema": {
+            "value": "no \u2014 vessels absent or background not erythematous",
+            "confidence": 0.8
+          },
+          "background_erythema": {
+            "value": "no \u2014 tan, brown, gray, or skin-colored",
+            "confidence": 0.8
+          },
+          "milia_like_cysts_present": {
+            "value": "absent",
+            "confidence": 0.8
+          },
+          "comedo_like_openings_present": {
+            "value": "absent",
+            "confidence": 0.8
+          },
+          "regression_or_peppering": {
+            "value": "present",
+            "confidence": 0.7
+          }
+        },
+        "notes": "The lesion shows some irregular borders and color variation predominantly involving shades of brown and some gray areas, indicative of potential regression."
+      },
+      "decision": {
+        "label": "Actinic Keratosis",
+        "confidence": 0.8,
+        "reasoning": "The lesion displays irregular border characteristics and multiple colors suggesting a non-benign nature. The presence of regression structures (blue-gray peppering) aligns with characteristics of Actinic Keratosis. The absence of milia-like cysts and comedo-like openings, alongside regression or peppering, further supports Actinic Keratosis over Benign Keratosis. Rule r_001 could not be applied because several conditions (e.g., moth-eaten border, homogeneity, no rough keratotic surfaces) were not met due to observed irregular borders and multiple colors without the smooth, homogeneous presentation required for the application of the rule.",
+        "applied_rules": [],
+        "features_used": [
+          "border_characteristics",
+          "color_variation",
+          "regression_structures",
+          "strawberry_pattern_present",
+          "dotted_vessels_erythema",
+          "background_erythema",
+          "milia_like_cysts_present",
+          "comedo_like_openings_present",
+          "regression_or_peppering"
+        ]
+      },
+      "verification": {
+        "consistent": true,
+        "confidence": 0.9,
+        "revision_signal": "",
+        "notes": "The test image presents features consistent with Actinic Keratosis, such as irregular borders and the presence of blue-gray peppering suggestive of regression, without any pathognomonic features of Benign Keratosis like milia-like cysts or comedo-like openings."
+      }
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+{"precondition_met": false, "would_predict": null, "observations": "Small roughly oval dark-brown lesion with a fairly smooth, regular border. Predominantly one to two tones of dark brown — no gray-blue, pink-red, or white regression within the lesion. No atypical pigment network, no blue-white veil, no streaks, no irregularly distributed globules. Multiple preconditions fail."}

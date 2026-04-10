@@ -1,0 +1,56 @@
+{
+  "precondition_ratings": [
+    {
+      "precondition": "Lesion is clearly asymmetric in both shape and pigment distribution",
+      "rating": "context_dependent",
+      "comment": "Asymmetry alone is insufficient — many dysplastic nevi are asymmetric; it is only discriminating in conjunction with other high-risk features."
+    },
+    {
+      "precondition": "At least three distinct colors are present: light brown, dark brown, and either gray-blue or pink-gray (regression structures)",
+      "rating": "reliable",
+      "comment": "Three or more colors including gray-blue or pink-gray regression structures is a strong melanoma indicator rarely seen in benign nevi."
+    },
+    {
+      "precondition": "Border is irregular and notched, not smooth or oval",
+      "rating": "context_dependent",
+      "comment": "Irregular borders occur in dysplastic nevi as well; discriminating only in combination with other features."
+    },
+    {
+      "precondition": "Irregular dark peripheral globules or dots are present and unevenly distributed — concentrated on one side or one pole",
+      "rating": "reliable",
+      "comment": "Asymmetrically distributed peripheral globules/dots are a well-established melanoma-specific dermoscopic feature not seen in symmetric globular nevi."
+    },
+    {
+      "precondition": "A central or eccentric structureless pink-gray or gray-blue zone is present (regression)",
+      "rating": "reliable",
+      "comment": "Regression structures (gray-blue or pink-white peppering/structureless areas) are a major melanoma-specific dermoscopic criterion."
+    },
+    {
+      "precondition": "The lesion does NOT consist of a uniform reticular network with regular meshwork and gradual fade-out (banal nevus pattern)",
+      "rating": "reliable",
+      "comment": "Correctly excludes the classic reticular nevus pattern; this is a well-defined exclusion criterion."
+    },
+    {
+      "precondition": "The lesion does NOT show evenly-sized, evenly-distributed globules in a symmetric arrangement (globular nevus pattern)",
+      "rating": "reliable",
+      "comment": "Correctly excludes the symmetric globular nevus pattern."
+    },
+    {
+      "precondition": "DO NOT require ulceration, bleeding, or clinical history of growth — the dermoscopic multi-component pattern above is sufficient",
+      "rating": "reliable",
+      "comment": "Correct meta-instruction: dermoscopic ABCD features are sufficient for melanoma classification without requiring clinical history."
+    },
+    {
+      "precondition": "The lesion is a flat or minimally elevated pigmented lesion visible dermoscopically — not a clearly raised nodule or cyst",
+      "rating": "context_dependent",
+      "comment": "Useful background exclusion but melanoma can also present as raised nodular lesions; this should not be a hard gate."
+    },
+    {
+      "precondition": "No features of seborrheic keratosis are present (no milia-like cysts, no comedo-like openings, no cerebriform pattern)",
+      "rating": "reliable",
+      "comment": "Correct exclusion — SK features are clearly distinct and this prevents misfire on pigmented SK."
+    }
+  ],
+  "overall": "accept",
+  "rationale": "The rule's core logic is sound: it requires a conjunction of three well-established melanoma-specific dermoscopic features — regression structures (gray-blue/pink-gray), asymmetrically distributed peripheral globules, and ≥3 colors — all of which are rarely seen together in benign nevi. The two context-dependent preconditions (asymmetry, irregular border) are reinforced by the more specific co-occurring criteria, so they function as additional filters rather than stand-alone gates. Proceed to image validation."
+}

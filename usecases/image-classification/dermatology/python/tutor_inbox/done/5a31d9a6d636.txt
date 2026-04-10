@@ -1,0 +1,22 @@
+{
+  "rule": "When a pigmented lesion is asymmetric AND shows three or more distinct colors (e.g. dark brown plus gray-blue plus pink/red or white) AND has an irregular/notched border, classify as Melanoma. Do NOT require ulceration — these dermoscopic features alone are sufficient evidence of melanoma; nevi are typically symmetric, one-or-two-toned brown, with smooth borders.",
+  "feature": "asymmetry_multicolor_irregular_border",
+  "favors": "Melanoma",
+  "confidence": "high",
+  "preconditions": [
+    "Lesion is clearly asymmetric — one half is not a mirror image of the other in shape OR pigment distribution",
+    "At least three distinct colors are visible within the lesion (e.g. light brown, dark brown/black, gray-blue, pink-red, white regression area)",
+    "Border is irregular, notched, or scalloped — not smooth/round/oval",
+    "Pigment distribution is heterogeneous (dark patches next to lighter or pink/white areas), not a uniform brown of a banal nevus",
+    "DO NOT demand ulceration, bleeding, or clinical history of growth — those are NOT required for a dermoscopic melanoma call; the visual ABCD-style features above are themselves sufficient",
+    "An atypical pigment network (broadened, branched, abruptly cut off at the periphery) OR streaks/pseudopods radiating from the edge OR a blue-white veil OR irregular dots/globules unevenly distributed is present — at least one of these melanoma-specific dermoscopic structures",
+    "The lesion is NOT a uniform reticular network with regular meshwork and gradual fade-out at the periphery (the classic banal nevus pattern)",
+    "The lesion does NOT consist of evenly-sized, evenly-distributed brown globules in a symmetric arrangement (the classic globular nevus pattern)"
+  ],
+  "added_preconditions": [
+    "An atypical pigment network (broadened, branched, abruptly cut off at the periphery) OR streaks/pseudopods radiating from the edge OR a blue-white veil OR irregular dots/globules unevenly distributed is present — at least one of these melanoma-specific dermoscopic structures",
+    "The lesion is NOT a uniform reticular network with regular meshwork and gradual fade-out at the periphery (the classic banal nevus pattern)",
+    "The lesion does NOT consist of evenly-sized, evenly-distributed brown globules in a symmetric arrangement (the classic globular nevus pattern)"
+  ],
+  "completion_rationale": "The expert listed the ABCD-style summary features but did not spell out the underlying dermoscopic structures (atypical network, streaks/pseudopods, blue-white veil, irregular globules) that are the formal melanoma-specific markers, nor did they exclude the two classic benign-nevus architectures (regular reticular and symmetric globular). Without those, a naive checker could misfire on an irregular-looking but pattern-benign nevus. Making the structural markers and benign exclusions explicit closes that loophole."
+}

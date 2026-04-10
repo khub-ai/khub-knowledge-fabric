@@ -1,0 +1,29 @@
+[
+  {
+    "rule_id": "r_nodular_001",
+    "description": "Blue-black homogeneous pattern with symmetrical nodular architecture indicating nodular melanoma",
+    "condition": "[Patch rule - melanoma_vs_melanocytic_nevus] 1. blue-black homogeneous pigmentation occupying >50% of lesion area; 2. elevated nodular component with dome-shaped or polypoid morphology; 3. absence of typical benign nevus patterns (comma vessels, symmetric globular pattern, or uniform brown pigment network)",
+    "action": "classify as Melanoma",
+    "rationale": "Blue-black homogeneous areas represent heavily pigmented melanoma cells in the dermis with overlying orthokeratosis; this pattern is rare in benign nevi and when combined with nodular elevation meets the 'E' (Elevation) criterion of the EFG rule for nodular melanoma",
+    "subtype": "nodular_melanoma",
+    "source": "proactive_elicitation_claude_opus"
+  },
+  {
+    "rule_id": "r_nodular_002",
+    "description": "Milky-red areas with polymorphous vascular pattern indicating amelanotic or hypomelanotic nodular melanoma",
+    "condition": "[Patch rule - melanoma_vs_melanocytic_nevus] 1. milky-red or pink-white structureless areas comprising the dominant lesion color; 2. polymorphous vessels including at least two of: dotted vessels, linear-irregular vessels, or milky-red globules/lacunae; 3. firm nodular elevation meeting EFG criteria (Elevation above skin surface, Firm on palpation, Growth >1 month)",
+    "action": "classify as Melanoma",
+    "rationale": "Milky-red structureless zones result from neoangiogenesis and tumor-associated inflammation in amelanotic nodular melanoma; polymorphous vascular patterns reflect disorganized tumor vasculature distinct from the monomorphous comma or dotted vessels seen in dermal nevi",
+    "subtype": "nodular_melanoma",
+    "source": "proactive_elicitation_claude_opus"
+  },
+  {
+    "rule_id": "r_nodular_003",
+    "description": "Atypical vascular pattern with ulceration or erosion in a nodular lesion indicating advanced nodular melanoma",
+    "condition": "[Patch rule - melanoma_vs_melanocytic_nevus] 1. ulceration, erosion, or blood crusting not attributable to documented trauma; 2. irregular or linear-irregular vessels at lesion periphery or within structureless areas; 3. asymmetric pigmentation pattern OR blue-white veil over raised portion of lesion",
+    "action": "classify as Melanoma",
+    "rationale": "Spontaneous ulceration indicates rapid vertical growth phase tumor outstripping blood supply, a hallmark of nodular melanoma aggressiveness; combined with atypical vessels and asymmetry or blue-white veil, this triad achieves high specificity as benign nevi virtually never ulcerate spontaneously",
+    "subtype": "nodular_melanoma",
+    "source": "proactive_elicitation_claude_opus"
+  }
+]

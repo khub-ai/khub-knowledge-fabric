@@ -1,0 +1,1 @@
+{"precondition_met": true, "would_predict": "melanoma", "observations": "Asymmetric multi-component lesion with at least three hues (light brown, dark brown, gray-blue focus inferiorly) and irregular dark central blotch/structureless area. Border irregular. Pattern matches the rule's preconditions (asymmetry + multi-hue + dark structureless focus + gray-blue component)."}

@@ -1,0 +1,6 @@
+{
+  "request_id": "c0b43cb5132e",
+  "precondition_met": false,
+  "would_predict": null,
+  "observations": "Small, fairly symmetric brown stippled lesion with smooth fading periphery. Mostly one tone (brown) over pink skin. No 3-color variation, no atypical pigment network, no streaks, no blue-white veil. Stippled/granular pattern is more typical of a banal nevus. Strict reading: preconditions not met."
+}

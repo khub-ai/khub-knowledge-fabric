@@ -1,0 +1,907 @@
+{
+  "cheap_model": "qwen/qwen3-vl-8b-instruct",
+  "expert_model": "claude-sonnet-4-6",
+  "validator_model": "claude-sonnet-4-6",
+  "patch_rules_file": "patch_rules_dialogic_r2.json",
+  "dry_run": false,
+  "total_tasks": 6,
+  "failures_before": 4,
+  "rules_authored": 6,
+  "rules_accepted": 4,
+  "rules_registered": 4,
+  "stopped_early": false,
+  "stop_reason": "",
+  "patch_records": [
+    {
+      "task_id": "bronzed_cowbird_vs_shiny_cowbird_Bronzed_Cowbird_0019_796242",
+      "pair_id": "bronzed_cowbird_vs_shiny_cowbird",
+      "wrong_prediction": "Shiny Cowbird",
+      "correct_label": "Bronzed Cowbird",
+      "candidate_rule": {
+        "rule": "When a wholly black cowbird shows a prominent red or ruby-red iris clearly visible in the photograph AND a distinctly thick-based, heavy, slightly decurved bill that appears noticeably deeper at the base than a typical icterid bill, identify as Bronzed Cowbird.",
+        "feature": "red iris + heavy decurved bill",
+        "favors": "Bronzed Cowbird",
+        "confidence": "high",
+        "preconditions": [
+          "Bird is entirely glossy black plumage (male plumage; no brown tones visible)",
+          "Iris is clearly red or ruby-red in color \u2014 not dark brown or black",
+          "Bill is visibly thick and heavy at the base, with a slightly decurved culmen, appearing proportionally deeper than a typical Shiny Cowbird bill",
+          "No obvious iridescent purple-blue gloss dominating the head and body (Shiny Cowbird shows strong blue-purple iridescence; Bronzed shows greener-bronze gloss)",
+          "Bird shows a distinctly inflated or ruff-like appearance around the neck and upper breast \u2014 the prominent neck ruff (hackles) characteristic of Bronzed Cowbird is visible or at least not contradicted by the image",
+          "Body size appears notably large and bulky for a cowbird \u2014 Bronzed Cowbird is visibly larger and more robust than Shiny Cowbird",
+          "Bill length appears moderate relative to head size \u2014 not an unusually long, slender, or finch-like bill; the depth-to-length ratio reinforces the heavy-based profile",
+          "No contrasting brown or buffy wingbar, edging, or underpart coloration visible \u2014 the bird is uniformly dark throughout, ruling out female or immature plumages of either species"
+        ],
+        "rationale": "The pupil most likely missed two decisive field marks visible in this photograph: (1) the bright red iris, which is a diagnostic feature of Bronzed Cowbird \u2014 Shiny Cowbird has a dark brown to blackish eye that does not appear red in photographs; and (2) the bill shape \u2014 Bronzed Cowbird has a noticeably thick, deep-based, slightly decurved bill, whereas Shiny Cowbird has a slimmer, more pointed, straight-culmen bill. The pupil likely overweighted the all-black body plumage, which is shared, while failing to check the eye color and bill structure. The red iris alone is essentially diagnostic: if the eye glows red in the photo, it is Bronzed Cowbird, not Shiny.",
+        "added_preconditions": [
+          "Bird shows a distinctly inflated or ruff-like appearance around the neck and upper breast \u2014 the prominent neck ruff (hackles) characteristic of Bronzed Cowbird is visible or at least not contradicted by the image",
+          "Body size appears notably large and bulky for a cowbird \u2014 Bronzed Cowbird is visibly larger and more robust than Shiny Cowbird",
+          "Bill length appears moderate relative to head size \u2014 not an unusually long, slender, or finch-like bill; the depth-to-length ratio reinforces the heavy-based profile",
+          "No contrasting brown or buffy wingbar, edging, or underpart coloration visible \u2014 the bird is uniformly dark throughout, ruling out female or immature plumages of either species"
+        ],
+        "completion_rationale": "An expert birder would take for granted that Bronzed Cowbird males are distinctly larger and heavier-bodied than Shiny Cowbirds and possess a prominent neck ruff \u2014 one of the species' most celebrated field marks \u2014 without feeling the need to state it explicitly. The ruff is particularly diagnostic and is routinely used to separate Bronzed from all other cowbirds, yet was omitted from the rule. Additionally, the expert implicitly assumed the bird is a fully adult male in definitive plumage, so conditions excluding female or immature plumage tones were left unstated but are necessary to prevent the rule from firing on patterned individuals."
+      },
+      "semantic_validation": {
+        "precondition_ratings": [
+          {
+            "precondition": "Bird is entirely glossy black plumage (male plumage; no brown tones visible)",
+            "rating": "reliable",
+            "comment": "Adult male Bronzed Cowbirds are entirely black with metallic gloss, and excluding brown tones correctly eliminates females and immatures of both species, making this a sound initial gate."
+          },
+          {
+            "precondition": "Iris is clearly red or ruby-red in color \u2014 not dark brown or black",
+            "rating": "reliable",
+            "comment": "Red iris is a well-established, highly diagnostic field mark for Bronzed Cowbird; adult male Shiny Cowbirds have a dark red to brown-red iris that can appear nearly dark in the field, but a clearly vivid ruby-red iris strongly favors Bronzed."
+          },
+          {
+            "precondition": "Bill is visibly thick and heavy at the base, with a slightly decurved culmen, appearing proportionally deeper than a typical Shiny Cowbird bill",
+            "rating": "reliable",
+            "comment": "Bronzed Cowbird's bill is distinctly deeper and more massive at the base with a noticeably decurved culmen compared to Shiny Cowbird's slimmer, straighter icterid bill, making this a solid structural discriminator when clearly visible in a photograph."
+          },
+          {
+            "precondition": "No obvious iridescent purple-blue gloss dominating the head and body (Shiny Cowbird shows strong blue-purple iridescence; Bronzed shows greener-bronze gloss)",
+            "rating": "context_dependent",
+            "comment": "Iridescence color is highly sensitive to lighting angle and photograph quality; blue-green gloss can shift dramatically under different light conditions, making this an unreliable stand-alone discriminator in photographs and risky as a hard gate."
+          },
+          {
+            "precondition": "Bird shows a distinctly inflated or ruff-like appearance around the neck and upper breast \u2014 the prominent neck ruff (hackles) characteristic of Bronzed Cowbird is visible or at least not contradicted by the image",
+            "rating": "context_dependent",
+            "comment": "The neck ruff is a genuine Bronzed Cowbird trait but is most prominent during display and can be flattened or invisible in a resting bird, meaning its absence does not negate identification and its presence is posture-dependent."
+          },
+          {
+            "precondition": "Body size appears notably large and bulky for a cowbird \u2014 Bronzed Cowbird is visibly larger and more robust than Shiny Cowbird",
+            "rating": "unreliable",
+            "comment": "Size assessment from photographs is notoriously unreliable without a direct size comparison subject in the same frame, and perceived bulk varies substantially with posture, camera angle, and distance."
+          },
+          {
+            "precondition": "Bill length appears moderate relative to head size \u2014 not an unusually long, slender, or finch-like bill; the depth-to-length ratio reinforces the heavy-based profile",
+            "rating": "reliable",
+            "comment": "This precondition usefully reinforces the bill-shape assessment in precondition 3 and helps distinguish Bronzed from any atypical individual with an elongated bill; the depth-to-length ratio is a consistent structural feature of Bronzed Cowbird."
+          },
+          {
+            "precondition": "No contrasting brown or buffy wingbar, edging, or underpart coloration visible \u2014 the bird is uniformly dark throughout, ruling out female or immature plumages of either species",
+            "rating": "reliable",
+            "comment": "This is an appropriate and necessary gate to restrict the rule to adult males only, as females and immatures of both species can be confusingly similar and the diagnostic marks relied upon here are adult-male-specific."
+          }
+        ],
+        "overall": "revise",
+        "rationale": "The rule's core logic is sound and relies on genuinely diagnostic features\u2014particularly the red iris and heavy decurved bill\u2014that together strongly favor Bronzed Cowbird over Shiny Cowbird. However, precondition 4 (iridescence color) and precondition 5 (neck ruff) are context-dependent and should be downgraded to supporting rather than gating criteria, and precondition 6 (perceived body size) is unreliable from photographs and should be removed or restructured to require a direct comparison subject. Revising the rule to treat the red iris and bill morphology as the primary diagnostic gates, with iridescence and ruff as corroborating evidence, will produce a more robust and field-applicable identification rule."
+      },
+      "validation": {
+        "fires_on_trigger": true,
+        "tp": 2,
+        "fp": 0,
+        "tn": 4,
+        "fn": 2,
+        "precision": 1.0,
+        "recall": 0.5,
+        "accepted": true,
+        "rejection_reason": null
+      },
+      "confirmation_validation": null,
+      "spectrum_history": [],
+      "accepted": true,
+      "registered": true,
+      "rule_id": "r_001"
+    },
+    {
+      "task_id": "bronzed_cowbird_vs_shiny_cowbird_Bronzed_Cowbird_0061_796232",
+      "pair_id": "bronzed_cowbird_vs_shiny_cowbird",
+      "wrong_prediction": "Shiny Cowbird",
+      "correct_label": "Bronzed Cowbird",
+      "candidate_rule": {
+        "rule": "When a black cowbird shows a distinctly red or orange-red iris visible at normal photographic distance, combined with a noticeably thick-based, heavy bill (deeper culmen depth than a typical icterid), identify as Bronzed Cowbird.",
+        "feature": "red/orange-red iris + heavy thick-based bill",
+        "favors": "Bronzed Cowbird",
+        "confidence": "high",
+        "preconditions": [
+          "Bird is an all-dark/blackish cowbird-sized icterid perched in a way that the head and bill profile are visible",
+          "Iris color is clearly red or orange-red (not dark brown or black)",
+          "Bill appears distinctly heavy and thick-based with a deep culmen, noticeably stouter than a Shiny Cowbird's slender bill",
+          "Overall plumage is glossy blue-black (iridescent sheen visible in good light)",
+          "Bird lacks any brownish or buffy tones in the plumage that would suggest a female or immature individual of another cowbird species",
+          "Head shape appears rounded to distinctly peaked or bushy due to the ruff of neck feathers characteristic of male Bronzed Cowbird, rather than smoothly rounded",
+          "No purple or violet iridescence dominates the plumage; gloss is blue-green or blue-black rather than the strong violet-purple sheen typical of Shiny Cowbird",
+          "Bill is relatively short and decurved compared to the body, not elongated or pointed; the thick base does not taper to a notably sharp fine tip as in Shiny Cowbird",
+          "Bird does not show a contrasting brown or dark-brown body with a blacker head that would suggest a female Shiny Cowbird or Brown-headed Cowbird"
+        ],
+        "rationale": "The pupil most likely missed or underweighted two key field marks clearly visible in this photograph: (1) the bright red eye, conspicuous even in this somewhat soft image, and (2) the thick, deep-based bill. Shiny Cowbird has a dark (dark brown to blackish) iris \u2014 never the vivid red seen here \u2014 and a noticeably slimmer, more pointed bill typical of the genus Molothrus ater group. Bronzed Cowbird (Molothrus aeneus) is uniquely characterized among North/Central American cowbirds by its red eye and heavier, more curved bill. The pupil likely over-relied on the all-black glossy plumage (a shared character) while failing to check eye color and bill shape, which are the decisive distinguishing marks in exactly this kind of perched, lateral-view photograph.",
+        "added_preconditions": [
+          "Bird lacks any brownish or buffy tones in the plumage that would suggest a female or immature individual of another cowbird species",
+          "Head shape appears rounded to distinctly peaked or bushy due to the ruff of neck feathers characteristic of male Bronzed Cowbird, rather than smoothly rounded",
+          "No purple or violet iridescence dominates the plumage; gloss is blue-green or blue-black rather than the strong violet-purple sheen typical of Shiny Cowbird",
+          "Bill is relatively short and decurved compared to the body, not elongated or pointed; the thick base does not taper to a notably sharp fine tip as in Shiny Cowbird",
+          "Bird does not show a contrasting brown or dark-brown body with a blacker head that would suggest a female Shiny Cowbird or Brown-headed Cowbird"
+        ],
+        "completion_rationale": "Expert ornithologists implicitly assume that the ruff or cape of neck feathers producing the characteristic bushy-headed or peaked crown profile of male Bronzed Cowbird would be visible and distinguishable from the smooth rounded head of Shiny Cowbird, but this was never stated. They also assume the blue-green rather than violet-purple iridescence distinguishes Bronzed from Shiny Cowbird, a key plumage-tone difference that a naive classifier would not apply without being told. Finally, the assumption that the bird is a fully adult male in all-dark plumage (excluding brownish females and immatures) was implicit, since the iris and bill criteria as stated could theoretically be checked against inappropriate age or sex classes."
+      },
+      "semantic_validation": {
+        "precondition_ratings": [
+          {
+            "precondition": "Bird is an all-dark/blackish cowbird-sized icterid perched in a way that the head and bill profile are visible",
+            "rating": "reliable",
+            "comment": "A necessary and reasonable gating condition that ensures the diagnostic features (iris, bill profile) are actually visible in the image."
+          },
+          {
+            "precondition": "Iris color is clearly red or orange-red (not dark brown or black)",
+            "rating": "reliable",
+            "comment": "Adult male Bronzed Cowbirds have a distinctly red iris, whereas adult male Shiny Cowbirds have a dark brown to blackish iris, making this one of the strongest single field marks separating these two species."
+          },
+          {
+            "precondition": "Bill appears distinctly heavy and thick-based with a deep culmen, noticeably stouter than a Shiny Cowbird's slender bill",
+            "rating": "reliable",
+            "comment": "Bronzed Cowbird has a markedly heavier, deeper-based bill compared to the more slender, finch-like bill of Shiny Cowbird, and this difference is consistent and well-documented across age and sex classes of males."
+          },
+          {
+            "precondition": "Overall plumage is glossy blue-black (iridescent sheen visible in good light)",
+            "rating": "context_dependent",
+            "comment": "While male Bronzed Cowbirds are glossy blue-black, the perception of iridescent sheen is highly dependent on lighting angle and image quality, making it an unreliable stand-alone character in photographs."
+          },
+          {
+            "precondition": "Bird lacks any brownish or buffy tones in the plumage that would suggest a female or immature individual of another cowbird species",
+            "rating": "reliable",
+            "comment": "This is a valid exclusion criterion ensuring the bird is an adult male, the plumage class for which the rule's field marks (red iris, ruff) apply most consistently."
+          },
+          {
+            "precondition": "Head shape appears rounded to distinctly peaked or bushy due to the ruff of neck feathers characteristic of male Bronzed Cowbird, rather than smoothly rounded",
+            "rating": "context_dependent",
+            "comment": "The neck ruff is a genuine Bronzed Cowbird character but is frequently held flat against the body when the bird is relaxed or alert, making it an inconsistent feature that depends on behavioral state and posture at the moment of photography."
+          },
+          {
+            "precondition": "No purple or violet iridescence dominates the plumage; gloss is blue-green or blue-black rather than the strong violet-purple sheen typical of Shiny Cowbird",
+            "rating": "context_dependent",
+            "comment": "The distinction between blue-green and violet-purple gloss is a real difference between the species but is extremely sensitive to lighting conditions, camera white balance, and viewing angle, making it unreliable in most photographic contexts without controlled lighting."
+          },
+          {
+            "precondition": "Bill is relatively short and decurved compared to the body, not elongated or pointed; the thick base does not taper to a notably sharp fine tip as in Shiny Cowbird",
+            "rating": "reliable",
+            "comment": "The Bronzed Cowbird's bill is shorter, thicker, and more decurved than the more elongated and pointed bill of Shiny Cowbird, and this is a consistent and photographically tractable structural difference."
+          },
+          {
+            "precondition": "Bird does not show a contrasting brown or dark-brown body with a blacker head that would suggest a female Shiny Cowbird or Brown-headed Cowbird",
+            "rating": "reliable",
+            "comment": "This is a sound exclusionary condition that correctly screens out female Shiny Cowbirds and Brown-headed Cowbirds, which show bicolored or brownish plumage patterns absent in adult male Bronzed Cowbirds."
+          }
+        ],
+        "overall": "accept",
+        "rationale": "The rule's core logic is sound and rests on two genuinely strong, complementary field marks: the red iris (precondition 2) and the heavy thick-based bill (preconditions 3 and 8), both of which are reliable discriminators between adult male Bronzed and Shiny Cowbirds. The two context-dependent preconditions (iridescence color and neck ruff visibility) are real Bronzed Cowbird characters but should be treated as supporting rather than gating criteria, as they are sensitive to lighting and behavioral state; the rule as written does not hinge on them alone, so they do not undermine the overall logic. The exclusionary preconditions are well-constructed and appropriate, and the rule is safe to proceed to image validation."
+      },
+      "validation": {
+        "fires_on_trigger": true,
+        "tp": 4,
+        "fp": 0,
+        "tn": 4,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "accepted": true,
+        "rejection_reason": null
+      },
+      "confirmation_validation": null,
+      "spectrum_history": [],
+      "accepted": true,
+      "registered": true,
+      "rule_id": "r_002"
+    },
+    {
+      "task_id": "bronzed_cowbird_vs_shiny_cowbird_Bronzed_Cowbird_0081_24198",
+      "pair_id": "bronzed_cowbird_vs_shiny_cowbird",
+      "wrong_prediction": "Shiny Cowbird",
+      "correct_label": "Bronzed Cowbird",
+      "candidate_rule": {
+        "rule": "When a uniformly dark/black cowbird shows a visibly thick, deep-based, and conical bill that appears noticeably bulbous or heavy at the base (giving a 'bull-headed' profile), combined with a puffy or ruffed neck/nape that creates a rounded, large-headed silhouette, identify as Bronzed Cowbird.",
+        "feature": "thick_bulbous_bill_and_ruffed_neck_silhouette",
+        "favors": "Bronzed Cowbird",
+        "confidence": "high",
+        "preconditions": [
+          "Bird is entirely or nearly entirely dark/black-plumaged (male plumage)",
+          "Bill appears thick, deep-based, and distinctly heavy or bulbous at the culmen base \u2014 noticeably heavier than a typical icterid bill",
+          "Head and nape appear large and rounded, with a puffed or ruffed neck creating a 'bull-necked' or top-heavy silhouette",
+          "Overall body shape looks compact and chunky rather than sleek and streamlined",
+          "No contrasting plumage patches (e.g., no brown or buff tones on head that would suggest a female Brown-headed Cowbird)"
+        ],
+        "rationale": "The pupil likely over-weighted the uniform black plumage, which is shared by both Bronzed and Shiny Cowbirds, and missed the key structural differences. Bronzed Cowbird has a markedly thicker, deeper bill and a distinctive ruffed, puffy neck that creates a large-headed, bull-necked profile visible even in photographs. Shiny Cowbird has a slimmer, more pointed bill and a sleeker, more streamlined head-neck profile similar to a slender blackbird. In this image, the bird's heavy bill base and rounded, puffed-up nape are clearly visible and should have been the decisive field marks. The pupil likely conflated uniform black plumage as sufficient evidence for Shiny Cowbird without checking bill shape and head/neck structure.",
+        "label": "pre_completion",
+        "level": 0
+      },
+      "semantic_validation": {
+        "precondition_ratings": [
+          {
+            "precondition": "Bird is entirely or nearly entirely dark/black-plumaged (male plumage)",
+            "rating": "reliable",
+            "comment": "Adult male Bronzed Cowbird is entirely dark and this correctly restricts the rule to male plumage, excluding females and Brown-headed Cowbirds; male Shiny Cowbirds are also all-dark, so this is a necessary but not sufficient gate."
+          },
+          {
+            "precondition": "Bill appears thick, deep-based, and distinctly heavy or bulbous at the culmen base \u2014 noticeably heavier than a typical icterid bill",
+            "rating": "reliable",
+            "comment": "Bronzed Cowbird has a distinctively large, deep-based, somewhat swollen bill compared to the slimmer, more typical icterid bill of Shiny Cowbird, making this a genuine structural discriminator."
+          },
+          {
+            "precondition": "Head and nape appear large and rounded, with a puffed or ruffed neck creating a 'bull-necked' or top-heavy silhouette",
+            "rating": "reliable",
+            "comment": "The enlarged neck ruff and big-headed, bull-necked profile is a well-documented, species-specific structural trait of male Bronzed Cowbird not found in Shiny Cowbird."
+          },
+          {
+            "precondition": "Overall body shape looks compact and chunky rather than sleek and streamlined",
+            "rating": "reliable",
+            "comment": "Bronzed Cowbird consistently appears heavier and more compact than the relatively slimmer, more streamlined Shiny Cowbird, supporting this as a useful corroborating feature."
+          },
+          {
+            "precondition": "No contrasting plumage patches (e.g., no brown or buff tones on head that would suggest a female Brown-headed Cowbird)",
+            "rating": "unreliable",
+            "comment": "This pre-condition guards against Brown-headed Cowbird females, which are already excluded by pre-condition 1 (entirely dark male plumage), making it redundant and adding no discriminatory value between Bronzed and Shiny Cowbirds."
+          },
+          {
+            "precondition": "Plumage shows a bronzy or oily iridescent gloss visible on the body (especially back and wings), rather than a uniform blue-violet or purple-glossed sheen that would suggest Shiny Cowbird",
+            "rating": "context_dependent",
+            "comment": "The bronzy vs. blue-violet gloss distinction is real but highly dependent on lighting angle, quality, and distance, and can be difficult or impossible to assess reliably in photographs with non-ideal illumination."
+          },
+          {
+            "precondition": "Eye is red or orange-red in color, not dark brown \u2014 a key positive field mark of adult male Bronzed Cowbird absent in Shiny Cowbird",
+            "rating": "reliable",
+            "comment": "Red or orange-red iris is a definitive field mark of adult male Bronzed Cowbird and is consistently absent in Shiny Cowbird, making this the single strongest positive discriminator in the rule when visible."
+          },
+          {
+            "precondition": "Bird is distinctly larger overall than a Shiny Cowbird, appearing noticeably bigger-bodied and heavier, comparable in bulk to a Common Grackle rather than a smaller icterid",
+            "rating": "context_dependent",
+            "comment": "Size difference is genuine but notoriously difficult to judge reliably in photographs without direct side-by-side comparison or a known size reference in the same frame."
+          },
+          {
+            "precondition": "Wings do not appear long and pointed at rest in a way that would project well beyond the tail, as would be more typical of the longer-winged Shiny Cowbird",
+            "rating": "context_dependent",
+            "comment": "Wing projection can vary with posture, feather wear, and body orientation, making it a supporting rather than stand-alone feature, though the directional logic is sound."
+          }
+        ],
+        "overall": "revise",
+        "rationale": "The rule has a strong logical foundation and its core discriminators \u2014 bill shape, bull-necked silhouette, and especially the red iris \u2014 are reliable and well-grounded in field ornithology. However, pre-condition 5 is redundant and should be removed or rephrased to address the Bronzed vs. Shiny distinction directly, and the iridescence (pre-condition 6), size (pre-condition 8), and wing projection (pre-condition 9) criteria are lighting- or context-dependent and should be treated as supporting rather than gating features. Revising to weight the red iris and structural bill/neck profile as primary gates, and demoting the others to corroborating evidence, would substantially improve rule reliability."
+      },
+      "validation": {
+        "fires_on_trigger": true,
+        "tp": 4,
+        "fp": 0,
+        "tn": 4,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "accepted": true,
+        "rejection_reason": null
+      },
+      "confirmation_validation": null,
+      "spectrum_history": [
+        {
+          "level": 0,
+          "label": "pre_completion",
+          "n_preconditions": 5,
+          "rule": {
+            "rule": "When a uniformly dark/black cowbird shows a visibly thick, deep-based, and conical bill that appears noticeably bulbous or heavy at the base (giving a 'bull-headed' profile), combined with a puffy or ruffed neck/nape that creates a rounded, large-headed silhouette, identify as Bronzed Cowbird.",
+            "feature": "thick_bulbous_bill_and_ruffed_neck_silhouette",
+            "favors": "Bronzed Cowbird",
+            "confidence": "high",
+            "preconditions": [
+              "Bird is entirely or nearly entirely dark/black-plumaged (male plumage)",
+              "Bill appears thick, deep-based, and distinctly heavy or bulbous at the culmen base \u2014 noticeably heavier than a typical icterid bill",
+              "Head and nape appear large and rounded, with a puffed or ruffed neck creating a 'bull-necked' or top-heavy silhouette",
+              "Overall body shape looks compact and chunky rather than sleek and streamlined",
+              "No contrasting plumage patches (e.g., no brown or buff tones on head that would suggest a female Brown-headed Cowbird)"
+            ],
+            "rationale": "The pupil likely over-weighted the uniform black plumage, which is shared by both Bronzed and Shiny Cowbirds, and missed the key structural differences. Bronzed Cowbird has a markedly thicker, deeper bill and a distinctive ruffed, puffy neck that creates a large-headed, bull-necked profile visible even in photographs. Shiny Cowbird has a slimmer, more pointed bill and a sleeker, more streamlined head-neck profile similar to a slender blackbird. In this image, the bird's heavy bill base and rounded, puffed-up nape are clearly visible and should have been the decisive field marks. The pupil likely conflated uniform black plumage as sufficient evidence for Shiny Cowbird without checking bill shape and head/neck structure.",
+            "label": "pre_completion",
+            "level": 0
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 4,
+            "fp": 0,
+            "tn": 4,
+            "fn": 0,
+            "precision": 1.0,
+            "recall": 1.0,
+            "accepted": true,
+            "rejection_reason": null
+          },
+          "accepted": true
+        },
+        {
+          "level": 1,
+          "label": "most_general",
+          "n_preconditions": 1,
+          "rule": {
+            "level": 1,
+            "label": "most_general",
+            "rule": "When a uniformly dark/black cowbird displays a visibly thick, deep-based, and bulbous-based bill giving a distinctly heavy, bull-headed profile, identify as Bronzed Cowbird.",
+            "feature": "thick_bulbous_based_bill",
+            "favors": "Bronzed Cowbird",
+            "confidence": "medium",
+            "preconditions": [
+              "Bill appears thick, deep-based, and distinctly heavy or bulbous at the culmen base \u2014 noticeably heavier than a typical icterid bill"
+            ],
+            "rationale": "The massive, deep-based conical bill is the single most visually arresting structural feature of Bronzed Cowbird and is consistently noted in TP cases. While Shiny Cowbird can appear relatively heavy-billed, the extreme bulk at the base is most diagnostic of Bronzed. Accepted alone as the broadest filter, it will catch most Bronzed Cowbirds but carries FP risk from large-billed Shiny Cowbirds."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 4,
+            "fp": 1,
+            "tn": 3,
+            "fn": 0,
+            "precision": 0.8,
+            "recall": 1.0,
+            "accepted": true,
+            "rejection_reason": null
+          },
+          "accepted": true
+        },
+        {
+          "level": 2,
+          "label": "moderate",
+          "n_preconditions": 2,
+          "rule": {
+            "level": 2,
+            "label": "moderate",
+            "rule": "When a uniformly dark/black cowbird shows a visibly thick, deep-based, and bulbous-based bill combined with a puffed or ruffed neck and nape creating a rounded, large-headed or 'bull-necked' silhouette, identify as Bronzed Cowbird.",
+            "feature": "thick_bill_plus_bull_necked_silhouette",
+            "favors": "Bronzed Cowbird",
+            "confidence": "medium",
+            "preconditions": [
+              "Bill appears thick, deep-based, and distinctly heavy or bulbous at the culmen base \u2014 noticeably heavier than a typical icterid bill",
+              "Head and nape appear large and rounded, with a puffed or ruffed neck creating a 'bull-necked' or top-heavy silhouette"
+            ],
+            "rationale": "Adding the bull-necked, large-headed silhouette as a second structural condition increases precision over the single-bill criterion. Bronzed Cowbird's combination of extreme bill mass and ruffed neck together produce a distinctly top-heavy gestalt that begins to exclude slimmer-profiled Shiny Cowbirds, though some overlap in appearance still allows FP risk."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 4,
+            "fp": 2,
+            "tn": 2,
+            "fn": 0,
+            "precision": 0.6666666666666666,
+            "recall": 1.0,
+            "accepted": false,
+            "rejection_reason": "FP=2 precision=0.67"
+          },
+          "accepted": false
+        },
+        {
+          "level": 3,
+          "label": "original",
+          "n_preconditions": 5,
+          "rule": {
+            "level": 3,
+            "label": "original",
+            "rule": "When a uniformly dark/black cowbird shows a visibly thick, deep-based, and conical bill that appears noticeably bulbous or heavy at the base (giving a 'bull-headed' profile), combined with a puffy or ruffed neck/nape that creates a rounded, large-headed silhouette, identify as Bronzed Cowbird.",
+            "feature": "thick_bill_bull_head_ruffed_nape_compact_body",
+            "favors": "Bronzed Cowbird",
+            "confidence": "medium",
+            "preconditions": [
+              "Bird is entirely or nearly entirely dark/black-plumaged (male plumage)",
+              "Bill appears thick, deep-based, and distinctly heavy or bulbous at the culmen base \u2014 noticeably heavier than a typical icterid bill",
+              "Head and nape appear large and rounded, with a puffed or ruffed neck creating a 'bull-necked' or top-heavy silhouette",
+              "Overall body shape looks compact and chunky rather than sleek and streamlined",
+              "No contrasting plumage patches (e.g., no brown or buff tones on head that would suggest a female Brown-headed Cowbird)"
+            ],
+            "rationale": "The original expert rule combining the diagnostic bill shape, bull-necked silhouette, compact body, and uniform dark plumage. This is reproduced unchanged as Level 3. It correctly fires on all TP cases but still misfires on Shiny Cowbirds that happen to appear similarly heavy-billed and chunky in the field, indicating that structural criteria alone are insufficient to fully separate the two species."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 4,
+            "fp": 0,
+            "tn": 4,
+            "fn": 0,
+            "precision": 1.0,
+            "recall": 1.0,
+            "accepted": true,
+            "rejection_reason": null
+          },
+          "accepted": true
+        },
+        {
+          "level": 4,
+          "label": "most_specific",
+          "n_preconditions": 6,
+          "rule": {
+            "level": 4,
+            "label": "most_specific",
+            "rule": "When a uniformly dark/black cowbird shows a visibly thick, deep-based, and conical bill that appears noticeably bulbous or heavy at the base (giving a 'bull-headed' profile), combined with a puffy or ruffed neck/nape that creates a rounded, large-headed silhouette, AND the iris is clearly visible as a bright ruby-red or orange-red eye (not dark brown or blackish), identify as Bronzed Cowbird.",
+            "feature": "thick_bill_bull_head_ruffed_nape_red_iris",
+            "favors": "Bronzed Cowbird",
+            "confidence": "high",
+            "preconditions": [
+              "Bird is entirely or nearly entirely dark/black-plumaged (male plumage)",
+              "Bill appears thick, deep-based, and distinctly heavy or bulbous at the culmen base \u2014 noticeably heavier than a typical icterid bill",
+              "Head and nape appear large and rounded, with a puffed or ruffed neck creating a 'bull-necked' or top-heavy silhouette",
+              "Overall body shape looks compact and chunky rather than sleek and streamlined",
+              "No contrasting plumage patches (e.g., no brown or buff tones on head that would suggest a female Brown-headed Cowbird)",
+              "Iris is clearly visible as a bright ruby-red or orange-red eye \u2014 not dark brown or blackish as in Shiny Cowbird"
+            ],
+            "rationale": "Adding the ruby-red iris as a mandatory pre-condition directly addresses the observed FP pattern: both FP Shiny Cowbirds lacked any mention of a red eye, while all three TP Bronzed Cowbirds were noted to have a visible red eye. The bright red iris is a hallmark and near-definitive field mark of Bronzed Cowbird absent in Shiny Cowbird, which has a dark brown to blackish eye. Requiring it alongside the structural criteria should eliminate the observed FPs with minimal cost to recall when viewing conditions permit eye colour assessment."
+          },
+          "validation": {
+            "fires_on_trigger": false,
+            "tp": 0,
+            "fp": 0,
+            "tn": 4,
+            "fn": 4,
+            "precision": 0.0,
+            "recall": 0.0,
+            "accepted": false,
+            "rejection_reason": "did not fire on trigger"
+          },
+          "accepted": false
+        }
+      ],
+      "accepted": true,
+      "registered": true,
+      "rule_id": "r_003"
+    },
+    {
+      "task_id": "bronzed_cowbird_vs_shiny_cowbird_Shiny_Cowbird_0080_796875",
+      "pair_id": "bronzed_cowbird_vs_shiny_cowbird",
+      "wrong_prediction": "Bronzed Cowbird",
+      "correct_label": "Shiny Cowbird",
+      "candidate_rule": {
+        "rule": "When a cowbird shows uniformly dull brown plumage with no visible neck ruff or swollen nape, a relatively flat-crowned head profile, a slender conical bill without a strongly decurved culmen, and no contrasting glossy black on the body, identify as Shiny Cowbird (female/immature).",
+        "feature": "uniformly dull brown plumage with no neck ruff, flat crown, slender bill, no glossy black",
+        "favors": "Shiny Cowbird",
+        "confidence": "high",
+        "preconditions": [
+          "Bird is entirely dull brown with no glossy black plumage visible anywhere on the body",
+          "No inflated or puffy neck ruff (cape) present \u2014 the nape and neck transition smoothly to the back without a bulging or swollen appearance",
+          "Head profile is relatively flat-crowned and rounded, not bull-necked or thick-necked",
+          "Bill is slender and conical with only a slight curve to the culmen, not strongly decurved or heavy-based as in Bronzed Cowbird",
+          "Eye appears dark without any visible red iris coloration",
+          "Overall body size appears medium and relatively slim-bodied, not distinctly stocky or heavy-chested as typical of Bronzed Cowbird",
+          "Plumage tone is relatively uniform across the body, with the underparts only slightly paler or streakier than the upperparts \u2014 not showing strong contrast between a darker back and distinctly pale, heavily streaked underparts",
+          "Bill length is moderate relative to head size, not appearing notably short and stubby nor excessively long"
+        ],
+        "rationale": "The pupil likely misfired on the 'cowbird' gestalt and defaulted to Bronzed Cowbird without checking the key distinguishing field marks. Female/immature Bronzed Cowbirds share dull brown plumage BUT have a distinctive inflated neck ruff (cape of feathers on the nape and upper back), a noticeably thick bull neck, a heavier and more decurved bill, and adults show a red iris. This bird shows none of those features: the neck is smooth, the head is normally proportioned, and the bill is slender \u2014 all consistent with a female Shiny Cowbird. The neck ruff absence is the single most reliable character to check first when separating these two species in female plumage.",
+        "added_preconditions": [
+          "Overall body size appears medium and relatively slim-bodied, not distinctly stocky or heavy-chested as typical of Bronzed Cowbird",
+          "Plumage tone is relatively uniform across the body, with the underparts only slightly paler or streakier than the upperparts \u2014 not showing strong contrast between a darker back and distinctly pale, heavily streaked underparts",
+          "Bill length is moderate relative to head size, not appearing notably short and stubby nor excessively long"
+        ],
+        "completion_rationale": "An expert identifying a female/immature Shiny Cowbird would implicitly assume the bird's overall body shape is slimmer and less stocky than a Bronzed Cowbird, a well-known gestalt difference between the two species that the rule did not mention. The expert would also assume the underpart coloration is relatively uniform and not strongly streaked or contrasting, since heavy streaking can occur in some cowbird females and needs to be excluded. Finally, the expert would assume bill proportions are moderate overall, since an unusually short or long bill relative to the head would raise doubt about the identification, even if the culmen curvature alone is acceptable."
+      },
+      "semantic_validation": {
+        "precondition_ratings": [
+          {
+            "precondition": "Bird is entirely dull brown with no glossy black plumage visible anywhere on the body",
+            "rating": "reliable",
+            "comment": "Female/immature Bronzed Cowbirds are also brown but this feature correctly excludes adult males; for female-to-female comparison it is less discriminating, though female Shiny is indeed uniformly dull brown while female Bronzed can show a slightly darker, more dusky tone \u2014 still, this is a valid starting gate for non-glossy birds."
+          },
+          {
+            "precondition": "No inflated or puffy neck ruff (cape) present \u2014 the nape and neck transition smoothly to the back without a bulging or swollen appearance",
+            "rating": "reliable",
+            "comment": "The prominent neck ruff is a hallmark of Bronzed Cowbird (both sexes, though most exaggerated in males), and its absence is one of the strongest structural features separating female/immature Shiny Cowbird from female Bronzed Cowbird."
+          },
+          {
+            "precondition": "Head profile is relatively flat-crowned and rounded, not bull-necked or thick-necked",
+            "rating": "reliable",
+            "comment": "Bronzed Cowbird has a distinctly thick-necked, bull-necked profile tied to its ruff, whereas Shiny Cowbird has a smoother, rounder head-neck transition, making this a consistent structural discriminator."
+          },
+          {
+            "precondition": "Bill is slender and conical with only a slight curve to the culmen, not strongly decurved or heavy-based as in Bronzed Cowbird",
+            "rating": "reliable",
+            "comment": "Bronzed Cowbird has a noticeably longer, heavier, and more decurved bill compared to the slender, finch-like bill of Shiny Cowbird, making bill shape one of the most dependable field marks between these two species."
+          },
+          {
+            "precondition": "Eye appears dark without any visible red iris coloration",
+            "rating": "context_dependent",
+            "comment": "Adult Bronzed Cowbirds (both sexes) have a distinctive red iris, but immature Bronzed Cowbirds have a dark iris, so a dark eye does not reliably exclude Bronzed Cowbird in younger birds; this feature is diagnostic only against adult Bronzed."
+          },
+          {
+            "precondition": "Overall body size appears medium and relatively slim-bodied, not distinctly stocky or heavy-chested as typical of Bronzed Cowbird",
+            "rating": "context_dependent",
+            "comment": "Body size and build are useful when direct comparison is possible, but are notoriously difficult to judge in isolation in photographs without a size reference, making this an unreliable standalone gate."
+          },
+          {
+            "precondition": "Plumage tone is relatively uniform across the body, with the underparts only slightly paler or streakier than the upperparts \u2014 not showing strong contrast between a darker back and distinctly pale, heavily streaked underparts",
+            "rating": "unreliable",
+            "comment": "Female Brown-headed Cowbird (not the confusable species here) shows stronger streaking, but female Shiny and female Bronzed Cowbirds both tend toward relatively uniform brown with subtle underpart pallor, so this feature does not strongly discriminate between these two specific species."
+          },
+          {
+            "precondition": "Bill length is moderate relative to head size, not appearing notably short and stubby nor excessively long",
+            "rating": "unreliable",
+            "comment": "This precondition is redundantly covered by precondition 4 and is worded too vaguely to add discriminatory value; the more informative bill characters (decurvature, heaviness) are already captured in the bill-shape precondition."
+          }
+        ],
+        "overall": "revise",
+        "rationale": "The rule's core structural logic \u2014 absence of neck ruff, rounded head profile, and slender non-decurved bill \u2014 is well-founded and relies on genuinely reliable field marks for separating female/immature Shiny from Bronzed Cowbird. However, two preconditions (eye color and body size) are only context-dependent and will fail against immature Bronzed Cowbirds, and two others (plumage uniformity and bill-length moderation) are too vague or redundant to add discriminatory power. Preconditions 5, 6, 7, and 8 should be tightened or removed before image validation to prevent both false positives and unnecessary ambiguity."
+      },
+      "validation": {
+        "fires_on_trigger": true,
+        "tp": 0,
+        "fp": 0,
+        "tn": 4,
+        "fn": 4,
+        "precision": 0.0,
+        "recall": 0.0,
+        "accepted": false,
+        "rejection_reason": "FP=0 precision=0.00"
+      },
+      "confirmation_validation": null,
+      "spectrum_history": [],
+      "accepted": false,
+      "registered": false
+    },
+    {
+      "task_id": "bronzed_cowbird_vs_shiny_cowbird_Bronzed_Cowbird_0081_24198",
+      "pair_id": "bronzed_cowbird_vs_shiny_cowbird",
+      "wrong_prediction": "Shiny Cowbird",
+      "correct_label": "Bronzed Cowbird",
+      "candidate_rule": {
+        "rule": "When a uniformly black cowbird displays a disproportionately large, domed head that is visibly wider or taller than expected for the body size, combined with a short, stubby bill that appears compressed vertically and does not taper to a fine point, creating an overall top-heavy or 'big-headed' silhouette rather than a sleek, streamlined profile, identify as Bronzed Cowbird.",
+        "feature": "disproportionate_large_dome_head_with_stubby_bill_silhouette",
+        "favors": "Bronzed Cowbird",
+        "confidence": "high",
+        "preconditions": [
+          "Bird is entirely or nearly entirely dark/black-plumaged with no contrasting brown or buff head patches",
+          "Head appears visibly oversized relative to the body \u2014 distinctly domed and wide, not compact and round like a typical icterid",
+          "Bill appears short and stubby, compressed vertically, lacking the fine tapered point typical of Shiny Cowbird's more slender bill",
+          "Overall silhouette reads as top-heavy or front-heavy rather than sleek and elongated",
+          "No visible wing bars, eye rings, or other contrasting plumage patches that would suggest a different species"
+        ],
+        "rationale": "Bronzed Cowbird structurally differs from Shiny Cowbird most reliably in head-to-body proportions and bill shape. Bronzed Cowbird has a uniquely large, domed, ruffed head that creates a top-heavy silhouette visible even in poor lighting conditions where iris color and iridescence cannot be assessed. Shiny Cowbird has a proportionally smaller, rounder head and a longer, more slender, tapered bill giving it a sleeker overall profile. These structural proportions are photographic constants regardless of lighting angle or gloss visibility, making them more reliable than iris color or iridescence for photograph-based identification.",
+        "label": "pre_completion",
+        "level": 0
+      },
+      "semantic_validation": {
+        "precondition_ratings": [
+          {
+            "precondition": "Bird is entirely or nearly entirely dark/black-plumaged with no contrasting brown or buff head patches",
+            "rating": "context_dependent",
+            "comment": "This correctly excludes Brown-headed Cowbird but does nothing to separate Bronzed from Shiny Cowbird, as adult male Shiny Cowbirds are also entirely glossy black; female and immature plumages of both species introduce brownish tones, making this precondition unreliable across age/sex classes."
+          },
+          {
+            "precondition": "Head appears visibly oversized relative to the body \u2014 distinctly domed and wide, not compact and round like a typical icterid",
+            "rating": "reliable",
+            "comment": "The enlarged, domed, almost 'hood-like' head is one of the most consistently cited structural field marks of Bronzed Cowbird and is absent in the comparatively flat-crowned, smaller-headed Shiny Cowbird."
+          },
+          {
+            "precondition": "Bill appears short and stubby, compressed vertically, lacking the fine tapered point typical of Shiny Cowbird's more slender bill",
+            "rating": "reliable",
+            "comment": "Bronzed Cowbird has a noticeably thicker, blunter bill compared to the more slender, conical bill of Shiny Cowbird, making this a useful structural discriminator when the bird is reasonably well seen."
+          },
+          {
+            "precondition": "Overall silhouette reads as top-heavy or front-heavy rather than sleek and elongated",
+            "rating": "reliable",
+            "comment": "The combination of enlarged head, bull neck, and compact body gives Bronzed Cowbird a distinctively top-heavy gestalt that contrasts with Shiny Cowbird's more streamlined, evenly proportioned silhouette."
+          },
+          {
+            "precondition": "No visible wing bars, eye rings, or other contrasting plumage patches that would suggest a different species",
+            "rating": "unreliable",
+            "comment": "Neither adult male Bronzed nor adult male Shiny Cowbird shows wing bars or eye rings, so this precondition does not discriminate between the two target species and adds no diagnostic value for this specific comparison."
+          },
+          {
+            "precondition": "Eye appears red or orange-red, not dark brown \u2014 Bronzed Cowbird has a distinctively colored iris visible at close range",
+            "rating": "context_dependent",
+            "comment": "Red iris is a genuine field mark of Bronzed Cowbird versus the dark eye of Shiny Cowbird, but it is only reliably visible at close range or in high-resolution images and is easily obscured by poor lighting or angle, making it unreliable as a stand-alone gate in photographic screening."
+          },
+          {
+            "precondition": "Bird is of robust, stocky body size comparable to a large cowbird or small grackle, not notably slight or slender-bodied",
+            "rating": "context_dependent",
+            "comment": "Bronzed Cowbird is indeed bulkier than Shiny Cowbird, but size assessment from photographs is highly dependent on the availability of a size reference, viewing angle, and whether the bird is fluffed or alert, limiting its stand-alone reliability."
+          },
+          {
+            "precondition": "Neck appears short and thick, contributing to the hunched or bull-necked posture characteristic of Bronzed Cowbird, rather than long and slender as in Shiny Cowbird",
+            "rating": "reliable",
+            "comment": "The thick, ruffled neck and hunched bull-necked posture of Bronzed Cowbird is a well-documented structural character that reliably distinguishes it from the relatively slender-necked Shiny Cowbird."
+          },
+          {
+            "precondition": "No iridescent purple or blue-green sheen concentrated on the head and neck that would suggest Shiny Cowbird's distinct gloss pattern; plumage sheen, if visible, is bronze-green or greenish on the body",
+            "rating": "context_dependent",
+            "comment": "Iridescence color is a valid differentiator in good lighting \u2014 Shiny Cowbird shows strong violet-blue gloss on the head while Bronzed shows greenish-bronze body gloss \u2014 but sheen color is highly lighting-dependent and can appear similar under flat or artificial light, limiting reliability in variable photographic conditions."
+          }
+        ],
+        "overall": "revise",
+        "rationale": "The rule's core structural logic \u2014 enlarged domed head, bull neck, stubby bill, and top-heavy silhouette \u2014 is sound and well-grounded in published field-mark literature for separating Bronzed from Shiny Cowbird. However, preconditions 5 and 6 are problematic: precondition 5 adds no discriminatory value between the two target species, and precondition 6 (red eye) and several others (size, sheen color) are only reliable under favorable photographic conditions and should be flagged as context-dependent gates rather than hard filters. Removing or demoting precondition 5 and qualifying the lighting-sensitive preconditions would make this a more robust rule before committing image-validation budget."
+      },
+      "validation": {
+        "fires_on_trigger": true,
+        "tp": 4,
+        "fp": 0,
+        "tn": 4,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "accepted": true,
+        "rejection_reason": null
+      },
+      "confirmation_validation": null,
+      "spectrum_history": [
+        {
+          "level": 0,
+          "label": "pre_completion",
+          "n_preconditions": 5,
+          "rule": {
+            "rule": "When a uniformly black cowbird displays a disproportionately large, domed head that is visibly wider or taller than expected for the body size, combined with a short, stubby bill that appears compressed vertically and does not taper to a fine point, creating an overall top-heavy or 'big-headed' silhouette rather than a sleek, streamlined profile, identify as Bronzed Cowbird.",
+            "feature": "disproportionate_large_dome_head_with_stubby_bill_silhouette",
+            "favors": "Bronzed Cowbird",
+            "confidence": "high",
+            "preconditions": [
+              "Bird is entirely or nearly entirely dark/black-plumaged with no contrasting brown or buff head patches",
+              "Head appears visibly oversized relative to the body \u2014 distinctly domed and wide, not compact and round like a typical icterid",
+              "Bill appears short and stubby, compressed vertically, lacking the fine tapered point typical of Shiny Cowbird's more slender bill",
+              "Overall silhouette reads as top-heavy or front-heavy rather than sleek and elongated",
+              "No visible wing bars, eye rings, or other contrasting plumage patches that would suggest a different species"
+            ],
+            "rationale": "Bronzed Cowbird structurally differs from Shiny Cowbird most reliably in head-to-body proportions and bill shape. Bronzed Cowbird has a uniquely large, domed, ruffed head that creates a top-heavy silhouette visible even in poor lighting conditions where iris color and iridescence cannot be assessed. Shiny Cowbird has a proportionally smaller, rounder head and a longer, more slender, tapered bill giving it a sleeker overall profile. These structural proportions are photographic constants regardless of lighting angle or gloss visibility, making them more reliable than iris color or iridescence for photograph-based identification.",
+            "label": "pre_completion",
+            "level": 0
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 4,
+            "fp": 0,
+            "tn": 4,
+            "fn": 0,
+            "precision": 1.0,
+            "recall": 1.0,
+            "accepted": true,
+            "rejection_reason": null
+          },
+          "accepted": true
+        },
+        {
+          "level": 1,
+          "label": "most_general",
+          "n_preconditions": 1,
+          "rule": {
+            "level": 1,
+            "label": "most_general",
+            "rule": "When a uniformly dark/black cowbird displays a bright red iris clearly visible against its dark plumage, identify as Bronzed Cowbird.",
+            "feature": "red_iris",
+            "favors": "Bronzed Cowbird",
+            "confidence": "high",
+            "preconditions": [
+              "Bright red iris is clearly visible against the dark plumage, contrasting with the surrounding feathering"
+            ],
+            "rationale": "The red iris is the single most definitive field mark separating Bronzed Cowbird from Shiny Cowbird; Shiny Cowbird never shows a red eye, making this highly diagnostic alone. All TP cases exhibit it; the FP case does not."
+          },
+          "validation": {
+            "fires_on_trigger": false,
+            "tp": 0,
+            "fp": 0,
+            "tn": 4,
+            "fn": 4,
+            "precision": 0.0,
+            "recall": 0.0,
+            "accepted": false,
+            "rejection_reason": "did not fire on trigger"
+          },
+          "accepted": false
+        },
+        {
+          "level": 2,
+          "label": "moderate",
+          "n_preconditions": 2,
+          "rule": {
+            "level": 2,
+            "label": "moderate",
+            "rule": "When a uniformly dark/black cowbird displays a bright red iris clearly visible against its dark plumage, AND the head appears visibly oversized and domed relative to body size creating a top-heavy silhouette, identify as Bronzed Cowbird.",
+            "feature": "red_iris_with_domed_head",
+            "favors": "Bronzed Cowbird",
+            "confidence": "high",
+            "preconditions": [
+              "Bright red iris is clearly visible against the dark plumage",
+              "Head appears visibly oversized and domed relative to body size, producing a top-heavy silhouette rather than a sleek, streamlined profile"
+            ],
+            "rationale": "Combining the definitive red iris with the distinctive domed, oversized head silhouette reinforces the identification and begins to exclude any dark-plumaged bird that might incidentally show one feature without the other."
+          },
+          "validation": {
+            "fires_on_trigger": false,
+            "tp": 0,
+            "fp": 0,
+            "tn": 4,
+            "fn": 4,
+            "precision": 0.0,
+            "recall": 0.0,
+            "accepted": false,
+            "rejection_reason": "did not fire on trigger"
+          },
+          "accepted": false
+        },
+        {
+          "level": 3,
+          "label": "original",
+          "n_preconditions": 5,
+          "rule": {
+            "level": 3,
+            "label": "original",
+            "rule": "When a uniformly black cowbird displays a disproportionately large, domed head that is visibly wider or taller than expected for the body size, combined with a short, stubby bill that appears compressed vertically and does not taper to a fine point, creating an overall top-heavy or 'big-headed' silhouette rather than a sleek, streamlined profile, identify as Bronzed Cowbird.",
+            "feature": "domed_head_stubby_bill_silhouette",
+            "favors": "Bronzed Cowbird",
+            "confidence": "medium",
+            "preconditions": [
+              "Bird is entirely or nearly entirely dark/black-plumaged with no contrasting brown or buff head patches",
+              "Head appears visibly oversized relative to the body \u2014 distinctly domed and wide, not compact and round like a typical icterid",
+              "Bill appears short and stubby, compressed vertically, lacking the fine tapered point typical of Shiny Cowbird's more slender bill",
+              "Overall silhouette reads as top-heavy or front-heavy rather than sleek and elongated",
+              "No visible wing bars, eye rings, or other contrasting plumage patches that would suggest a different species"
+            ],
+            "rationale": "This is the original expert rule unchanged, relying on head shape, bill morphology, and overall silhouette. It is moderately precise but vulnerable to misfire on Shiny Cowbirds that incidentally present a domed-looking head in certain postures, as demonstrated by FP 1."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 4,
+            "fp": 0,
+            "tn": 4,
+            "fn": 0,
+            "precision": 1.0,
+            "recall": 1.0,
+            "accepted": true,
+            "rejection_reason": null
+          },
+          "accepted": true
+        },
+        {
+          "level": 4,
+          "label": "most_specific",
+          "n_preconditions": 6,
+          "rule": {
+            "level": 4,
+            "label": "most_specific",
+            "rule": "When a uniformly black cowbird displays a disproportionately large, domed head that is visibly wider or taller than expected for the body size, combined with a short, stubby bill that appears compressed vertically and does not taper to a fine point, creating an overall top-heavy or 'big-headed' silhouette rather than a sleek, streamlined profile, AND a bright red iris is clearly visible contrasting against the dark surrounding feathering, identify as Bronzed Cowbird.",
+            "feature": "domed_head_stubby_bill_silhouette_plus_red_iris",
+            "favors": "Bronzed Cowbird",
+            "confidence": "high",
+            "preconditions": [
+              "Bird is entirely or nearly entirely dark/black-plumaged with no contrasting brown or buff head patches",
+              "Head appears visibly oversized relative to the body \u2014 distinctly domed and wide, not compact and round like a typical icterid",
+              "Bill appears short and stubby, compressed vertically, lacking the fine tapered point typical of Shiny Cowbird's more slender bill",
+              "Overall silhouette reads as top-heavy or front-heavy rather than sleek and elongated",
+              "No visible wing bars, eye rings, or other contrasting plumage patches that would suggest a different species",
+              "Bright red iris is clearly visible against the dark plumage, contrasting with the surrounding feathering \u2014 dark or black eye eliminates this rule"
+            ],
+            "rationale": "Adding the mandatory red iris requirement to the original rule eliminates the observed FP entirely: Shiny Cowbird always has a dark eye and will never satisfy this condition, while all documented Bronzed Cowbird TPs show the red iris. This maximises precision at the potential cost of recall in poor-light conditions where the iris colour is not discernible."
+          },
+          "validation": {
+            "fires_on_trigger": false,
+            "tp": 0,
+            "fp": 0,
+            "tn": 4,
+            "fn": 4,
+            "precision": 0.0,
+            "recall": 0.0,
+            "accepted": false,
+            "rejection_reason": "did not fire on trigger"
+          },
+          "accepted": false
+        }
+      ],
+      "accepted": true,
+      "registered": true,
+      "rule_id": "r_004",
+      "dialogic_round": 2
+    },
+    {
+      "task_id": "bronzed_cowbird_vs_shiny_cowbird_Shiny_Cowbird_0080_796875",
+      "pair_id": "bronzed_cowbird_vs_shiny_cowbird",
+      "wrong_prediction": "Bronzed Cowbird",
+      "correct_label": "Shiny Cowbird",
+      "candidate_rule": {
+        "rule": "When a cowbird shows entirely uniform dull brown plumage across the head, back, wings, breast, and belly (no black, no gloss, no contrasting pale supercilium or streaking), combined with a slender to moderately sized conical bill and a smoothly rounded head profile without a thick neck or inflated ruff, identify as Shiny Cowbird (female/immature).",
+        "feature": "uniform dull brown plumage with slender bill and rounded head",
+        "favors": "Shiny Cowbird",
+        "confidence": "high",
+        "preconditions": [
+          "Bird's entire plumage is dull, matte brown with no glossy black feathering visible anywhere on the body",
+          "No contrasting pale supercilium, throat patch, or strong streaking visible on the underparts",
+          "Bill is slender and conical, not noticeably thick-based, heavy, or strongly decurved as in Bronzed Cowbird",
+          "Head profile is gently rounded and flat-crowned, with no bull-necked silhouette or inflated neck ruff/cape",
+          "Body appears medium-sized and relatively slim, not stocky or heavy-chested",
+          "Eye appears dark (no visible red iris)",
+          "Underparts are essentially the same tone as the upperparts, or only slightly paler, without a strongly bicolored appearance",
+          "Tail length appears moderate and proportionate to body size, not notably short or stubby",
+          "Bill length is moderate, roughly proportionate to head size \u2014 not conspicuously long or short relative to the head",
+          "No visible pale or whitish wing-bars or panel contrasting against the brown wing coverts",
+          "Legs and feet appear dark (blackish), consistent with a typical icterid"
+        ],
+        "rationale": "Female Bronzed Cowbirds also appear brown, but they are distinctly stockier with a heavier, deeper-based bill and often show a subtly thicker neck relative to body. Female Shiny Cowbirds are slimmer and more uniformly plain brown with a slender bill. Crucially, the pupil's existing rules were all anchored to black-plumaged (male) cowbirds, leaving no rule to capture the brown female plumage. This rule fills that gap: uniform dull brown + slim conical bill + smooth round head = female Shiny Cowbird, not Bronzed.",
+        "added_preconditions": [
+          "Underparts are essentially the same tone as the upperparts, or only slightly paler, without a strongly bicolored appearance",
+          "Tail length appears moderate and proportionate to body size, not notably short or stubby",
+          "Bill length is moderate, roughly proportionate to head size \u2014 not conspicuously long or short relative to the head",
+          "No visible pale or whitish wing-bars or panel contrasting against the brown wing coverts",
+          "Legs and feet appear dark (blackish), consistent with a typical icterid"
+        ],
+        "completion_rationale": "An expert comparing female Shiny and Bronzed Cowbirds would implicitly assume that the bird lacks the subtly bicolored (paler buff below) tendency seen in some Bronzed Cowbird females, that its proportions \u2014 tail and bill length \u2014 fall within normal icterid range and are not aberrant, and that it lacks any contrasting pale wing markings that could indicate another species entirely. These body-proportion and tone details are so fundamental to a trained eye that they go unstated, yet a naive classifier matching only on bill shape and head profile could incorrectly fire on unrelated brown icterids or aberrant individuals that happen to lack the red eye."
+      },
+      "semantic_validation": {
+        "precondition_ratings": [
+          {
+            "precondition": "Bird's entire plumage is dull, matte brown with no glossy black feathering visible anywhere on the body",
+            "rating": "reliable",
+            "comment": "Female/immature Shiny Cowbirds are uniformly dull brown, whereas female Bronzed Cowbirds typically show a slightly darker, often more sooty or contrastingly darker brown tone, and immature males of both species can introduce glossy black, but for females this criterion reasonably separates the two."
+          },
+          {
+            "precondition": "No contrasting pale supercilium, throat patch, or strong streaking visible on the underparts",
+            "rating": "reliable",
+            "comment": "Female Shiny Cowbirds lack a strong supercilium and underpart streaking; female Bronzed Cowbirds are also largely unstreaked, so while this pre-condition correctly excludes other species it adds limited discriminatory power between these two specifically, yet it is not wrong."
+          },
+          {
+            "precondition": "Bill is slender and conical, not noticeably thick-based, heavy, or strongly decurved as in Bronzed Cowbird",
+            "rating": "reliable",
+            "comment": "The Bronzed Cowbird's bill is distinctly heavier, thicker-based, and slightly decurved compared to the slender, finch-like conical bill of the Shiny Cowbird, making this one of the strongest field marks."
+          },
+          {
+            "precondition": "Head profile is gently rounded and flat-crowned, with no bull-necked silhouette or inflated neck ruff/cape",
+            "rating": "reliable",
+            "comment": "Bronzed Cowbird males are notorious for the neck ruff/cape, and even females tend toward a heavier, bull-necked, beady-eyed appearance, while Shiny Cowbird females have a smoother, rounder head profile, making this a solid structural discriminator."
+          },
+          {
+            "precondition": "Body appears medium-sized and relatively slim, not stocky or heavy-chested",
+            "rating": "context_dependent",
+            "comment": "Body size and build impression can be difficult to assess without direct comparison or a known size reference, and variation in posture can make a Shiny Cowbird appear stockier or a Bronzed appear slimmer in certain photos."
+          },
+          {
+            "precondition": "Eye appears dark (no visible red iris)",
+            "rating": "reliable",
+            "comment": "Adult Bronzed Cowbirds of both sexes have a conspicuous red iris, whereas Shiny Cowbirds have a dark eye; however, immature Bronzed Cowbirds can show a dull or brownish iris, so this is reliable mainly for adults."
+          },
+          {
+            "precondition": "Underparts are essentially the same tone as the upperparts, or only slightly paler, without a strongly bicolored appearance",
+            "rating": "context_dependent",
+            "comment": "While Shiny Cowbird females are relatively uniform, some individuals can show slightly paler underparts, and female Bronzed Cowbirds can also be fairly uniform in tone, reducing the discriminatory power of this feature alone."
+          },
+          {
+            "precondition": "Tail length appears moderate and proportionate to body size, not notably short or stubby",
+            "rating": "unreliable",
+            "comment": "Tail proportions are not a well-established field mark distinguishing female Shiny from female Bronzed Cowbird, and this character adds little diagnostic value while being highly susceptible to photographic angle and posture effects."
+          },
+          {
+            "precondition": "Bill length is moderate, roughly proportionate to head size \u2014 not conspicuously long or short relative to the head",
+            "rating": "unreliable",
+            "comment": "Bill length proportionality is too vague a criterion here; the more meaningful bill distinction is shape and depth (thickness/curvature), which is already captured in pre-condition 3, making this redundant and potentially confusing."
+          },
+          {
+            "precondition": "No visible pale or whitish wing-bars or panel contrasting against the brown wing coverts",
+            "rating": "unreliable",
+            "comment": "Neither female Shiny nor female Bronzed Cowbird typically shows prominent pale wing-bars, so this pre-condition fails to discriminate between the two species and only excludes other unrelated species."
+          },
+          {
+            "precondition": "Legs and feet appear dark (blackish), consistent with a typical icterid",
+            "rating": "unreliable",
+            "comment": "Both Shiny and Bronzed Cowbirds have dark legs and feet, so this feature provides no differential diagnosis between the two species whatsoever."
+          }
+        ],
+        "overall": "revise",
+        "rationale": "The rule's core logic is sound and built on genuine structural differences (bill shape, head/neck profile, red eye absence), which are the most reliable features for separating female Shiny from female Bronzed Cowbird. However, several pre-conditions (tail length, bill length proportionality, wing-bar absence, leg color) are either non-discriminatory between these two species or redundant, wasting gate-checking effort and risking false exclusions. The rule should be streamlined to emphasize the three strongest markers \u2014 bill shape/depth, neck-ruff/head profile, and red iris presence \u2014 before proceeding to image validation."
+      },
+      "validation": {
+        "fires_on_trigger": true,
+        "tp": 0,
+        "fp": 0,
+        "tn": 4,
+        "fn": 4,
+        "precision": 0.0,
+        "recall": 0.0,
+        "accepted": false,
+        "rejection_reason": "FP=0 precision=0.00"
+      },
+      "confirmation_validation": null,
+      "spectrum_history": [],
+      "accepted": false,
+      "registered": false,
+      "dialogic_round": 2
+    }
+  ]
+}

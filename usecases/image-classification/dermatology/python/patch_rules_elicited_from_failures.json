@@ -1,0 +1,42 @@
+[
+  {
+    "rule_id": "r_elicited_001",
+    "description": "Elicited from ISIC_0024410: irregular pigment network with abrupt cutoff at periphery",
+    "condition": "[Patch rule - melanoma_vs_melanocytic_nevus] 1. asymmetric shape; 2. irregular/atypical pigment network; 3. multiple brown shades with darker eccentric focus; 4. peripheral network disruption",
+    "action": "classify as Melanoma",
+    "rationale": "The model likely misinterpreted the irregular pigment network and asymmetric pigmentation as a benign atypical nevus rather than recognizing the malignant features.",
+    "subtype": "superficial_spreading",
+    "source": "elicited_from_failure_claude_opus",
+    "source_image": "ISIC_0024410"
+  },
+  {
+    "rule_id": "r_elicited_002",
+    "description": "Elicited from ISIC_0024647: asymmetric annular-granular pattern with peppering regressio",
+    "condition": "[Patch rule - melanoma_vs_melanocytic_nevus] 1. irregular brown-gray granular pigmentation; 2. white scar-like regression areas; 3. asymmetric distribution of pigment; 4. loss of typical nevus network",
+    "action": "classify as Melanoma",
+    "rationale": "The model likely misinterpreted the irregular brown pigmentation and regression features as benign nevus patterns rather than recognizing the asymmetric pigment network and gray-white regression areas indicative of melanoma.",
+    "subtype": "lentigo_maligna",
+    "source": "elicited_from_failure_claude_opus",
+    "source_image": "ISIC_0024647"
+  },
+  {
+    "rule_id": "r_elicited_003",
+    "description": "Elicited from ISIC_0024911: central hypopigmentation/regression with peripheral pigment ",
+    "condition": "[Patch rule - melanoma_vs_melanocytic_nevus] 1. small pigmented lesion with central clearing or gray-white regression; 2. asymmetric peripheral pigment distribution; 3. irregular brown pigment at margins",
+    "action": "classify as Melanoma",
+    "rationale": "The model likely interpreted the small size and relatively regular border as benign features, missing the subtle irregular pigment distribution and central regression.",
+    "subtype": "superficial_spreading",
+    "source": "elicited_from_failure_claude_opus",
+    "source_image": "ISIC_0024911"
+  },
+  {
+    "rule_id": "r_elicited_004",
+    "description": "Elicited from ISIC_0025128: irregular pigment network with multiple shades of brown and ",
+    "condition": "[Patch rule - melanoma_vs_melanocytic_nevus] 1. asymmetric pigment distribution; 2. multiple brown hues present; 3. irregular border with fading edges; 4. focal dark globules or dots",
+    "action": "classify as Melanoma",
+    "rationale": "The model likely interpreted the irregular pigmentation as benign nevus variation rather than recognizing the asymmetric distribution and multiple brown shades as melanoma features.",
+    "subtype": "superficial_spreading",
+    "source": "elicited_from_failure_claude_opus",
+    "source_image": "ISIC_0025128"
+  }
+]

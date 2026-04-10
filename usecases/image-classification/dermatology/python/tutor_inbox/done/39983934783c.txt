@@ -1,0 +1,69 @@
+{"levels": [
+  {
+    "level": 1,
+    "label": "most_general",
+    "rule": "When a pigmented lesion contains gray-blue or blue-gray structureless areas (not organized into a network, not red-purple lacunae), classify as Melanoma.",
+    "feature": "gray_blue_structureless_areas_present",
+    "favors": "Melanoma",
+    "confidence": "medium",
+    "preconditions": [
+      "Gray-blue or blue-gray structureless areas are present within the lesion — distinct patches of slate-gray or bluish-gray color without an organized network structure, and not red or purple lacunae"
+    ],
+    "rationale": "Gray-blue structureless areas are the single most diagnostically loaded feature here — they represent regression (melanophages) or deep melanin deposition, both strongly associated with melanoma in the context of a pigmented lesion. This single condition will cast a wide net but captures the core signal."
+  },
+  {
+    "level": 2,
+    "label": "moderate",
+    "rule": "When a pigmented lesion contains gray-blue or blue-gray structureless areas (not organized into a network) alongside brown pigmented components, and the gray-blue areas occupy only a portion of the lesion (NOT the entire lesion uniformly), classify as Melanoma.",
+    "feature": "gray_blue_structureless_with_brown_partial_occupation",
+    "favors": "Melanoma",
+    "confidence": "medium",
+    "preconditions": [
+      "Gray-blue or blue-gray structureless areas are present within the lesion — distinct patches of slate-gray or bluish-gray color without an organized network structure",
+      "Brown pigmented components are also present alongside the gray-blue areas (distinguishes from blue nevus, which is entirely blue-gray)",
+      "The gray-blue areas occupy only a portion of the lesion — NOT the entire lesion uniformly (a uniform steel-blue homogeneous lesion = blue nevus, not melanoma)"
+    ],
+    "rationale": "The co-presence of brown pigment with gray-blue (multi-component) and partial rather than total gray-blue coverage together exclude blue nevus, which is the most common benign mimic. This pair of additions substantially reduces FP rate while keeping recall high."
+  },
+  {
+    "level": 3,
+    "label": "original",
+    "rule": "When a pigmented lesion contains gray-blue or blue-gray structureless areas (not organized into a network, not red-purple lacunae) alongside brown pigmented components and shows asymmetric, multi-zone architecture, classify as Melanoma.",
+    "feature": "gray_blue_structureless_areas_multicomponent",
+    "favors": "Melanoma",
+    "confidence": "medium",
+    "preconditions": [
+      "Gray-blue or blue-gray structureless areas are present within the lesion — distinct patches of slate-gray or bluish-gray color without an organized network structure",
+      "Brown pigmented components are also present alongside the gray-blue areas (distinguishes from blue nevus, which is entirely blue-gray)",
+      "The gray-blue areas occupy only a portion of the lesion — NOT the entire lesion uniformly (uniform steel-blue homogeneous lesion = blue nevus, not melanoma)",
+      "Lesion is asymmetric in shape and/or pigment distribution",
+      "At least three distinct colors are visible (e.g., light tan/golden brown, dark brown, gray-blue)",
+      "No red/purple lacunae (rules out hemangioma as source of blue-gray color)",
+      "No seborrheic keratosis features (no milia-like cysts, no comedo-like openings)",
+      "Lesion is flat or only minimally elevated — not a raised blue-gray nodule (a raised bluish nodule suggests blue nevus or pigmented nodular basal cell carcinoma rather than melanoma)",
+      "No features of dermatofibroma: no shiny central white patch surrounded exclusively by a delicate pigment network restricted to the periphery"
+    ],
+    "rationale": "Full expert rule integrating asymmetry, multi-zone architecture, negative SK and DF features, and morphological (flat) constraints."
+  },
+  {
+    "level": 4,
+    "label": "most_specific",
+    "rule": "When a pigmented lesion contains gray-blue or blue-gray structureless areas (not organized into a network, not red-purple lacunae) alongside brown pigmented components and shows asymmetric, multi-zone architecture, AND the gray-blue area is visibly LIGHTER than the surrounding dark brown pigment (an intermediate pale zone, not the lesion's darkest zone), classify as Melanoma.",
+    "feature": "gray_blue_lighter_than_surrounding_brown_regression_polarity",
+    "favors": "Melanoma",
+    "confidence": "medium",
+    "preconditions": [
+      "Gray-blue or blue-gray structureless areas are present within the lesion — distinct patches of slate-gray or bluish-gray color without an organized network structure",
+      "Brown pigmented components are also present alongside the gray-blue areas (distinguishes from blue nevus, which is entirely blue-gray)",
+      "The gray-blue areas occupy only a portion of the lesion — NOT the entire lesion uniformly (uniform steel-blue homogeneous lesion = blue nevus, not melanoma)",
+      "Lesion is asymmetric in shape and/or pigment distribution",
+      "At least three distinct colors are visible (e.g., light tan/golden brown, dark brown, gray-blue)",
+      "No red/purple lacunae (rules out hemangioma as source of blue-gray color)",
+      "No seborrheic keratosis features (no milia-like cysts, no comedo-like openings)",
+      "Lesion is flat or only minimally elevated — not a raised blue-gray nodule (a raised bluish nodule suggests blue nevus or pigmented nodular basal cell carcinoma rather than melanoma)",
+      "No features of dermatofibroma: no shiny central white patch surrounded exclusively by a delicate pigment network restricted to the periphery",
+      "The gray-blue area is a lighter intermediate zone relative to the surrounding dark brown pigment — it is visibly paler than the darkest brown components, consistent with regression (melanophages replacing destroyed tumor). Reject if the gray-blue is the DARKEST zone in the lesion, as that pattern indicates deep Tyndall scattering from a benign deep nevus rather than regression."
+    ],
+    "rationale": "The brightness-polarity condition directly addresses the observed FP: the benign deep nevus had gray-blue as its darkest central zone (Tyndall scattering), while true regression gray-blue in melanoma is a lighter intermediate zone against darker surviving tumor. Adding this condition should eliminate the deep-nevus FP while retaining sensitivity for regression-pattern melanomas."
+  }
+]}

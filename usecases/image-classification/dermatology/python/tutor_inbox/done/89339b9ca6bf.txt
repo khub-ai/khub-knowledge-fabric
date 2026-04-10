@@ -1,0 +1,1 @@
+{"precondition_met": false, "would_predict": null, "observations": "Roughly oval, fairly symmetric red-brown lesion with smooth scalloped border on pink skin. Predominantly one to two tones of red-brown. No gray-blue, no white regression, no atypical pigment network, no streaks, no blue-white veil, no irregular dark globules unevenly distributed. Multiple preconditions fail."}

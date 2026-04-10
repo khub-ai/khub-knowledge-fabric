@@ -1,0 +1,348 @@
+{
+  "cheap_model": "o4-mini",
+  "expert_model": "claude-sonnet-4-6",
+  "patch_rules_file": "C:\\_backup\\github\\khub-knowledge-fabric\\usecases\\image-classification\\dermatology\\python\\patch_rules_v5_ak_spectrum.json",
+  "dry_run": false,
+  "total_tasks": 6,
+  "failures_before": 2,
+  "rules_authored": 2,
+  "rules_accepted": 0,
+  "rules_registered": 0,
+  "cross_pair_events": [],
+  "patch_records": [
+    {
+      "task_id": "actinic_keratosis_vs_benign_keratosis_ISIC_0024336",
+      "pair_id": "actinic_keratosis_vs_benign_keratosis",
+      "wrong_prediction": "uncertain",
+      "correct_label": "Benign Keratosis",
+      "candidate_rule": {
+        "rule": "When a lesion displays a central zone of cerebriform or finely granular milia-like white clods intermixed with crypts, surrounded by a diffuse moth-eaten or 'stuck-on' border with multiple brown-to-purple irregular pigment globules and a whitish haze overlying the surface \u2014 without sharp atypical network or strawberry pattern \u2014 classify as Benign Keratosis.",
+        "feature": "cerebriform_white_clods_with_stuck_on_border_and_purple_globules",
+        "favors": "Benign Keratosis",
+        "confidence": "high",
+        "preconditions": [
+          "Central region shows milia-like white clods or finely granular white-yellow structures consistent with keratin-filled crypts",
+          "Presence of multiple brown-to-violet/purple pigment globules distributed irregularly within or around the central zone",
+          "Surface shows a diffuse whitish veil or haze consistent with hyperkeratosis rather than regression",
+          "Border appears moth-eaten, lobulated, or 'stuck-on' rather than sharply defined atypical pigment network",
+          "Absence of strawberry pattern (red pseudo-network with white follicular halos) that would suggest Actinic Keratosis",
+          "Absence of dotted/coiled vessels on an erythematous background typical of Actinic Keratosis"
+        ],
+        "rationale": "Benign (seborrheic) keratoses characteristically display milia-like cysts, comedo-like openings/crypts, and a cerebriform surface with a stuck-on lobulated border. The mixture of whitish keratin clods with brown-to-purple pigment globules and a moth-eaten periphery is pathognomonic for seborrheic keratosis. Actinic keratosis instead shows a strawberry/pseudo-network pattern, dotted vessels over erythematous skin, and surface scale without true milia-like cysts. Recognizing the keratin crypt + stuck-on morphology in this image should override uncertainty and confirm Benign Keratosis."
+      },
+      "validation": {
+        "fires_on_trigger": true,
+        "tp": 1,
+        "fp": 1,
+        "tn": 7,
+        "fn": 7,
+        "precision": 0.5,
+        "recall": 0.125,
+        "accepted": false,
+        "rejection_reason": "precision=0.50 < 0.75"
+      },
+      "spectrum_history": [
+        {
+          "level": 1,
+          "label": "most_general",
+          "n_preconditions": 2,
+          "rule": {
+            "level": 1,
+            "label": "most_general",
+            "rule": "When a lesion displays a moth-eaten, lobulated, or 'stuck-on' border combined with milia-like white clods or keratin-filled crypts in the central region, classify as Benign Keratosis.",
+            "feature": "stuck_on_border_with_milia_like_clods",
+            "favors": "Benign Keratosis",
+            "confidence": "medium",
+            "preconditions": [
+              "Border appears moth-eaten, lobulated, or 'stuck-on' rather than sharply defined",
+              "Central region shows milia-like white clods or finely granular white-yellow structures consistent with keratin-filled crypts"
+            ],
+            "rationale": "The combination of a stuck-on/moth-eaten border with milia-like white clods is the hallmark dermoscopic signature of seborrheic keratosis (Benign Keratosis) and is broadly absent in Actinic Keratosis, which favors a strawberry pattern or erythematous pseudo-network. This pairing provides broad coverage while still carrying reasonable diagnostic weight."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 4,
+            "fp": 2,
+            "tn": 6,
+            "fn": 4,
+            "precision": 0.667,
+            "recall": 0.5,
+            "accepted": false,
+            "rejection_reason": "fp=2 > 1"
+          },
+          "accepted": false
+        },
+        {
+          "level": 2,
+          "label": "moderate",
+          "n_preconditions": 4,
+          "rule": {
+            "level": 2,
+            "label": "moderate",
+            "rule": "When a lesion displays a moth-eaten or 'stuck-on' border with milia-like white clods or keratin crypts AND multiple brown-to-violet pigment globules distributed irregularly within or around the central zone \u2014 without a strawberry pattern or dotted/coiled vessels on an erythematous background \u2014 classify as Benign Keratosis.",
+            "feature": "stuck_on_border_clods_with_pigment_globules_no_strawberry",
+            "favors": "Benign Keratosis",
+            "confidence": "medium",
+            "preconditions": [
+              "Border appears moth-eaten, lobulated, or 'stuck-on' rather than sharply defined",
+              "Central region shows milia-like white clods or finely granular white-yellow keratin-filled structures",
+              "Multiple brown-to-violet/purple pigment globules distributed irregularly within or around the central zone",
+              "Absence of strawberry pattern (red pseudo-network with white follicular halos) and dotted/coiled vessels on erythematous background"
+            ],
+            "rationale": "Adding irregular brown-to-violet pigment globules increases specificity over Level 1 by capturing the pigmented character of seborrheic keratosis, while the explicit exclusion of the strawberry pattern begins to rule out Actinic Keratosis, which typically shows that vascular pattern rather than pigment globules."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 3,
+            "fp": 2,
+            "tn": 6,
+            "fn": 5,
+            "precision": 0.6,
+            "recall": 0.375,
+            "accepted": false,
+            "rejection_reason": "fp=2 > 1"
+          },
+          "accepted": false
+        },
+        {
+          "level": 3,
+          "label": "original",
+          "n_preconditions": 6,
+          "rule": {
+            "level": 3,
+            "label": "original",
+            "rule": "When a lesion displays a central zone of cerebriform or finely granular milia-like white clods intermixed with crypts, surrounded by a diffuse moth-eaten or 'stuck-on' border with multiple brown-to-purple irregular pigment globules and a whitish haze overlying the surface \u2014 without sharp atypical network or strawberry pattern \u2014 classify as Benign Keratosis.",
+            "feature": "cerebriform_clods_crypts_with_stuck_on_border_pigment_globules_whitish_haze",
+            "favors": "Benign Keratosis",
+            "confidence": "medium",
+            "preconditions": [
+              "Central region shows milia-like white clods or finely granular white-yellow structures consistent with keratin-filled crypts",
+              "Presence of multiple brown-to-violet/purple pigment globules distributed irregularly within or around the central zone",
+              "Surface shows a diffuse whitish veil or haze consistent with hyperkeratosis rather than regression",
+              "Border appears moth-eaten, lobulated, or 'stuck-on' rather than sharply defined atypical pigment network",
+              "Absence of strawberry pattern (red pseudo-network with white follicular halos) that would suggest Actinic Keratosis",
+              "Absence of dotted/coiled vessels on an erythematous background typical of Actinic Keratosis"
+            ],
+            "rationale": "This is the original expert rule preserved unchanged. It integrates the full constellation of seborrheic keratosis dermoscopic features \u2014 cerebriform/clod architecture, crypts, stuck-on border, pigment globules, hyperkeratotic haze \u2014 while excluding the two key Actinic Keratosis vascular/pattern markers."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 2,
+            "fp": 1,
+            "tn": 7,
+            "fn": 6,
+            "precision": 0.667,
+            "recall": 0.25,
+            "accepted": false,
+            "rejection_reason": "precision=0.67 < 0.75"
+          },
+          "accepted": false
+        },
+        {
+          "level": 4,
+          "label": "most_specific",
+          "n_preconditions": 7,
+          "rule": {
+            "level": 4,
+            "label": "most_specific",
+            "rule": "When a lesion displays a central zone of cerebriform or finely granular milia-like white clods intermixed with crypts, surrounded by a diffuse moth-eaten or 'stuck-on' border with multiple brown-to-purple irregular pigment globules and a whitish haze overlying the surface \u2014 without sharp atypical network or strawberry pattern \u2014 AND the lesion contains at least one focal, dense dark-purple or violaceous pigmented zone or patch (reflecting heavy focal pigment accumulation characteristic of pigmented seborrheic keratosis), classify as Benign Keratosis.",
+            "feature": "focal_dense_dark_purple_violaceous_zone",
+            "favors": "Benign Keratosis",
+            "confidence": "low",
+            "preconditions": [
+              "Central region shows milia-like white clods or finely granular white-yellow structures consistent with keratin-filled crypts",
+              "Presence of multiple brown-to-violet/purple pigment globules distributed irregularly within or around the central zone",
+              "Surface shows a diffuse whitish veil or haze consistent with hyperkeratosis rather than regression",
+              "Border appears moth-eaten, lobulated, or 'stuck-on' rather than sharply defined atypical pigment network",
+              "Absence of strawberry pattern (red pseudo-network with white follicular halos) that would suggest Actinic Keratosis",
+              "Absence of dotted/coiled vessels on an erythematous background typical of Actinic Keratosis",
+              "Presence of at least one focal, dense dark-purple or violaceous pigmented zone or patch within the lesion body, indicating concentrated heavy pigment accumulation as seen in pigmented seborrheic keratosis"
+            ],
+            "rationale": "The contrastive analysis identified that the sole observable difference between the TP (Benign Keratosis) and the FP (Actinic Keratosis) was the presence of 'a darker purple zone' in the TP \u2014 a focal, dense violaceous pigment concentration absent in the FP. Adding this as a mandatory precondition should eliminate false positives that share the architectural features of seborrheic keratosis but lack this heavy focal pigmentation. Confidence is rated low because the evidence derives from a single case pair and the feature is subtle, risking over-tightening and reduced recall."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 1,
+            "fp": 1,
+            "tn": 7,
+            "fn": 7,
+            "precision": 0.5,
+            "recall": 0.125,
+            "accepted": false,
+            "rejection_reason": "precision=0.50 < 0.75"
+          },
+          "accepted": false
+        }
+      ],
+      "accepted": false,
+      "registered": false
+    },
+    {
+      "task_id": "actinic_keratosis_vs_benign_keratosis_ISIC_0024420",
+      "pair_id": "actinic_keratosis_vs_benign_keratosis",
+      "wrong_prediction": "Actinic Keratosis",
+      "correct_label": "Benign Keratosis",
+      "candidate_rule": {
+        "rule": "When a lesion on hair-bearing skin shows a compact, well-circumscribed cluster of dark brown to black, irregularly shaped pigment globules/clods arranged in a grouped ('strawberry-patch') configuration against a diffuse lighter brown structureless background, with surrounding normal-appearing hair follicles and no erythema, scaling, or strawberry-pattern vessels, classify as Benign Keratosis (lentigo/seborrheic keratosis variant).",
+        "feature": "grouped_dark_pigment_globules_on_hairy_skin",
+        "favors": "Benign Keratosis",
+        "confidence": "high",
+        "preconditions": [
+          "Lesion is located on hair-bearing skin with multiple terminal hairs visible throughout the field",
+          "Central zone contains a discrete, roughly oval cluster of dark brown to black pigment globules or clods that are closely grouped",
+          "Surrounding halo of lighter, diffuse brown structureless pigmentation is present but remains sharply bounded overall",
+          "No erythematous or pink scaly surface texture indicative of hyperkeratosis with follicular plugging (pseudo-network of actinic keratosis absent)",
+          "No dotted or glomerular vessels, no white circles around follicles (rosettes), and no prominent follicular red halos that typify actinic keratosis on dermoscopy",
+          "Absent or minimal surface scale; lesion surface appears smooth under dermoscopy",
+          "Background skin shows diffuse pale pink coloration consistent with fair/sun-damaged skin but lacks the coarse pseudonetwork with follicular openings of actinic keratosis"
+        ],
+        "rationale": "Actinic keratoses on hair-bearing skin classically display a 'strawberry pattern' with erythematous pseudo-network, white perifollicular halos, keratotic follicular plugs, and surface scale. This lesion instead demonstrates a focal, compact cluster of dark brown/black pigment globules \u2014 a hallmark of benign melanocytic or seborrheic proliferations (lentigo/flat seborrheic keratosis) \u2014 with no follicular targeting, no vascular pattern, and no scaling. The model mistook the ill-defined lighter brown halo and pink background for AK features, but the presence of organized dark globular clumping without any folliculocentric vascular or keratotic changes is a reliable positive indicator of benign keratosis and effectively excludes actinic keratosis."
+      },
+      "validation": {
+        "fires_on_trigger": true,
+        "tp": 0,
+        "fp": 1,
+        "tn": 7,
+        "fn": 8,
+        "precision": 0.0,
+        "recall": 0.0,
+        "accepted": false,
+        "rejection_reason": "precision=0.00 < 0.75"
+      },
+      "spectrum_history": [
+        {
+          "level": 1,
+          "label": "most_general",
+          "n_preconditions": 1,
+          "rule": {
+            "level": 1,
+            "label": "most_general",
+            "rule": "When a lesion shows a compact, well-circumscribed cluster of pure dark brown to black pigment globules or clods arranged in a grouped configuration, classify as Benign Keratosis (lentigo/seborrheic keratosis variant).",
+            "feature": "grouped_dark_brown_to_black_pigment_globules",
+            "favors": "Benign Keratosis",
+            "confidence": "medium",
+            "preconditions": [
+              "A discrete, closely grouped cluster of pigment globules or clods that are purely dark brown to black in color (no reddish or erythematous tinge)"
+            ],
+            "rationale": "The most diagnostically essential feature of a benign lentigo or seborrheic keratosis variant is purely melanin-based pigment globules/clods that are dark brown to black. This pure coloration, without any reddish admixture, is the single strongest discriminator against actinic keratosis, where vascular/inflammatory contributions introduce a reddish-brown hue."
+          },
+          "validation": {
+            "fires_on_trigger": false,
+            "tp": 1,
+            "fp": 0,
+            "tn": 8,
+            "fn": 7,
+            "precision": 1.0,
+            "recall": 0.125,
+            "accepted": false,
+            "rejection_reason": "did not fire on trigger"
+          },
+          "accepted": false
+        },
+        {
+          "level": 2,
+          "label": "moderate",
+          "n_preconditions": 2,
+          "rule": {
+            "level": 2,
+            "label": "moderate",
+            "rule": "When a lesion shows a compact, well-circumscribed cluster of pure dark brown to black pigment globules or clods in a grouped ('strawberry-patch') configuration against a lighter diffuse brown structureless background, and the lesion surface lacks erythema, scaling, or follicular plugging, classify as Benign Keratosis (lentigo/seborrheic keratosis variant).",
+            "feature": "grouped_dark_pigment_globules_with_structureless_background_no_ak_signs",
+            "favors": "Benign Keratosis",
+            "confidence": "medium",
+            "preconditions": [
+              "A discrete, closely grouped cluster of pigment globules or clods that are purely dark brown to black in color (no reddish or erythematous tinge)",
+              "Surrounding halo of lighter diffuse brown structureless pigmentation present without erythema, surface scaling, or follicular plugging patterns characteristic of actinic keratosis"
+            ],
+            "rationale": "Adding the requirement for a structureless lighter brown halo and absence of actinic keratosis surface signs (erythema, scaling, follicular plugging) begins to exclude inflammatory or hyperkeratotic lesions, reducing false positives from actinic keratosis cases that may share clustered pigment but differ in background texture and surface features."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 0,
+            "fp": 0,
+            "tn": 8,
+            "fn": 8,
+            "precision": 0.0,
+            "recall": 0.0,
+            "accepted": false,
+            "rejection_reason": "precision=0.00 < 0.75"
+          },
+          "accepted": false
+        },
+        {
+          "level": 3,
+          "label": "original",
+          "n_preconditions": 7,
+          "rule": {
+            "level": 3,
+            "label": "original",
+            "rule": "When a lesion on hair-bearing skin shows a compact, well-circumscribed cluster of dark brown to black, irregularly shaped pigment globules/clods arranged in a grouped ('strawberry-patch') configuration against a diffuse lighter brown structureless background, with surrounding normal-appearing hair follicles and no erythema, scaling, or strawberry-pattern vessels, classify as Benign Keratosis (lentigo/seborrheic keratosis variant).",
+            "feature": "strawberry_patch_grouped_pigment_globules_hair_bearing_skin",
+            "favors": "Benign Keratosis",
+            "confidence": "medium",
+            "preconditions": [
+              "Lesion is located on hair-bearing skin with multiple terminal hairs visible throughout the field",
+              "Central zone contains a discrete, roughly oval cluster of dark brown to black pigment globules or clods that are closely grouped",
+              "Surrounding halo of lighter, diffuse brown structureless pigmentation is present but remains sharply bounded overall",
+              "No erythematous or pink scaly surface texture indicative of hyperkeratosis with follicular plugging (pseudo-network of actinic keratosis absent)",
+              "No dotted or glomerular vessels, no white circles around follicles (rosettes), and no prominent follicular red halos that typify actinic keratosis on dermoscopy",
+              "Absent or minimal surface scale; lesion surface appears smooth under dermoscopy",
+              "Background skin shows diffuse pale pink coloration consistent with fair/sun-damaged skin but lacks the coarse pseudonetwork with follicular openings of actinic keratosis"
+            ],
+            "rationale": "The original expert rule combining location on hair-bearing skin, grouped dark brown to black pigment globules in a strawberry-patch configuration, structureless lighter brown background, and absence of all actinic keratosis dermoscopic hallmarks (vessels, rosettes, scaling, follicular red halos, pseudonetwork) constitutes the full multi-feature diagnostic construct for this benign keratosis variant."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 0,
+            "fp": 1,
+            "tn": 7,
+            "fn": 8,
+            "precision": 0.0,
+            "recall": 0.0,
+            "accepted": false,
+            "rejection_reason": "precision=0.00 < 0.75"
+          },
+          "accepted": false
+        },
+        {
+          "level": 4,
+          "label": "most_specific",
+          "n_preconditions": 8,
+          "rule": {
+            "level": 4,
+            "label": "most_specific",
+            "rule": "When a lesion on hair-bearing skin shows a compact, well-circumscribed cluster of dark brown to black, irregularly shaped pigment globules/clods arranged in a grouped ('strawberry-patch') configuration against a diffuse lighter brown structureless background, with surrounding normal-appearing hair follicles and no erythema, scaling, or strawberry-pattern vessels, AND the pigment globules/clods exhibit purely melanin-based dark brown to black coloration with no reddish, erythematous, or reddish-brown tinge within or adjacent to the clods, classify as Benign Keratosis (lentigo/seborrheic keratosis variant).",
+            "feature": "strawberry_patch_pure_melanin_dark_globules_no_reddish_tinge",
+            "favors": "Benign Keratosis",
+            "confidence": "high",
+            "preconditions": [
+              "Lesion is located on hair-bearing skin with multiple terminal hairs visible throughout the field",
+              "Central zone contains a discrete, roughly oval cluster of dark brown to black pigment globules or clods that are closely grouped",
+              "Surrounding halo of lighter, diffuse brown structureless pigmentation is present but remains sharply bounded overall",
+              "No erythematous or pink scaly surface texture indicative of hyperkeratosis with follicular plugging (pseudo-network of actinic keratosis absent)",
+              "No dotted or glomerular vessels, no white circles around follicles (rosettes), and no prominent follicular red halos that typify actinic keratosis on dermoscopy",
+              "Absent or minimal surface scale; lesion surface appears smooth under dermoscopy",
+              "Background skin shows diffuse pale pink coloration consistent with fair/sun-damaged skin but lacks the coarse pseudonetwork with follicular openings of actinic keratosis",
+              "The pigment globules/clods are purely dark brown to black with absolutely no reddish, erythematous, or reddish-brown color admixture within or immediately surrounding the clods, confirming purely melanin-based rather than vascular/inflammatory pigmentation"
+            ],
+            "rationale": "The contrastive analysis revealed that the observed false positive (an actinic keratosis) was distinguished by 'dark brown to reddish-brown pigment clods/globules' \u2014 the reddish tinge reflecting hemoglobin/vascular contribution from underlying inflammation. Adding an explicit exclusion of any reddish color admixture within the clods directly targets this discriminating feature, maximizing precision by restricting classification to purely melanin-based pigment clusters consistent with benign lentigo or seborrheic keratosis."
+          },
+          "validation": {
+            "fires_on_trigger": false,
+            "tp": 0,
+            "fp": 0,
+            "tn": 8,
+            "fn": 8,
+            "precision": 0.0,
+            "recall": 0.0,
+            "accepted": false,
+            "rejection_reason": "did not fire on trigger"
+          },
+          "accepted": false
+        }
+      ],
+      "accepted": false,
+      "registered": false
+    }
+  ]
+}

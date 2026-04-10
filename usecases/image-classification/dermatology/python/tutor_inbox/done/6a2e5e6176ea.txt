@@ -1,0 +1,6 @@
+{
+  "request_id": "6a2e5e6176ea",
+  "precondition_met": false,
+  "would_predict": null,
+  "observations": "Diffuse light brown pigment with a darker brown lower lobe and faint pink background. Mostly 2 colors (brown + pink) — no clear gray-blue, no white regression. No blue-white veil, no clearly atypical pigment network or streaks. Borders fade gradually rather than being notched. Strict reading: 3-color, irregular-border, and melanoma-structure preconditions not met."
+}

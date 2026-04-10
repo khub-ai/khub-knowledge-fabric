@@ -1,0 +1,1 @@
+{"precondition_met": false, "would_predict": null, "observations": "Small roughly symmetric brown lesion with fading reticular border, one to two hues. No gray-blue, no white regression, no blue-white veil, no streaks/pseudopods, no atypical pigment network thickening, no irregular dark peripheral globules. Pattern is banal small nevus. Multiple preconditions fail."}

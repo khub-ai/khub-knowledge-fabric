@@ -1,0 +1,21 @@
+{
+  "rule": "When a melanocytic lesion shows diffuse pink-white or milky-white regression areas intermixed with fine dark granular peppering (fine punctate dark dots distributed across the lesion), and the overall pigmentation pattern is disorganized/granular rather than a well-formed organized reticular network, classify as Melanoma.",
+  "feature": "diffuse_regression_with_peppering",
+  "favors": "Melanoma",
+  "confidence": "high",
+  "preconditions": [
+    "Lesion contains pink-white or milky-white areas within the body of the lesion (not just at the border) — regression structures",
+    "Fine dark granular peppering visible: multiple tiny punctate dark dots scattered across the lesion, not organized into globules or a network",
+    "Overall pigmentation is diffuse and granular/dusty in texture, lacking a well-organized honeycomb reticular network",
+    "At least three color components present: light brown, medium/dark brown, AND pink-white/milky",
+    "Lesion is asymmetric",
+    "No seborrheic keratosis features (no milia-like cysts, no comedo-like openings, no sharp 'stuck-on' border)",
+    "Lesion is flat or minimally elevated — not a raised dome-shaped or nodular lesion (regression-peppering pattern applies to superficial spreading morphology, not nodular melanoma)",
+    "No features suggesting a non-melanocytic lesion: no red/purple lacunae (hemangioma), no central white patch with peripheral pigment ring (dermatofibroma)"
+  ],
+  "added_preconditions": [
+    "Lesion is flat or minimally elevated — not a raised dome-shaped or nodular lesion (regression-peppering pattern applies to superficial spreading morphology, not nodular melanoma)",
+    "No features suggesting a non-melanocytic lesion: no red/purple lacunae (hemangioma), no central white patch with peripheral pigment ring (dermatofibroma)"
+  ],
+  "completion_rationale": "The expert implicitly assumed this rule describes a superficial spreading melanoma — the morphology where regression and peppering arise. A naive classifier lacking this context might attempt to apply the rule to nodular melanoma (which looks completely different) or to vascular/fibrous lesions that can show pinkish-white areas. The flat/superficial condition prevents the first loophole; the non-melanocytic exclusion prevents the second. These are standard background assumptions in dermoscopy that trained dermoscopists apply automatically but would not think to state explicitly."
+}

@@ -1,0 +1,75 @@
+{
+  "levels": [
+    {
+      "level": 1,
+      "label": "most_general",
+      "rule": "When a dermoscopic lesion shows regression structures (gray-blue or pink-gray structureless areas) combined with irregular dark peripheral dots or globules — classify as Melanoma.",
+      "feature": "regression_with_peripheral_globules",
+      "favors": "Melanoma",
+      "confidence": "medium",
+      "preconditions": [
+        "Regression structures are present: a gray-blue or pink-gray structureless area within the lesion",
+        "Irregular dark peripheral dots or globules are present at the rim of the lesion"
+      ],
+      "rationale": "The combination of regression and irregular peripheral dots/globules is the core melanoma-specific signal; this level fires broadly to maximize recall."
+    },
+    {
+      "level": 2,
+      "label": "moderate",
+      "rule": "When a dermoscopic lesion shows regression structures (gray-blue or pink-gray structureless areas) combined with irregular dark peripheral dots or globules unevenly distributed, AND at least three distinct colors are present — classify as Melanoma.",
+      "feature": "regression_peripheral_globules_multicolor",
+      "favors": "Melanoma",
+      "confidence": "high",
+      "preconditions": [
+        "Regression structures are present: a gray-blue or pink-gray structureless area within the lesion",
+        "Irregular dark peripheral dots or globules are present and unevenly distributed at the rim",
+        "At least three distinct colors are visible (e.g. light brown, dark brown, gray-blue or pink-gray)",
+        "The lesion does NOT consist of a uniform reticular network with regular meshwork and gradual fade-out (banal nevus pattern)"
+      ],
+      "rationale": "Adding the ≥3-color requirement and banal nevus exclusion improves precision while retaining adequate recall."
+    },
+    {
+      "level": 3,
+      "label": "original",
+      "rule": "When the lesion is highly asymmetric with at least three distinct hues (light brown, dark brown, gray-blue or pink-gray regression area), has an irregular notched border, shows irregular dark peripheral globules unevenly concentrated on one side, and contains a central structureless pink-gray or gray-blue regression zone — classify as Melanoma. Do NOT require ulceration or clinical history of growth; these dermoscopic features are themselves sufficient.",
+      "feature": "asymmetric_multicolor_regression_irregular_globules",
+      "favors": "Melanoma",
+      "confidence": "high",
+      "preconditions": [
+        "Lesion is clearly asymmetric in both shape and pigment distribution",
+        "At least three distinct colors are present: light brown, dark brown, and either gray-blue or pink-gray (regression structures)",
+        "Border is irregular and notched, not smooth or oval",
+        "Irregular dark peripheral globules or dots are present and unevenly distributed — concentrated on one side or one pole",
+        "A central or eccentric structureless pink-gray or gray-blue zone is present (regression)",
+        "The lesion does NOT consist of a uniform reticular network with regular meshwork and gradual fade-out (banal nevus pattern)",
+        "The lesion does NOT show evenly-sized, evenly-distributed globules in a symmetric arrangement (globular nevus pattern)",
+        "DO NOT require ulceration, bleeding, or clinical history of growth — the dermoscopic multi-component pattern above is sufficient",
+        "The lesion is a flat or minimally elevated pigmented lesion visible dermoscopically — not a clearly raised nodule or cyst",
+        "No features of seborrheic keratosis are present (no milia-like cysts, no comedo-like openings, no cerebriform pattern)"
+      ],
+      "rationale": "Original rule as authored — copy unchanged."
+    },
+    {
+      "level": 4,
+      "label": "most_specific",
+      "rule": "When the lesion is highly asymmetric with at least three distinct hues (light brown, dark brown, gray-blue or pink-gray regression area), has an irregular notched border, shows irregular dark peripheral globules unevenly concentrated on one side, and contains a central structureless pink-gray or gray-blue regression zone — classify as Melanoma. Critically, the topographic polarity must be correct: the regression zone (gray-blue or pink-gray) occupies the center or an eccentric interior position while the dark dots/globules are at the periphery — NOT a dark central blotch surrounded by a light halo.",
+      "feature": "asymmetric_multicolor_central_regression_peripheral_globules_correct_polarity",
+      "favors": "Melanoma",
+      "confidence": "high",
+      "preconditions": [
+        "Lesion is clearly asymmetric in both shape and pigment distribution",
+        "At least three distinct colors are present: light brown, dark brown, and either gray-blue or pink-gray (regression structures)",
+        "Border is irregular and notched, not smooth or oval",
+        "Irregular dark peripheral globules or dots are present and unevenly distributed — concentrated on one side or one pole",
+        "A central or eccentric structureless pink-gray or gray-blue zone is present (regression)",
+        "The lesion does NOT consist of a uniform reticular network with regular meshwork and gradual fade-out (banal nevus pattern)",
+        "The lesion does NOT show evenly-sized, evenly-distributed globules in a symmetric arrangement (globular nevus pattern)",
+        "DO NOT require ulceration, bleeding, or clinical history of growth — the dermoscopic multi-component pattern above is sufficient",
+        "The lesion is a flat or minimally elevated pigmented lesion visible dermoscopically — not a clearly raised nodule or cyst",
+        "No features of seborrheic keratosis are present (no milia-like cysts, no comedo-like openings, no cerebriform pattern)",
+        "The topographic arrangement shows the regression zone (gray-blue or pink-gray structureless area) centrally or eccentrically WITHIN the lesion, with dark dots/globules at the periphery — NOT a dark central blotch surrounded by lighter pink-gray areas peripherally (inverted polarity pattern of certain dysplastic nevi)"
+      ],
+      "rationale": "Adds the topographic polarity constraint identified in contrastive analysis: melanomas show central regression + peripheral globules, while the FP nevus showed inverted polarity (dark center, light surround). This should eliminate the FP without sacrificing TP recall."
+    }
+  ]
+}

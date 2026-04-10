@@ -1,0 +1,65 @@
+{
+  "summary": {
+    "correct": 2,
+    "total": 2,
+    "accuracy": 1.0,
+    "avg_ms": 4669.5,
+    "total_cost_usd": 0.004104,
+    "avg_cost_usd": 0.002052,
+    "total_input_tokens": 0,
+    "total_output_tokens": 0,
+    "total_cache_creation": 0,
+    "total_cache_read": 0,
+    "total_api_calls": 2,
+    "model": "meta-llama/llama-4-maverick",
+    "dataset": "derm-ham10000",
+    "timestamp": "2026-04-06T08:55:35Z",
+    "rules": {
+      "total": 52,
+      "active": 52,
+      "candidates": 0,
+      "flagged": 0,
+      "deprecated": 0,
+      "archived": 0,
+      "total_fired": 0,
+      "total_succeeded": 0
+    }
+  },
+  "per_pair": {
+    "melanoma_vs_melanocytic_nevus": {
+      "correct": 2,
+      "total": 2,
+      "accuracy": 1.0
+    }
+  },
+  "tasks": [
+    {
+      "task_id": "melanoma_vs_melanocytic_nevus_ISIC_0024315",
+      "pair_id": "melanoma_vs_melanocytic_nevus",
+      "predicted_label": "Melanoma",
+      "correct_label": "Melanoma",
+      "correct": true,
+      "confidence": 0.8,
+      "reasoning": "The lesion exhibits asymmetry, irregular borders, and multiple colors, including dark brown and black, which are concerning features for melanoma. The presence of surrounding smaller pigmented lesions may indicate a dysplastic field effect or satellite metastases, further raising suspicion for malignancy.",
+      "duration_ms": 5257,
+      "cost_usd": 0.0037890000000000003,
+      "api_calls": 1,
+      "model": "meta-llama/llama-4-maverick",
+      "baseline_mode": "zero_shot"
+    },
+    {
+      "task_id": "melanoma_vs_melanocytic_nevus_ISIC_0024350",
+      "pair_id": "melanoma_vs_melanocytic_nevus",
+      "predicted_label": "Melanocytic Nevus",
+      "correct_label": "Melanocytic Nevus",
+      "correct": true,
+      "confidence": 0.8,
+      "reasoning": "The lesion appears relatively symmetric with a uniform dark brown color and no clear signs of melanoma-specific dermoscopic criteria such as atypical network, blue-white veil, or irregular streaks. The presence of a few hair follicles within the lesion is common in both nevi and melanomas, but the overall benign appearance suggests a melanocytic nevus.",
+      "duration_ms": 4082,
+      "cost_usd": 0.0003150000000000002,
+      "api_calls": 1,
+      "model": "meta-llama/llama-4-maverick",
+      "baseline_mode": "zero_shot"
+    }
+  ]
+}

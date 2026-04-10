@@ -1,0 +1,1 @@
+{"precondition_met": false, "would_predict": null, "observations": "Small dark red-brown lesion, roughly symmetric outline, one to two hues with darker center. No gray-blue, no white regression, no blue-white veil, no streaks/pseudopods, no atypical pigment network, no irregular dark peripheral globules unevenly distributed. Strict preconditions fail."}

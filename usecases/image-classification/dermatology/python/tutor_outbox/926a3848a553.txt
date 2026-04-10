@@ -1,0 +1,1 @@
+{"precondition_met": false, "would_predict": null, "observations": "Small symmetric round lesion with brown peripheral ring and central pink area. Two hues, smooth border. No gray-blue, no white regression, no blue-white veil, no streaks/pseudopods, no atypical pigment network, no irregular dark peripheral globules. Strict preconditions fail."}

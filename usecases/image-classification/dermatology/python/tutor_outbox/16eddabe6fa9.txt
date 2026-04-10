@@ -1,0 +1,1 @@
+{"precondition_met": true, "would_predict": "melanoma", "observations": "Highly asymmetric notched lesion with three or more hues (light brown, dark brown, near-black, central gray-blue/white area) and central blue-white veil-like structureless region. Border very irregular. Pattern matches the rule's melanoma-specific preconditions (asymmetry + multi-hue + blue-white veil)."}

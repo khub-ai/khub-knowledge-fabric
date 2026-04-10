@@ -1,0 +1,553 @@
+{
+  "cheap_model": "o4-mini",
+  "expert_model": "claude-sonnet-4-6",
+  "patch_rules_file": "C:\\_backup\\github\\khub-knowledge-fabric\\usecases\\image-classification\\dermatology\\python\\patch_rules_clean.json",
+  "dry_run": false,
+  "total_tasks": 6,
+  "failures_before": 2,
+  "rules_authored": 2,
+  "rules_accepted": 1,
+  "rules_registered": 1,
+  "cross_pair_events": [],
+  "patch_records": [
+    {
+      "task_id": "basal_cell_carcinoma_vs_benign_keratosis_ISIC_0024336",
+      "pair_id": "basal_cell_carcinoma_vs_benign_keratosis",
+      "wrong_prediction": "uncertain",
+      "correct_label": "Benign Keratosis",
+      "candidate_rule": {
+        "rule": "When a lesion displays a central zone of mixed brown-to-purple granular pigmentation with a 'moth-eaten' or fissured surface texture, surrounded by a diffuse hazy whitish-brown peripheral halo lacking arborizing vessels or spoke-wheel structures, classify as Benign Keratosis.",
+        "feature": "central mixed brown-to-purple granular pigmentation with moth-eaten surface and diffuse whitish-brown peripheral halo",
+        "favors": "Benign Keratosis",
+        "confidence": "high",
+        "preconditions": [
+          "Central lesion body shows coarse, granular, heterogeneous pigmentation mixing brown and purple-red hues without discrete globules or nests",
+          "Surface texture appears fissured, cerebriform, or moth-eaten rather than smooth or ulcerated",
+          "Presence of whitish or milky structureless areas consistent with milia-like cysts or surface keratin within or adjacent to pigmented zone",
+          "Peripheral border fades into a diffuse brownish haze (finger-print pattern remnant) rather than forming sharp rolled edges",
+          "Complete absence of arborizing (telangiectatic) vessels, spoke-wheel areas, or blue-grey ovoid nests that would indicate Basal Cell Carcinoma",
+          "Overall lesion color palette restricted to brown, purple-red, and white without blue-grey globular structures",
+          "Lesion has a sharply demarcated, 'stuck-on' or warty overall appearance consistent with a keratinizing epidermal proliferation",
+          "Comedo-like openings (crypts) or hairpin vessels are absent or, if hairpin vessels are present, they appear within a keratinous surface context rather than a pearly background",
+          "No pearly, translucent, or shiny white rolled border is present anywhere around the lesion periphery",
+          "Absence of ulceration or erosion that would raise suspicion for basal cell carcinoma",
+          "Lesion shows no network of atypical pigment network or regression structures (white scar-like areas with blue-grey peppering) that would suggest a melanocytic or BCC origin"
+        ],
+        "rationale": "Benign keratoses (seborrheic keratosis, lichenoid keratosis) characteristically exhibit surface keratin-related structures (milia-like cysts, comedo-like openings), a cerebriform/fissured texture, and a mixed brown-purple granular pigmentation that reflects their epidermal origin. The peripheral diffuse brownish haze corresponds to a residual fingerprint or jelly-sign pattern. BCC, by contrast, requires arborizing vessels, blue-grey ovoid nests, spoke-wheel structures, or ulceration. The complete absence of vascular and blue-grey BCC criteria combined with keratosis-specific surface features should override model uncertainty and yield a confident Benign Keratosis classification.",
+        "added_preconditions": [
+          "Lesion has a sharply demarcated, 'stuck-on' or warty overall appearance consistent with a keratinizing epidermal proliferation",
+          "Comedo-like openings (crypts) or hairpin vessels are absent or, if hairpin vessels are present, they appear within a keratinous surface context rather than a pearly background",
+          "No pearly, translucent, or shiny white rolled border is present anywhere around the lesion periphery",
+          "Absence of ulceration or erosion that would raise suspicion for basal cell carcinoma",
+          "Lesion shows no network of atypical pigment network or regression structures (white scar-like areas with blue-grey peppering) that would suggest a melanocytic or BCC origin"
+        ],
+        "completion_rationale": "A trained dermoscopist automatically expects a seborrhoeic keratosis to carry the hallmark 'stuck-on' macroscopic gestalt and surface keratinisation (comedo-like openings, cerebriform ridges) as positive background markers, and would immediately reject the BK diagnosis if a pearly rolled border, ulceration, or regression structures were visible \u2014 even in the absence of classic arborizing vessels. These background expectations were implicit in the expert's framing but unwritten, leaving loopholes for pigmented BCC variants or regressed melanocytic lesions that could share granular purple pigmentation and a hazy periphery while displaying a pearly rim, erosion, or blue-grey peppering that the original rule did not exclude."
+      },
+      "semantic_validation": {
+        "precondition_ratings": [
+          {
+            "precondition": "Central lesion body shows coarse, granular, heterogeneous pigmentation mixing brown and purple-red hues without discrete globules or nests",
+            "rating": "context_dependent",
+            "comment": "Coarse heterogeneous pigmentation with purple-red hues can occur in seborrheic keratosis but also in pigmented BCC and melanoma, making this discriminating only when combined with other SK-specific features."
+          },
+          {
+            "precondition": "Surface texture appears fissured, cerebriform, or moth-eaten rather than smooth or ulcerated",
+            "rating": "reliable",
+            "comment": "Cerebriform or fissured (moth-eaten) surface texture is a well-established hallmark of seborrheic keratosis and is rarely seen in BCC, which typically presents as smooth, pearly, or ulcerated."
+          },
+          {
+            "precondition": "Presence of whitish or milky structureless areas consistent with milia-like cysts or surface keratin within or adjacent to pigmented zone",
+            "rating": "reliable",
+            "comment": "Milia-like cysts and surface keratin are classic SK dermoscopic features and are not characteristic of BCC, which instead may show shiny white structures but not true milia-like cysts."
+          },
+          {
+            "precondition": "Peripheral border fades into a diffuse brownish haze (finger-print pattern remnant) rather than forming sharp rolled edges",
+            "rating": "reliable",
+            "comment": "Fingerprint-like or fading brownish peripheral pattern is characteristic of flat seborrheic keratoses and is not a feature of BCC, which tends to have rolled, pearly borders."
+          },
+          {
+            "precondition": "Complete absence of arborizing (telangiectatic) vessels, spoke-wheel areas, or blue-grey ovoid nests that would indicate Basal Cell Carcinoma",
+            "rating": "reliable",
+            "comment": "Arborizing vessels, spoke-wheel structures, and blue-grey ovoid nests are highly specific for BCC; their absence meaningfully reduces BCC probability and supports a benign keratosis diagnosis."
+          },
+          {
+            "precondition": "Overall lesion color palette restricted to brown, purple-red, and white without blue-grey globular structures",
+            "rating": "context_dependent",
+            "comment": "While absence of blue-grey globules helps exclude BCC, a brown-purple-white palette alone is insufficient as it can overlap with pigmented SK, melanoma, and irritated lesions, requiring additional structural features for reliable discrimination."
+          },
+          {
+            "precondition": "Lesion has a sharply demarcated, 'stuck-on' or warty overall appearance consistent with a keratinizing epidermal proliferation",
+            "rating": "reliable",
+            "comment": "A stuck-on, warty macroscopic and dermoscopic appearance is a classic clinical hallmark of seborrheic keratosis and is inconsistent with the typical flat, nodular, or infiltrative morphology of BCC."
+          },
+          {
+            "precondition": "Comedo-like openings (crypts) or hairpin vessels are absent or, if hairpin vessels are present, they appear within a keratinous surface context rather than a pearly background",
+            "rating": "context_dependent",
+            "comment": "Comedo-like openings support SK but their absence is non-specific; hairpin vessels can occur in SK but also in other tumors, making this precondition discriminating only when the keratinous context is clearly established."
+          },
+          {
+            "precondition": "No pearly, translucent, or shiny white rolled border is present anywhere around the lesion periphery",
+            "rating": "reliable",
+            "comment": "A pearly or translucent rolled border is a defining BCC feature; its confirmed absence is a strong negative criterion that meaningfully supports exclusion of BCC."
+          },
+          {
+            "precondition": "Absence of ulceration or erosion that would raise suspicion for basal cell carcinoma",
+            "rating": "unreliable",
+            "comment": "Ulceration and erosion can occur in irritated or traumatized seborrheic keratoses and are therefore not reliably discriminating between SK and BCC when used as a stand-alone criterion."
+          },
+          {
+            "precondition": "Lesion shows no network of atypical pigment network or regression structures (white scar-like areas with blue-grey peppering) that would suggest a melanocytic or BCC origin",
+            "rating": "context_dependent",
+            "comment": "Absence of regression structures and atypical network is helpful but primarily excludes melanoma and pigmented BCC; since many BCCs lack these features, this criterion adds limited additional discriminating power specifically against BCC."
+          }
+        ],
+        "overall": "revise",
+        "rationale": "The rule captures a coherent and clinically recognizable dermoscopic profile of seborrheic keratosis, and several pre-conditions (cerebriform texture, milia-like cysts, stuck-on appearance, absent pearly border, absent BCC-specific vascular and structural features) are individually reliable discriminators. However, precondition 10 (absence of ulceration) is unreliable as a BCC exclusion criterion because SK itself can ulcerate or erode, and preconditions 1, 6, 8, and 11 are context-dependent and add noise rather than diagnostic clarity as stand-alone gates. Revising or consolidating these weaker preconditions\u2014particularly removing ulceration absence as a BCC discriminator\u2014would strengthen the rule's specificity before image validation."
+      },
+      "validation": {
+        "fires_on_trigger": false,
+        "tp": 1,
+        "fp": 0,
+        "tn": 8,
+        "fn": 7,
+        "precision": 1.0,
+        "recall": 0.125,
+        "accepted": false,
+        "rejection_reason": "did not fire on trigger"
+      },
+      "spectrum_history": [
+        {
+          "level": 0,
+          "label": "pre_completion",
+          "n_preconditions": 6,
+          "rule": {
+            "rule": "When a lesion displays a central zone of mixed brown-to-purple granular pigmentation with a 'moth-eaten' or fissured surface texture, surrounded by a diffuse hazy whitish-brown peripheral halo lacking arborizing vessels or spoke-wheel structures, classify as Benign Keratosis.",
+            "feature": "granular_fissured_pigmentation_with_milia_like_pattern",
+            "favors": "Benign Keratosis",
+            "confidence": "high",
+            "preconditions": [
+              "Central lesion body shows coarse, granular, heterogeneous pigmentation mixing brown and purple-red hues without discrete globules or nests",
+              "Surface texture appears fissured, cerebriform, or moth-eaten rather than smooth or ulcerated",
+              "Presence of whitish or milky structureless areas consistent with milia-like cysts or surface keratin within or adjacent to pigmented zone",
+              "Peripheral border fades into a diffuse brownish haze (finger-print pattern remnant) rather than forming sharp rolled edges",
+              "Complete absence of arborizing (telangiectatic) vessels, spoke-wheel areas, or blue-grey ovoid nests that would indicate Basal Cell Carcinoma",
+              "Overall lesion color palette restricted to brown, purple-red, and white without blue-grey globular structures"
+            ],
+            "rationale": "Benign keratoses (seborrheic keratosis, lichenoid keratosis) characteristically exhibit surface keratin-related structures (milia-like cysts, comedo-like openings), a cerebriform/fissured texture, and a mixed brown-purple granular pigmentation that reflects their epidermal origin. The peripheral diffuse brownish haze corresponds to a residual fingerprint or jelly-sign pattern. BCC, by contrast, requires arborizing vessels, blue-grey ovoid nests, spoke-wheel structures, or ulceration. The complete absence of vascular and blue-grey BCC criteria combined with keratosis-specific surface features should override model uncertainty and yield a confident Benign Keratosis classification.",
+            "label": "pre_completion",
+            "level": 0
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 5,
+            "fp": 3,
+            "tn": 5,
+            "fn": 3,
+            "precision": 0.625,
+            "recall": 0.625,
+            "accepted": false,
+            "rejection_reason": "fp=3 > 1"
+          },
+          "accepted": false
+        },
+        {
+          "level": 1,
+          "label": "most_general",
+          "n_preconditions": 1,
+          "rule": {
+            "level": 1,
+            "label": "most_general",
+            "rule": "When a lesion displays a fissured, cerebriform, or moth-eaten surface texture with mixed brown and purple-red granular pigmentation, classify as Benign Keratosis.",
+            "feature": "cerebriform_moth_eaten_surface_texture",
+            "favors": "Benign Keratosis",
+            "confidence": "medium",
+            "preconditions": [
+              "Surface texture appears fissured, cerebriform, or moth-eaten with coarse granular heterogeneous pigmentation mixing brown and purple-red hues"
+            ],
+            "rationale": "Cerebriform or moth-eaten surface texture with mixed brown-purple granular pigmentation is the single most characteristic dermoscopic hallmark of seborrhoeic keratosis (Benign Keratosis) and is rarely reproduced in Basal Cell Carcinoma, which instead tends to show smooth, translucent, or ulcerated surfaces with arborizing vessels."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 4,
+            "fp": 5,
+            "tn": 3,
+            "fn": 4,
+            "precision": 0.444,
+            "recall": 0.5,
+            "accepted": false,
+            "rejection_reason": "fp=5 > 1"
+          },
+          "accepted": false
+        },
+        {
+          "level": 2,
+          "label": "moderate",
+          "n_preconditions": 2,
+          "rule": {
+            "level": 2,
+            "label": "moderate",
+            "rule": "When a lesion displays a fissured, cerebriform, or moth-eaten surface texture with mixed brown and purple-red granular pigmentation AND shows complete absence of arborizing telangiectatic vessels or blue-grey ovoid nests, classify as Benign Keratosis.",
+            "feature": "cerebriform_texture_without_bcc_vessels",
+            "favors": "Benign Keratosis",
+            "confidence": "medium",
+            "preconditions": [
+              "Surface texture appears fissured, cerebriform, or moth-eaten with coarse granular heterogeneous pigmentation mixing brown and purple-red hues",
+              "Complete absence of arborizing (telangiectatic) vessels or blue-grey ovoid nests that would indicate Basal Cell Carcinoma"
+            ],
+            "rationale": "Adding the explicit exclusion of BCC-specific vascular and structural features (arborizing vessels, blue-grey ovoid nests) to the core surface texture criterion meaningfully reduces false positive classification of pigmented BCC, which may share some surface irregularity but reliably exhibits these BCC-defining structures."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 4,
+            "fp": 5,
+            "tn": 3,
+            "fn": 4,
+            "precision": 0.444,
+            "recall": 0.5,
+            "accepted": false,
+            "rejection_reason": "fp=5 > 1"
+          },
+          "accepted": false
+        },
+        {
+          "level": 3,
+          "label": "original",
+          "n_preconditions": 6,
+          "rule": {
+            "level": 3,
+            "label": "original",
+            "rule": "When a lesion displays a central zone of mixed brown-to-purple granular pigmentation with a 'moth-eaten' or fissured surface texture, surrounded by a diffuse hazy whitish-brown peripheral halo lacking arborizing vessels or spoke-wheel structures, classify as Benign Keratosis.",
+            "feature": "moth_eaten_granular_pigmentation_with_hazy_peripheral_halo",
+            "favors": "Benign Keratosis",
+            "confidence": "medium",
+            "preconditions": [
+              "Central lesion body shows coarse, granular, heterogeneous pigmentation mixing brown and purple-red hues without discrete globules or nests",
+              "Surface texture appears fissured, cerebriform, or moth-eaten rather than smooth or ulcerated",
+              "Presence of whitish or milky structureless areas consistent with milia-like cysts or surface keratin within or adjacent to pigmented zone",
+              "Peripheral border fades into a diffuse brownish haze (finger-print pattern remnant) rather than forming sharp rolled edges",
+              "Complete absence of arborizing (telangiectatic) vessels, spoke-wheel areas, or blue-grey ovoid nests that would indicate Basal Cell Carcinoma",
+              "Overall lesion color palette restricted to brown, purple-red, and white without blue-grey globular structures"
+            ],
+            "rationale": "This is the original expert rule reproduced unchanged. It combines the positive seborrhoeic keratosis features (cerebriform texture, mixed brown-purple granular pigmentation, milia-like cysts, fingerprint-pattern peripheral haze) with explicit exclusion of BCC hallmarks, providing a balanced specificity-sensitivity trade-off."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 5,
+            "fp": 3,
+            "tn": 5,
+            "fn": 3,
+            "precision": 0.625,
+            "recall": 0.625,
+            "accepted": false,
+            "rejection_reason": "fp=3 > 1"
+          },
+          "accepted": false
+        },
+        {
+          "level": 4,
+          "label": "most_specific",
+          "n_preconditions": 8,
+          "rule": {
+            "level": 4,
+            "label": "most_specific",
+            "rule": "When a lesion displays a central zone of mixed brown-to-purple granular pigmentation with a 'moth-eaten' or fissured surface texture, surrounded by a diffuse hazy whitish-brown peripheral halo lacking arborizing vessels or spoke-wheel structures, AND additionally shows at least one unequivocal milia-like cyst or comedo-like opening within the lesion body AND the peripheral haze demonstrates a discernible fingerprint or sulci-gyri pattern rather than homogeneous structureless pigmentation, classify as Benign Keratosis.",
+            "feature": "moth_eaten_texture_with_milia_cysts_and_fingerprint_periphery",
+            "favors": "Benign Keratosis",
+            "confidence": "low",
+            "preconditions": [
+              "Central lesion body shows coarse, granular, heterogeneous pigmentation mixing brown and purple-red hues without discrete globules or nests",
+              "Surface texture appears fissured, cerebriform, or moth-eaten rather than smooth or ulcerated",
+              "Presence of whitish or milky structureless areas consistent with milia-like cysts or surface keratin within or adjacent to pigmented zone",
+              "Peripheral border fades into a diffuse brownish haze (finger-print pattern remnant) rather than forming sharp rolled edges",
+              "Complete absence of arborizing (telangiectatic) vessels, spoke-wheel areas, or blue-grey ovoid nests that would indicate Basal Cell Carcinoma",
+              "Overall lesion color palette restricted to brown, purple-red, and white without blue-grey globular structures",
+              "At least one unequivocal milia-like cyst or comedo-like opening is identifiable within the lesion body",
+              "The peripheral haze demonstrates a discernible fingerprint or sulci-gyri microstructure rather than homogeneous featureless pigmentation"
+            ],
+            "rationale": "In the absence of empirical TP/FP cases for contrastive analysis, the most defensible tightening strategy is to require two additional positive confirmatory features that are pathognomonic for seborrhoeic keratosis \u2014 milia-like cysts/comedo-like openings and a structured fingerprint periphery \u2014 both of which are highly specific to Benign Keratosis and exceedingly rare in BCC. This maximises precision at the cost of recall, appropriately flagging only the most unambiguous cases."
+          },
+          "validation": {
+            "fires_on_trigger": false,
+            "tp": 0,
+            "fp": 0,
+            "tn": 8,
+            "fn": 8,
+            "precision": 0.0,
+            "recall": 0.0,
+            "accepted": false,
+            "rejection_reason": "did not fire on trigger"
+          },
+          "accepted": false
+        }
+      ],
+      "accepted": false,
+      "registered": false
+    },
+    {
+      "task_id": "basal_cell_carcinoma_vs_benign_keratosis_ISIC_0024420",
+      "pair_id": "basal_cell_carcinoma_vs_benign_keratosis",
+      "wrong_prediction": "uncertain",
+      "correct_label": "Benign Keratosis",
+      "candidate_rule": {
+        "rule": "When a small pigmented lesion on a hair-bearing skin area shows a loosely clustered, moth-eaten or comedo-like arrangement of brown-to-dark brown pigment granules without arborizing telangiectasias, leaf-like structures, spoke-wheel areas, or blue-gray ovoid nests, and the surrounding skin displays diffuse erythema with a fine vascular blush rather than discrete arborizing vessels, classify as Benign Keratosis.",
+        "feature": "comedo_like_pigment_cluster_without_bcc_specific_structures",
+        "favors": "Benign Keratosis",
+        "confidence": "medium",
+        "preconditions": [
+          "Lesion located on hair-bearing skin with multiple terminal hairs traversing the field",
+          "Pigment aggregates are loosely clustered, granular, and brownish-dark in tone without sharp geometric edges",
+          "Absence of arborizing (tree-like) telangiectasias \u2014 the hallmark vascular pattern of BCC",
+          "Absence of blue-gray ovoid nests, leaf-like areas, or spoke-wheel structures characteristic of BCC",
+          "Absence of ulceration or shiny white structureless areas (chrysalis structures) associated with BCC",
+          "Background skin shows diffuse pinkish-red blush (superficial erythema) rather than focal, bright arborizing vessels",
+          "Pigment distribution is non-homogeneous but macular/flat in appearance without raised nodular dermoscopic correlates"
+        ],
+        "rationale": "Basal Cell Carcinoma on hair-bearing skin typically exhibits pathognomonic structures: arborizing telangiectasias, blue-gray ovoid nests, leaf-like areas, and spoke-wheel patterns. This lesion shows none of these; instead it presents with loosely arranged brownish comedo-like pigment granules on a diffusely erythematous background \u2014 a pattern consistent with a seborrheic keratosis or other benign keratosis (e.g., lentigo/solar keratosis). The diffuse vascular blush rather than discrete arborizing vessels effectively excludes BCC, while the granular macular pigmentation without BCC-specific structures supports Benign Keratosis.",
+        "label": "pre_completion",
+        "level": 0
+      },
+      "semantic_validation": {
+        "precondition_ratings": [
+          {
+            "precondition": "Lesion located on hair-bearing skin with multiple terminal hairs traversing the field",
+            "rating": "unreliable",
+            "comment": "Both benign keratoses and BCCs commonly arise on hair-bearing skin (face, scalp, trunk), so this anatomical feature provides no meaningful discrimination between the two classes."
+          },
+          {
+            "precondition": "Pigment aggregates are loosely clustered, granular, and brownish-dark in tone without sharp geometric edges",
+            "rating": "context_dependent",
+            "comment": "Granular brown pigment aggregates favor seborrheic keratosis but can also appear in pigmented BCC, making this discriminating only when combined with positive SK-specific markers."
+          },
+          {
+            "precondition": "Absence of arborizing (tree-like) telangiectasias \u2014 the hallmark vascular pattern of BCC",
+            "rating": "reliable",
+            "comment": "Arborizing telangiectasias are highly specific for BCC and their absence meaningfully reduces BCC probability, making this a valid negative criterion."
+          },
+          {
+            "precondition": "Absence of blue-gray ovoid nests, leaf-like areas, or spoke-wheel structures characteristic of BCC",
+            "rating": "reliable",
+            "comment": "These pigmented BCC-specific structures are rarely if ever seen in benign keratoses, so their absence is a strong and reliable negative gate against BCC."
+          },
+          {
+            "precondition": "Absence of ulceration or shiny white structureless areas (chrysalis structures) associated with BCC",
+            "rating": "context_dependent",
+            "comment": "Ulceration and chrysalis structures are BCC-associated but are absent in many early or superficial BCCs, limiting the sensitivity of this absence criterion as a stand-alone gate."
+          },
+          {
+            "precondition": "Background skin shows diffuse pinkish-red blush (superficial erythema) rather than focal, bright arborizing vessels",
+            "rating": "unreliable",
+            "comment": "Diffuse erythema is a non-specific finding common to inflamed seborrheic keratoses, eczematized lesions, and superficial BCC alike, and does not reliably distinguish benign keratosis from BCC."
+          },
+          {
+            "precondition": "Pigment distribution is non-homogeneous but macular/flat in appearance without raised nodular dermoscopic correlates",
+            "rating": "unreliable",
+            "comment": "Flat pigment distribution can be seen in both pigmented SK and superficial/early pigmented BCC, and nodularity is absent in many BCCs, making this criterion insufficiently discriminating."
+          },
+          {
+            "precondition": "Presence of at least one classic benign keratosis marker such as milia-like cysts, comedo-like openings, fissures/ridges (cerebriform pattern), or moth-eaten border at the lesion periphery",
+            "rating": "reliable",
+            "comment": "Milia-like cysts, comedo-like openings, cerebriform pattern, and moth-eaten borders are well-validated positive dermoscopic criteria specific to seborrheic keratosis and are not expected in BCC."
+          },
+          {
+            "precondition": "Absence of melanoma-associated structures (atypical pigment network, irregular streaks, regression structures, or blue-white veil) that would redirect classification away from benign keratosis",
+            "rating": "context_dependent",
+            "comment": "While important as a safety gate, ruling out melanoma is orthogonal to the BCC vs. SK distinction and does not directly improve discrimination between these two specific classes."
+          },
+          {
+            "precondition": "Overall lesion surface texture consistent with a keratinocytic/epidermal origin \u2014 i.e., a stuck-on, warty, or keratotic surface appearance \u2014 rather than a smooth translucent or pearly surface typical of BCC",
+            "rating": "reliable",
+            "comment": "A stuck-on warty or keratotic surface texture is a well-recognized hallmark of seborrheic keratosis and is distinctly unlike the smooth, translucent, pearly appearance characteristic of nodular BCC."
+          },
+          {
+            "precondition": "Lesion borders are relatively well-demarcated or show the characteristic moth-eaten scalloped edge expected in seborrheic keratosis, rather than ill-defined infiltrative margins suggestive of BCC",
+            "rating": "reliable",
+            "comment": "Moth-eaten or sharply demarcated scalloped borders are a validated positive SK criterion, and ill-defined infiltrative margins are more characteristic of BCC, making border morphology a useful discriminator here."
+          }
+        ],
+        "overall": "revise",
+        "rationale": "The rule has a sound core: positive SK markers (pre-conditions 3, 4, 8, 10, 11) form a reliable discriminating framework against BCC. However, several pre-conditions are unreliable or non-specific: hair-bearing location (1) does not discriminate, diffuse erythema (6) is non-specific, and flat pigment without nodularity (7) is insufficient on its own. These weak gates risk both false inclusions and unnecessary complexity. The rule should be revised to center on the reliable positive SK markers and the most specific negative BCC markers (arborizing vessels, blue-gray nests, leaf-like areas), while removing or demoting the non-discriminating anatomical and vascular blush criteria."
+      },
+      "validation": {
+        "fires_on_trigger": true,
+        "tp": 4,
+        "fp": 0,
+        "tn": 8,
+        "fn": 4,
+        "precision": 1.0,
+        "recall": 0.5,
+        "accepted": true,
+        "rejection_reason": null
+      },
+      "spectrum_history": [
+        {
+          "level": 0,
+          "label": "pre_completion",
+          "n_preconditions": 7,
+          "rule": {
+            "rule": "When a small pigmented lesion on a hair-bearing skin area shows a loosely clustered, moth-eaten or comedo-like arrangement of brown-to-dark brown pigment granules without arborizing telangiectasias, leaf-like structures, spoke-wheel areas, or blue-gray ovoid nests, and the surrounding skin displays diffuse erythema with a fine vascular blush rather than discrete arborizing vessels, classify as Benign Keratosis.",
+            "feature": "comedo_like_pigment_cluster_without_bcc_specific_structures",
+            "favors": "Benign Keratosis",
+            "confidence": "medium",
+            "preconditions": [
+              "Lesion located on hair-bearing skin with multiple terminal hairs traversing the field",
+              "Pigment aggregates are loosely clustered, granular, and brownish-dark in tone without sharp geometric edges",
+              "Absence of arborizing (tree-like) telangiectasias \u2014 the hallmark vascular pattern of BCC",
+              "Absence of blue-gray ovoid nests, leaf-like areas, or spoke-wheel structures characteristic of BCC",
+              "Absence of ulceration or shiny white structureless areas (chrysalis structures) associated with BCC",
+              "Background skin shows diffuse pinkish-red blush (superficial erythema) rather than focal, bright arborizing vessels",
+              "Pigment distribution is non-homogeneous but macular/flat in appearance without raised nodular dermoscopic correlates"
+            ],
+            "rationale": "Basal Cell Carcinoma on hair-bearing skin typically exhibits pathognomonic structures: arborizing telangiectasias, blue-gray ovoid nests, leaf-like areas, and spoke-wheel patterns. This lesion shows none of these; instead it presents with loosely arranged brownish comedo-like pigment granules on a diffusely erythematous background \u2014 a pattern consistent with a seborrheic keratosis or other benign keratosis (e.g., lentigo/solar keratosis). The diffuse vascular blush rather than discrete arborizing vessels effectively excludes BCC, while the granular macular pigmentation without BCC-specific structures supports Benign Keratosis.",
+            "label": "pre_completion",
+            "level": 0
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 4,
+            "fp": 0,
+            "tn": 8,
+            "fn": 4,
+            "precision": 1.0,
+            "recall": 0.5,
+            "accepted": true,
+            "rejection_reason": null
+          },
+          "accepted": true
+        },
+        {
+          "level": 1,
+          "label": "most_general",
+          "n_preconditions": 1,
+          "rule": {
+            "level": 1,
+            "label": "most_general",
+            "rule": "When a pigmented lesion shows comedo-like openings (round/oval white-yellowish plugged follicular structures within dark pigment) or a moth-eaten scalloped border giving a 'stuck-on' appearance, classify as Benign Keratosis.",
+            "feature": "comedone_like_openings_or_moth_eaten_border",
+            "favors": "Benign Keratosis",
+            "confidence": "high",
+            "preconditions": [
+              "Presence of comedo-like openings (round/oval white-yellowish plugged follicular structures within dark pigment) OR moth-eaten scalloped border with 'stuck-on' appearance indicating keratinocytic/epidermal origin"
+            ],
+            "rationale": "Comedo-like openings and moth-eaten borders are pathognomonic dermoscopic markers of benign seborrhoeic/benign keratosis and are structurally absent in BCC, making either feature alone a strong positive keratinocytic signal that broadly favors this class."
+          },
+          "validation": {
+            "fires_on_trigger": false,
+            "tp": 2,
+            "fp": 0,
+            "tn": 8,
+            "fn": 6,
+            "precision": 1.0,
+            "recall": 0.25,
+            "accepted": false,
+            "rejection_reason": "did not fire on trigger"
+          },
+          "accepted": false
+        },
+        {
+          "level": 2,
+          "label": "moderate",
+          "n_preconditions": 3,
+          "rule": {
+            "level": 2,
+            "label": "moderate",
+            "rule": "When a pigmented lesion shows comedo-like openings or a moth-eaten scalloped border consistent with a 'stuck-on' appearance, AND lacks arborizing (tree-like) telangiectasias and blue-gray ovoid nests or leaf-like structures characteristic of BCC, classify as Benign Keratosis.",
+            "feature": "comedone_openings_or_moth_eaten_border_without_bcc_vascular_structures",
+            "favors": "Benign Keratosis",
+            "confidence": "high",
+            "preconditions": [
+              "Presence of comedo-like openings (round/oval white-yellowish plugged follicular structures within dark pigment) OR moth-eaten scalloped border with 'stuck-on' appearance",
+              "Absence of arborizing (tree-like) telangiectasias \u2014 the hallmark vascular pattern of BCC",
+              "Absence of blue-gray ovoid nests, leaf-like areas, or spoke-wheel structures characteristic of BCC"
+            ],
+            "rationale": "Adding the requirement that canonical BCC structural features are absent begins to exclude BCC mimics while the positive keratinocytic marker (comedo-like openings or moth-eaten border) anchors the classification to benign keratosis."
+          },
+          "validation": {
+            "fires_on_trigger": false,
+            "tp": 2,
+            "fp": 0,
+            "tn": 8,
+            "fn": 6,
+            "precision": 1.0,
+            "recall": 0.25,
+            "accepted": false,
+            "rejection_reason": "did not fire on trigger"
+          },
+          "accepted": false
+        },
+        {
+          "level": 3,
+          "label": "original",
+          "n_preconditions": 7,
+          "rule": {
+            "level": 3,
+            "label": "original",
+            "rule": "When a small pigmented lesion on a hair-bearing skin area shows a loosely clustered, moth-eaten or comedo-like arrangement of brown-to-dark brown pigment granules without arborizing telangiectasias, leaf-like structures, spoke-wheel areas, or blue-gray ovoid nests, and the surrounding skin displays diffuse erythema with a fine vascular blush rather than discrete arborizing vessels, classify as Benign Keratosis.",
+            "feature": "moth_eaten_comedo_like_pigment_without_bcc_features_with_diffuse_erythema",
+            "favors": "Benign Keratosis",
+            "confidence": "high",
+            "preconditions": [
+              "Lesion located on hair-bearing skin with multiple terminal hairs traversing the field",
+              "Pigment aggregates are loosely clustered, granular, and brownish-dark in tone without sharp geometric edges",
+              "Absence of arborizing (tree-like) telangiectasias \u2014 the hallmark vascular pattern of BCC",
+              "Absence of blue-gray ovoid nests, leaf-like areas, or spoke-wheel structures characteristic of BCC",
+              "Absence of ulceration or shiny white structureless areas (chrysalis structures) associated with BCC",
+              "Background skin shows diffuse pinkish-red blush (superficial erythema) rather than focal, bright arborizing vessels",
+              "Pigment distribution is non-homogeneous but macular/flat in appearance without raised nodular dermoscopic correlates"
+            ],
+            "rationale": "This is the original expert rule preserved unchanged, combining a comprehensive set of positive keratinocytic pigment pattern descriptors with systematic exclusion of all major BCC dermoscopic hallmarks and vascular patterns."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 4,
+            "fp": 0,
+            "tn": 8,
+            "fn": 4,
+            "precision": 1.0,
+            "recall": 0.5,
+            "accepted": true,
+            "rejection_reason": null
+          },
+          "accepted": true
+        },
+        {
+          "level": 4,
+          "label": "most_specific",
+          "n_preconditions": 8,
+          "rule": {
+            "level": 4,
+            "label": "most_specific",
+            "rule": "When a small pigmented lesion on a hair-bearing skin area shows a loosely clustered, moth-eaten or comedo-like arrangement of brown-to-dark brown pigment granules without arborizing telangiectasias, leaf-like structures, spoke-wheel areas, or blue-gray ovoid nests, and the surrounding skin displays diffuse erythema with a fine vascular blush rather than discrete arborizing vessels, AND the lesion additionally demonstrates both comedo-like openings (round/oval white-yellowish plugged follicular structures embedded within the dark pigment mass) AND a moth-eaten scalloped lesion border collectively producing a 'stuck-on' epidermal appearance pathognomonic of keratinocytic origin, classify as Benign Keratosis.",
+            "feature": "comedone_openings_plus_moth_eaten_border_stuck_on_appearance_with_all_original_criteria",
+            "favors": "Benign Keratosis",
+            "confidence": "high",
+            "preconditions": [
+              "Lesion located on hair-bearing skin with multiple terminal hairs traversing the field",
+              "Pigment aggregates are loosely clustered, granular, and brownish-dark in tone without sharp geometric edges",
+              "Absence of arborizing (tree-like) telangiectasias \u2014 the hallmark vascular pattern of BCC",
+              "Absence of blue-gray ovoid nests, leaf-like areas, or spoke-wheel structures characteristic of BCC",
+              "Absence of ulceration or shiny white structureless areas (chrysalis structures) associated with BCC",
+              "Background skin shows diffuse pinkish-red blush (superficial erythema) rather than focal, bright arborizing vessels",
+              "Pigment distribution is non-homogeneous but macular/flat in appearance without raised nodular dermoscopic correlates",
+              "Simultaneous presence of comedo-like openings (round/oval white-yellowish plugged follicular structures within the dark pigment mass) AND a moth-eaten scalloped lesion border producing a 'stuck-on' epidermal appearance, collectively confirming keratinocytic/epidermal origin"
+            ],
+            "rationale": "The tightening condition demands both positive keratinocytic structural markers \u2014 comedo-like openings AND moth-eaten scalloped border \u2014 to be present together, not merely the absence of BCC features. This requirement for dual pathognomonic keratinocytic signs maximises precision by ensuring the classification rests on affirmative epidermal evidence rather than exclusion alone, and should eliminate any residual BCC cases that might incidentally lack some BCC-specific features."
+          },
+          "validation": {
+            "fires_on_trigger": false,
+            "tp": 2,
+            "fp": 0,
+            "tn": 8,
+            "fn": 6,
+            "precision": 1.0,
+            "recall": 0.25,
+            "accepted": false,
+            "rejection_reason": "did not fire on trigger"
+          },
+          "accepted": false
+        }
+      ],
+      "accepted": true,
+      "registered": true
+    }
+  ]
+}

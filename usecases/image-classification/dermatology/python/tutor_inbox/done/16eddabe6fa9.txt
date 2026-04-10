@@ -1,0 +1,6 @@
+{
+  "request_id": "16eddabe6fa9",
+  "precondition_met": true,
+  "would_predict": "Melanoma",
+  "observations": "Asymmetric, kidney-shaped lesion with notched/scalloped border. Three+ tones present: dark brown rim, near-black center, and brownish patches. Pigment heterogeneous with dark patches abutting lighter ones. Irregular peripheral dots/globules unevenly distributed. Not a uniform reticular nor symmetric globular pattern. Preconditions met."
+}

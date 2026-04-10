@@ -1,0 +1,6 @@
+{
+  "request_id": "5cfc6c11f4d4",
+  "precondition_met": false,
+  "would_predict": null,
+  "observations": "Roughly oval, mildly asymmetric brown lesion on pink skin. Mostly two shades of brown with a slightly darker center; no clear gray-blue, no white regression, no blue-white veil, no atypical pigment network or streaks. Border fades gradually rather than being notched. Strict reading: 3-color, irregular-border, and melanoma-structure preconditions not met."
+}

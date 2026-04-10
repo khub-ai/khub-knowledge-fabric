@@ -1,0 +1,116 @@
+{
+  "cheap_model": "qwen/qwen3-vl-8b-instruct",
+  "expert_model": "claude-tutor",
+  "patch_rules_file": "C:\\_backup\\github\\khub-knowledge-fabric\\usecases\\image-classification\\dermatology\\python\\patch_rules_clean.json",
+  "dry_run": false,
+  "total_tasks": 1,
+  "failures_before": 1,
+  "rules_authored": 1,
+  "rules_accepted": 1,
+  "rules_registered": 1,
+  "cross_pair_events": [],
+  "patch_records": [
+    {
+      "task_id": "melanoma_vs_melanocytic_nevus_ISIC_0024315",
+      "pair_id": "melanoma_vs_melanocytic_nevus",
+      "wrong_prediction": "Melanocytic Nevus",
+      "correct_label": "Melanoma",
+      "candidate_rule": {
+        "rule": "When a pigmented lesion is asymmetric AND shows three or more distinct colors (e.g. dark brown plus gray-blue plus pink/red or white) AND has an irregular/notched border, classify as Melanoma. Do NOT require ulceration \u2014 these dermoscopic features alone are sufficient evidence of melanoma; nevi are typically symmetric, one-or-two-toned brown, with smooth borders.",
+        "feature": "asymmetry_multicolor_irregular_border",
+        "favors": "Melanoma",
+        "confidence": "high",
+        "preconditions": [
+          "Lesion is clearly asymmetric \u2014 one half is not a mirror image of the other in shape OR pigment distribution",
+          "At least three distinct colors are visible within the lesion (e.g. light brown, dark brown/black, gray-blue, pink-red, white regression area)",
+          "Border is irregular, notched, or scalloped \u2014 not smooth/round/oval",
+          "Pigment distribution is heterogeneous (dark patches next to lighter or pink/white areas), not a uniform brown of a banal nevus",
+          "DO NOT demand ulceration, bleeding, or clinical history of growth \u2014 those are NOT required for a dermoscopic melanoma call; the visual ABCD-style features above are themselves sufficient",
+          "An atypical pigment network (broadened, branched, abruptly cut off at the periphery) OR streaks/pseudopods radiating from the edge OR a blue-white veil OR irregular dots/globules unevenly distributed is present \u2014 at least one of these melanoma-specific dermoscopic structures",
+          "The lesion is NOT a uniform reticular network with regular meshwork and gradual fade-out at the periphery (the classic banal nevus pattern)",
+          "The lesion does NOT consist of evenly-sized, evenly-distributed brown globules in a symmetric arrangement (the classic globular nevus pattern)"
+        ],
+        "rationale": "The pupil correctly perceived the asymmetry, irregular borders, and color variegation but then inverted the mapping \u2014 calling those nevus features and demanding ulceration before it would diagnose melanoma. In dermoscopy, exactly the opposite is true: asymmetry + multicolor + irregular borders are the canonical melanoma triad (the ABCD rule), while a typical nevus is symmetric, monochromatic brown, with smooth borders. Ulceration is a late/optional finding, not a precondition. The corrective rule re-anchors the pupil's feature\u2192class mapping and explicitly forbids it from waiving the call when ulceration is absent.",
+        "added_preconditions": [
+          "An atypical pigment network (broadened, branched, abruptly cut off at the periphery) OR streaks/pseudopods radiating from the edge OR a blue-white veil OR irregular dots/globules unevenly distributed is present \u2014 at least one of these melanoma-specific dermoscopic structures",
+          "The lesion is NOT a uniform reticular network with regular meshwork and gradual fade-out at the periphery (the classic banal nevus pattern)",
+          "The lesion does NOT consist of evenly-sized, evenly-distributed brown globules in a symmetric arrangement (the classic globular nevus pattern)"
+        ],
+        "completion_rationale": "The expert listed the ABCD-style summary features but did not spell out the underlying dermoscopic structures (atypical network, streaks/pseudopods, blue-white veil, irregular globules) that are the formal melanoma-specific markers, nor did they exclude the classic benign-nevus patterns (regular reticular and globular). Without those, a naive checker could misfire on an irregular-looking but pattern-benign nevus. Making the structural markers and the benign exclusions explicit closes that loophole."
+      },
+      "semantic_validation": {
+        "precondition_ratings": [
+          {
+            "precondition": "Lesion is clearly asymmetric \u2014 one half is not a mirror image of the other in shape OR pigment distribution",
+            "rating": "reliable",
+            "comment": "Asymmetry is the 'A' of the ABCD rule and a core melanoma discriminator."
+          },
+          {
+            "precondition": "At least three distinct colors are visible within the lesion (e.g. light brown, dark brown/black, gray-blue, pink-red, white regression area)",
+            "rating": "reliable",
+            "comment": "Color variegation \u22653 hues is a well-established melanoma marker; banal nevi are typically one or two hues of brown."
+          },
+          {
+            "precondition": "Border is irregular, notched, or scalloped \u2014 not smooth/round/oval",
+            "rating": "reliable",
+            "comment": "Border irregularity is the 'B' of ABCD and discriminates melanoma from typical round/oval nevi."
+          },
+          {
+            "precondition": "Pigment distribution is heterogeneous (dark patches next to lighter or pink/white areas), not a uniform brown of a banal nevus",
+            "rating": "reliable",
+            "comment": "Heterogeneous pigmentation overlaps with color variegation but adds spatial irregularity, a melanoma marker."
+          },
+          {
+            "precondition": "DO NOT demand ulceration, bleeding, or clinical history of growth \u2014 those are NOT required for a dermoscopic melanoma call; the visual ABCD-style features above are themselves sufficient",
+            "rating": "reliable",
+            "comment": "This is a meta-rule preventing the pupil's specific failure mode (waiving melanoma diagnosis when ulceration absent); not a feature but a necessary instruction."
+          },
+          {
+            "precondition": "An atypical pigment network (broadened, branched, abruptly cut off at the periphery) OR streaks/pseudopods radiating from the edge OR a blue-white veil OR irregular dots/globules unevenly distributed is present \u2014 at least one of these melanoma-specific dermoscopic structures",
+            "rating": "reliable",
+            "comment": "These are the formal melanoma-specific dermoscopic structures from pattern analysis; presence of any one is highly specific."
+          },
+          {
+            "precondition": "The lesion is NOT a uniform reticular network with regular meshwork and gradual fade-out at the periphery (the classic banal nevus pattern)",
+            "rating": "reliable",
+            "comment": "Excludes the most common banal nevus pattern."
+          },
+          {
+            "precondition": "The lesion does NOT consist of evenly-sized, evenly-distributed brown globules in a symmetric arrangement (the classic globular nevus pattern)",
+            "rating": "reliable",
+            "comment": "Excludes the second classic banal nevus pattern."
+          }
+        ],
+        "overall": "accept",
+        "rationale": "The rule combines the canonical ABCD summary features with the formal melanoma-specific dermoscopic structures and explicit exclusions of the two classic banal nevus patterns. Together these are highly specific for melanoma over melanocytic nevus and directly target the pupil's documented failure mode (inverted feature mapping plus demanding ulceration). Safe to proceed to image-level validation."
+      },
+      "validation": {
+        "fires_on_trigger": true,
+        "tp": 5,
+        "fp": 0,
+        "tn": 8,
+        "fn": 3,
+        "precision": 1.0,
+        "recall": 0.625,
+        "accepted": true,
+        "rejection_reason": null,
+        "early_exited": false
+      },
+      "confirmation_validation": {
+        "fires_on_trigger": true,
+        "tp": 5,
+        "fp": 0,
+        "tn": 16,
+        "fn": 11,
+        "precision": 1.0,
+        "recall": 0.312,
+        "accepted": true,
+        "rejection_reason": null,
+        "early_exited": false
+      },
+      "spectrum_history": [],
+      "accepted": true,
+      "registered": true
+    }
+  ]
+}

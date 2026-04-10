@@ -1,0 +1,6 @@
+{
+  "request_id": "89fa2dc916ed",
+  "precondition_met": false,
+  "would_predict": null,
+  "observations": "Asymmetric lesion with central pink/structureless area and faint brown halo. Two-to-three colors (pink, light brown, faint white) but no clear gray-blue, no blue-white veil, no atypical pigment network, no streaks/pseudopods, no irregular dots/globules. The pink central zone reads more as structureless than as melanoma regression. Strict reading: melanoma-specific structure precondition not clearly met."
+}

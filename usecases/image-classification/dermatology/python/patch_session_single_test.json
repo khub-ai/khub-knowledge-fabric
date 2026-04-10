@@ -1,0 +1,733 @@
+{
+  "cheap_model": "qwen/qwen3-vl-8b-instruct",
+  "expert_model": "claude-tutor",
+  "validator_model": "claude-sonnet-4-6",
+  "patch_rules_file": "C:\\_backup\\github\\khub-knowledge-fabric\\usecases\\image-classification\\dermatology\\python\\patch_rules_single_test.json",
+  "dry_run": false,
+  "total_tasks": 6,
+  "failures_before": 3,
+  "failures_processed": 3,
+  "rules_authored": 3,
+  "rules_accepted": 2,
+  "rules_registered": 2,
+  "cross_pair_events": [],
+  "patch_records": [
+    {
+      "task_id": "melanoma_vs_melanocytic_nevus_ISIC_0024315",
+      "pair_id": "melanoma_vs_melanocytic_nevus",
+      "wrong_prediction": "Melanocytic Nevus",
+      "correct_label": "Melanoma",
+      "candidate_rule": {
+        "level": 1,
+        "label": "most_general",
+        "rule": "When a dermoscopic lesion shows regression structures (gray-blue or pink-gray structureless areas) combined with irregular dark peripheral dots or globules \u2014 classify as Melanoma.",
+        "feature": "regression_with_peripheral_globules",
+        "favors": "Melanoma",
+        "confidence": "medium",
+        "preconditions": [
+          "Regression structures are present: a gray-blue or pink-gray structureless area within the lesion",
+          "Irregular dark peripheral dots or globules are present at the rim of the lesion"
+        ],
+        "rationale": "The combination of regression and irregular peripheral dots/globules is the core melanoma-specific signal; this level fires broadly to maximize recall."
+      },
+      "semantic_validation": {
+        "precondition_ratings": [
+          {
+            "precondition": "Lesion is clearly asymmetric in both shape and pigment distribution",
+            "rating": "context_dependent",
+            "comment": "Asymmetry alone is insufficient \u2014 many dysplastic nevi are asymmetric; it is only discriminating in conjunction with other high-risk features."
+          },
+          {
+            "precondition": "At least three distinct colors are present: light brown, dark brown, and either gray-blue or pink-gray (regression structures)",
+            "rating": "reliable",
+            "comment": "Three or more colors including gray-blue or pink-gray regression structures is a strong melanoma indicator rarely seen in benign nevi."
+          },
+          {
+            "precondition": "Border is irregular and notched, not smooth or oval",
+            "rating": "context_dependent",
+            "comment": "Irregular borders occur in dysplastic nevi as well; discriminating only in combination with other features."
+          },
+          {
+            "precondition": "Irregular dark peripheral globules or dots are present and unevenly distributed \u2014 concentrated on one side or one pole",
+            "rating": "reliable",
+            "comment": "Asymmetrically distributed peripheral globules/dots are a well-established melanoma-specific dermoscopic feature not seen in symmetric globular nevi."
+          },
+          {
+            "precondition": "A central or eccentric structureless pink-gray or gray-blue zone is present (regression)",
+            "rating": "reliable",
+            "comment": "Regression structures (gray-blue or pink-white peppering/structureless areas) are a major melanoma-specific dermoscopic criterion."
+          },
+          {
+            "precondition": "The lesion does NOT consist of a uniform reticular network with regular meshwork and gradual fade-out (banal nevus pattern)",
+            "rating": "reliable",
+            "comment": "Correctly excludes the classic reticular nevus pattern; this is a well-defined exclusion criterion."
+          },
+          {
+            "precondition": "The lesion does NOT show evenly-sized, evenly-distributed globules in a symmetric arrangement (globular nevus pattern)",
+            "rating": "reliable",
+            "comment": "Correctly excludes the symmetric globular nevus pattern."
+          },
+          {
+            "precondition": "DO NOT require ulceration, bleeding, or clinical history of growth \u2014 the dermoscopic multi-component pattern above is sufficient",
+            "rating": "reliable",
+            "comment": "Correct meta-instruction: dermoscopic ABCD features are sufficient for melanoma classification without requiring clinical history."
+          },
+          {
+            "precondition": "The lesion is a flat or minimally elevated pigmented lesion visible dermoscopically \u2014 not a clearly raised nodule or cyst",
+            "rating": "context_dependent",
+            "comment": "Useful background exclusion but melanoma can also present as raised nodular lesions; this should not be a hard gate."
+          },
+          {
+            "precondition": "No features of seborrheic keratosis are present (no milia-like cysts, no comedo-like openings, no cerebriform pattern)",
+            "rating": "reliable",
+            "comment": "Correct exclusion \u2014 SK features are clearly distinct and this prevents misfire on pigmented SK."
+          }
+        ],
+        "overall": "accept",
+        "rationale": "The rule's core logic is sound: it requires a conjunction of three well-established melanoma-specific dermoscopic features \u2014 regression structures (gray-blue/pink-gray), asymmetrically distributed peripheral globules, and \u22653 colors \u2014 all of which are rarely seen together in benign nevi. The two context-dependent preconditions (asymmetry, irregular border) are reinforced by the more specific co-occurring criteria, so they function as additional filters rather than stand-alone gates. Proceed to image validation."
+      },
+      "validation": {
+        "fires_on_trigger": true,
+        "tp": 2,
+        "fp": 0,
+        "tn": 4,
+        "fn": 2,
+        "precision": 1.0,
+        "recall": 0.5,
+        "accepted": true,
+        "rejection_reason": null,
+        "early_exited": false
+      },
+      "confirmation_validation": {
+        "fires_on_trigger": true,
+        "tp": 5,
+        "fp": 1,
+        "tn": 7,
+        "fn": 3,
+        "precision": 0.833,
+        "recall": 0.625,
+        "accepted": true,
+        "rejection_reason": null,
+        "early_exited": false
+      },
+      "spectrum_history": [
+        {
+          "level": 1,
+          "label": "most_general",
+          "n_preconditions": 2,
+          "rule": {
+            "level": 1,
+            "label": "most_general",
+            "rule": "When a dermoscopic lesion shows regression structures (gray-blue or pink-gray structureless areas) combined with irregular dark peripheral dots or globules \u2014 classify as Melanoma.",
+            "feature": "regression_with_peripheral_globules",
+            "favors": "Melanoma",
+            "confidence": "medium",
+            "preconditions": [
+              "Regression structures are present: a gray-blue or pink-gray structureless area within the lesion",
+              "Irregular dark peripheral dots or globules are present at the rim of the lesion"
+            ],
+            "rationale": "The combination of regression and irregular peripheral dots/globules is the core melanoma-specific signal; this level fires broadly to maximize recall."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 2,
+            "fp": 0,
+            "tn": 4,
+            "fn": 2,
+            "precision": 1.0,
+            "recall": 0.5,
+            "accepted": true,
+            "rejection_reason": null,
+            "early_exited": false
+          },
+          "accepted": true
+        },
+        {
+          "level": 2,
+          "label": "moderate",
+          "n_preconditions": 4,
+          "rule": {
+            "level": 2,
+            "label": "moderate",
+            "rule": "When a dermoscopic lesion shows regression structures (gray-blue or pink-gray structureless areas) combined with irregular dark peripheral dots or globules unevenly distributed, AND at least three distinct colors are present \u2014 classify as Melanoma.",
+            "feature": "regression_peripheral_globules_multicolor",
+            "favors": "Melanoma",
+            "confidence": "high",
+            "preconditions": [
+              "Regression structures are present: a gray-blue or pink-gray structureless area within the lesion",
+              "Irregular dark peripheral dots or globules are present and unevenly distributed at the rim",
+              "At least three distinct colors are visible (e.g. light brown, dark brown, gray-blue or pink-gray)",
+              "The lesion does NOT consist of a uniform reticular network with regular meshwork and gradual fade-out (banal nevus pattern)"
+            ],
+            "rationale": "Adding the \u22653-color requirement and banal nevus exclusion improves precision while retaining adequate recall."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 2,
+            "fp": 1,
+            "tn": 3,
+            "fn": 2,
+            "precision": 0.667,
+            "recall": 0.5,
+            "accepted": false,
+            "rejection_reason": "precision=0.67 < 0.75",
+            "early_exited": false
+          },
+          "accepted": false
+        },
+        {
+          "level": 3,
+          "label": "original",
+          "n_preconditions": 10,
+          "rule": {
+            "level": 3,
+            "label": "original",
+            "rule": "When the lesion is highly asymmetric with at least three distinct hues (light brown, dark brown, gray-blue or pink-gray regression area), has an irregular notched border, shows irregular dark peripheral globules unevenly concentrated on one side, and contains a central structureless pink-gray or gray-blue regression zone \u2014 classify as Melanoma. Do NOT require ulceration or clinical history of growth; these dermoscopic features are themselves sufficient.",
+            "feature": "asymmetric_multicolor_regression_irregular_globules",
+            "favors": "Melanoma",
+            "confidence": "high",
+            "preconditions": [
+              "Lesion is clearly asymmetric in both shape and pigment distribution",
+              "At least three distinct colors are present: light brown, dark brown, and either gray-blue or pink-gray (regression structures)",
+              "Border is irregular and notched, not smooth or oval",
+              "Irregular dark peripheral globules or dots are present and unevenly distributed \u2014 concentrated on one side or one pole",
+              "A central or eccentric structureless pink-gray or gray-blue zone is present (regression)",
+              "The lesion does NOT consist of a uniform reticular network with regular meshwork and gradual fade-out (banal nevus pattern)",
+              "The lesion does NOT show evenly-sized, evenly-distributed globules in a symmetric arrangement (globular nevus pattern)",
+              "DO NOT require ulceration, bleeding, or clinical history of growth \u2014 the dermoscopic multi-component pattern above is sufficient",
+              "The lesion is a flat or minimally elevated pigmented lesion visible dermoscopically \u2014 not a clearly raised nodule or cyst",
+              "No features of seborrheic keratosis are present (no milia-like cysts, no comedo-like openings, no cerebriform pattern)"
+            ],
+            "rationale": "Original rule as authored \u2014 copy unchanged."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 2,
+            "fp": 1,
+            "tn": 3,
+            "fn": 2,
+            "precision": 0.667,
+            "recall": 0.5,
+            "accepted": false,
+            "rejection_reason": "precision=0.67 < 0.75",
+            "early_exited": false
+          },
+          "accepted": false
+        },
+        {
+          "level": 4,
+          "label": "most_specific",
+          "n_preconditions": 11,
+          "rule": {
+            "level": 4,
+            "label": "most_specific",
+            "rule": "When the lesion is highly asymmetric with at least three distinct hues (light brown, dark brown, gray-blue or pink-gray regression area), has an irregular notched border, shows irregular dark peripheral globules unevenly concentrated on one side, and contains a central structureless pink-gray or gray-blue regression zone \u2014 classify as Melanoma. Critically, the topographic polarity must be correct: the regression zone (gray-blue or pink-gray) occupies the center or an eccentric interior position while the dark dots/globules are at the periphery \u2014 NOT a dark central blotch surrounded by a light halo.",
+            "feature": "asymmetric_multicolor_central_regression_peripheral_globules_correct_polarity",
+            "favors": "Melanoma",
+            "confidence": "high",
+            "preconditions": [
+              "Lesion is clearly asymmetric in both shape and pigment distribution",
+              "At least three distinct colors are present: light brown, dark brown, and either gray-blue or pink-gray (regression structures)",
+              "Border is irregular and notched, not smooth or oval",
+              "Irregular dark peripheral globules or dots are present and unevenly distributed \u2014 concentrated on one side or one pole",
+              "A central or eccentric structureless pink-gray or gray-blue zone is present (regression)",
+              "The lesion does NOT consist of a uniform reticular network with regular meshwork and gradual fade-out (banal nevus pattern)",
+              "The lesion does NOT show evenly-sized, evenly-distributed globules in a symmetric arrangement (globular nevus pattern)",
+              "DO NOT require ulceration, bleeding, or clinical history of growth \u2014 the dermoscopic multi-component pattern above is sufficient",
+              "The lesion is a flat or minimally elevated pigmented lesion visible dermoscopically \u2014 not a clearly raised nodule or cyst",
+              "No features of seborrheic keratosis are present (no milia-like cysts, no comedo-like openings, no cerebriform pattern)",
+              "The topographic arrangement shows the regression zone (gray-blue or pink-gray structureless area) centrally or eccentrically WITHIN the lesion, with dark dots/globules at the periphery \u2014 NOT a dark central blotch surrounded by lighter pink-gray areas peripherally (inverted polarity pattern of certain dysplastic nevi)"
+            ],
+            "rationale": "Adds the topographic polarity constraint identified in contrastive analysis: melanomas show central regression + peripheral globules, while the FP nevus showed inverted polarity (dark center, light surround). This should eliminate the FP without sacrificing TP recall."
+          },
+          "validation": {
+            "fires_on_trigger": false,
+            "tp": 0,
+            "fp": 0,
+            "tn": 4,
+            "fn": 4,
+            "precision": 0.0,
+            "recall": 0.0,
+            "accepted": false,
+            "rejection_reason": "did not fire on trigger"
+          },
+          "accepted": false
+        }
+      ],
+      "accepted": true,
+      "registered": true
+    },
+    {
+      "task_id": "melanoma_vs_melanocytic_nevus_ISIC_0024333",
+      "pair_id": "melanoma_vs_melanocytic_nevus",
+      "wrong_prediction": "Melanocytic Nevus",
+      "correct_label": "Melanoma",
+      "candidate_rule": {
+        "level": 4,
+        "label": "most_specific",
+        "rule": "When a melanocytic lesion shows diffuse pink-white or milky-white regression areas intermixed with fine dark granular peppering (fine punctate dark dots distributed across the lesion), and the overall pigmentation pattern is disorganized/granular rather than a well-formed organized reticular network, AND the regression areas are centrally located or diffusely distributed throughout (NOT restricted to the periphery with a preserved dark center), classify as Melanoma.",
+        "feature": "diffuse_regression_with_peppering_L4",
+        "favors": "Melanoma",
+        "confidence": "high",
+        "preconditions": [
+          "Lesion contains pink-white or milky-white areas within the body of the lesion (not just at the border) \u2014 regression structures",
+          "Fine dark granular peppering visible: multiple tiny punctate dark dots scattered across the lesion, not organized into globules or a network",
+          "Overall pigmentation is diffuse and granular/dusty in texture, lacking a well-organized honeycomb reticular network",
+          "At least three color components present: light brown, medium/dark brown, AND pink-white/milky",
+          "Lesion is asymmetric",
+          "No seborrheic keratosis features (no milia-like cysts, no comedo-like openings, no sharp 'stuck-on' border)",
+          "Lesion is flat or minimally elevated \u2014 not a raised dome-shaped or nodular lesion (regression-peppering pattern applies to superficial spreading morphology, not nodular melanoma)",
+          "No features suggesting a non-melanocytic lesion: no red/purple lacunae (hemangioma), no central white patch with peripheral pigment ring (dermatofibroma)",
+          "Regression areas are centrally located or diffusely distributed throughout the lesion \u2014 NOT a pattern where white/pale areas are restricted to the periphery while the lesion center remains dark/near-black (that inverted polarity pattern indicates a dysplastic nevus with halo-like depigmentation, not melanoma regression)"
+        ],
+        "rationale": "Adds the topographic polarity condition from contrastive analysis: regressing melanoma shows central or diffuse regression; the FP pattern (pale periphery + dark center) is characteristic of a halo/inflamed dysplastic nevus and must be excluded."
+      },
+      "semantic_validation": {
+        "precondition_ratings": [
+          {
+            "precondition": "Lesion contains pink-white or milky-white areas within the body of the lesion (not just at the border) \u2014 regression structures",
+            "rating": "reliable",
+            "comment": "Regression structures (milky-white areas) are a well-established melanoma sign; benign nevi essentially never show true regression white areas within the lesion body."
+          },
+          {
+            "precondition": "Fine dark granular peppering visible: multiple tiny punctate dark dots scattered across the lesion, not organized into globules or a network",
+            "rating": "reliable",
+            "comment": "Peppering (fine granules of residual melanin in the superficial dermis) is a hallmark of regressing melanoma; benign nevi with dots have them organized into globules or a network, not scattered diffusely."
+          },
+          {
+            "precondition": "Overall pigmentation is diffuse and granular/dusty in texture, lacking a well-organized honeycomb reticular network",
+            "rating": "reliable",
+            "comment": "Benign reticular nevi have a clearly organized honeycomb mesh; diffuse granular/dusty texture without network structure is inconsistent with a benign reticular nevus."
+          },
+          {
+            "precondition": "At least three color components present: light brown, medium/dark brown, AND pink-white/milky",
+            "rating": "reliable",
+            "comment": "Polychromia with pink-white is a strong melanoma indicator; benign nevi are typically one or two shades of brown without true white/pink regression components."
+          },
+          {
+            "precondition": "Lesion is asymmetric",
+            "rating": "context_dependent",
+            "comment": "Asymmetry alone is insufficient to discriminate \u2014 dysplastic nevi can be asymmetric \u2014 but as a corroborative condition alongside regression and peppering it adds meaningful support."
+          },
+          {
+            "precondition": "No seborrheic keratosis features (no milia-like cysts, no comedo-like openings, no sharp 'stuck-on' border)",
+            "rating": "reliable",
+            "comment": "Necessary exclusion: SK can show white areas (milia cysts) that could superficially mimic regression; this condition cleanly separates them."
+          },
+          {
+            "precondition": "Lesion is flat or minimally elevated \u2014 not a raised dome-shaped or nodular lesion (regression-peppering pattern applies to superficial spreading morphology, not nodular melanoma)",
+            "rating": "reliable",
+            "comment": "Regression-with-peppering is a superficial spreading melanoma pattern; applying this rule to nodular or raised lesions would be inappropriate and this exclusion correctly prevents that."
+          },
+          {
+            "precondition": "No features suggesting a non-melanocytic lesion: no red/purple lacunae (hemangioma), no central white patch with peripheral pigment ring (dermatofibroma)",
+            "rating": "reliable",
+            "comment": "Hemangiomas and dermatofibromas can show pinkish-white areas that could superficially satisfy condition 1; this exclusion correctly gates out non-melanocytic mimics."
+          }
+        ],
+        "overall": "accept",
+        "rationale": "The core of this rule \u2014 regression structures combined with peppering and disorganized pigmentation \u2014 is a well-validated constellation for superficial spreading melanoma with regression; it is highly specific for melanoma and rarely seen in benign nevi. The one context_dependent condition (asymmetry) is not the primary discriminator but is corroborative and does no harm alongside the stronger regression/peppering conditions. The background exclusion conditions (SK, nodular, non-melanocytic) are sound and necessary. Safe to proceed to image validation."
+      },
+      "validation": {
+        "fires_on_trigger": true,
+        "tp": 2,
+        "fp": 0,
+        "tn": 4,
+        "fn": 2,
+        "precision": 1.0,
+        "recall": 0.5,
+        "accepted": true,
+        "rejection_reason": null,
+        "early_exited": false
+      },
+      "confirmation_validation": {
+        "fires_on_trigger": true,
+        "tp": 5,
+        "fp": 1,
+        "tn": 7,
+        "fn": 3,
+        "precision": 0.833,
+        "recall": 0.625,
+        "accepted": true,
+        "rejection_reason": null,
+        "early_exited": false
+      },
+      "spectrum_history": [
+        {
+          "level": 1,
+          "label": "most_general",
+          "n_preconditions": 1,
+          "rule": {
+            "level": 1,
+            "label": "most_general",
+            "rule": "When a melanocytic lesion contains pink-white or milky-white regression areas within the lesion body (not just at the border), classify as Melanoma.",
+            "feature": "diffuse_regression_with_peppering_L1",
+            "favors": "Melanoma",
+            "confidence": "medium",
+            "preconditions": [
+              "Pink-white or milky-white areas are present within the body of the lesion (not restricted to the border) \u2014 regression structures"
+            ],
+            "rationale": "Regression structures within the lesion body are the single most diagnostic signal: they represent partial immune destruction of malignant melanocytes and are essentially absent in benign nevi under dermoscopy."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 3,
+            "fp": 2,
+            "tn": 2,
+            "fn": 1,
+            "precision": 0.6,
+            "recall": 0.75,
+            "accepted": false,
+            "rejection_reason": "fp=2 > 1",
+            "early_exited": false
+          },
+          "accepted": false
+        },
+        {
+          "level": 2,
+          "label": "moderate",
+          "n_preconditions": 2,
+          "rule": {
+            "level": 2,
+            "label": "moderate",
+            "rule": "When a melanocytic lesion contains pink-white or milky-white regression areas within the lesion body AND fine dark granular peppering (tiny punctate dark dots scattered across the lesion, not organized into globules), classify as Melanoma.",
+            "feature": "diffuse_regression_with_peppering_L2",
+            "favors": "Melanoma",
+            "confidence": "high",
+            "preconditions": [
+              "Pink-white or milky-white areas are present within the body of the lesion (not restricted to the border) \u2014 regression structures",
+              "Fine dark granular peppering is visible: multiple tiny punctate dark dots scattered across the lesion, not organized into a network or distinct globules"
+            ],
+            "rationale": "The combination of regression white areas and peppering (residual melanin granules from destroyed melanocytes) is highly specific for melanoma \u2014 the two features together represent the same biological process (regression) at different stages. Benign nevi may occasionally show pinkish tones but almost never show true peppering alongside milky-white regression."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 2,
+            "fp": 1,
+            "tn": 3,
+            "fn": 2,
+            "precision": 0.667,
+            "recall": 0.5,
+            "accepted": false,
+            "rejection_reason": "precision=0.67 < 0.75",
+            "early_exited": false
+          },
+          "accepted": false
+        },
+        {
+          "level": 3,
+          "label": "original",
+          "n_preconditions": 8,
+          "rule": {
+            "level": 3,
+            "label": "original",
+            "rule": "When a melanocytic lesion shows diffuse pink-white or milky-white regression areas intermixed with fine dark granular peppering (fine punctate dark dots distributed across the lesion), and the overall pigmentation pattern is disorganized/granular rather than a well-formed organized reticular network, classify as Melanoma.",
+            "feature": "diffuse_regression_with_peppering_L3",
+            "favors": "Melanoma",
+            "confidence": "high",
+            "preconditions": [
+              "Lesion contains pink-white or milky-white areas within the body of the lesion (not just at the border) \u2014 regression structures",
+              "Fine dark granular peppering visible: multiple tiny punctate dark dots scattered across the lesion, not organized into globules or a network",
+              "Overall pigmentation is diffuse and granular/dusty in texture, lacking a well-organized honeycomb reticular network",
+              "At least three color components present: light brown, medium/dark brown, AND pink-white/milky",
+              "Lesion is asymmetric",
+              "No seborrheic keratosis features (no milia-like cysts, no comedo-like openings, no sharp 'stuck-on' border)",
+              "Lesion is flat or minimally elevated \u2014 not a raised dome-shaped or nodular lesion (regression-peppering pattern applies to superficial spreading morphology, not nodular melanoma)",
+              "No features suggesting a non-melanocytic lesion: no red/purple lacunae (hemangioma), no central white patch with peripheral pigment ring (dermatofibroma)"
+            ],
+            "rationale": "Original expert rule unchanged."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 2,
+            "fp": 1,
+            "tn": 3,
+            "fn": 2,
+            "precision": 0.667,
+            "recall": 0.5,
+            "accepted": false,
+            "rejection_reason": "precision=0.67 < 0.75",
+            "early_exited": false
+          },
+          "accepted": false
+        },
+        {
+          "level": 4,
+          "label": "most_specific",
+          "n_preconditions": 9,
+          "rule": {
+            "level": 4,
+            "label": "most_specific",
+            "rule": "When a melanocytic lesion shows diffuse pink-white or milky-white regression areas intermixed with fine dark granular peppering (fine punctate dark dots distributed across the lesion), and the overall pigmentation pattern is disorganized/granular rather than a well-formed organized reticular network, AND the regression areas are centrally located or diffusely distributed throughout (NOT restricted to the periphery with a preserved dark center), classify as Melanoma.",
+            "feature": "diffuse_regression_with_peppering_L4",
+            "favors": "Melanoma",
+            "confidence": "high",
+            "preconditions": [
+              "Lesion contains pink-white or milky-white areas within the body of the lesion (not just at the border) \u2014 regression structures",
+              "Fine dark granular peppering visible: multiple tiny punctate dark dots scattered across the lesion, not organized into globules or a network",
+              "Overall pigmentation is diffuse and granular/dusty in texture, lacking a well-organized honeycomb reticular network",
+              "At least three color components present: light brown, medium/dark brown, AND pink-white/milky",
+              "Lesion is asymmetric",
+              "No seborrheic keratosis features (no milia-like cysts, no comedo-like openings, no sharp 'stuck-on' border)",
+              "Lesion is flat or minimally elevated \u2014 not a raised dome-shaped or nodular lesion (regression-peppering pattern applies to superficial spreading morphology, not nodular melanoma)",
+              "No features suggesting a non-melanocytic lesion: no red/purple lacunae (hemangioma), no central white patch with peripheral pigment ring (dermatofibroma)",
+              "Regression areas are centrally located or diffusely distributed throughout the lesion \u2014 NOT a pattern where white/pale areas are restricted to the periphery while the lesion center remains dark/near-black (that inverted polarity pattern indicates a dysplastic nevus with halo-like depigmentation, not melanoma regression)"
+            ],
+            "rationale": "Adds the topographic polarity condition from contrastive analysis: regressing melanoma shows central or diffuse regression; the FP pattern (pale periphery + dark center) is characteristic of a halo/inflamed dysplastic nevus and must be excluded."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 2,
+            "fp": 0,
+            "tn": 4,
+            "fn": 2,
+            "precision": 1.0,
+            "recall": 0.5,
+            "accepted": true,
+            "rejection_reason": null,
+            "early_exited": false
+          },
+          "accepted": true
+        }
+      ],
+      "accepted": true,
+      "registered": true
+    },
+    {
+      "task_id": "melanoma_vs_melanocytic_nevus_ISIC_0024400",
+      "pair_id": "melanoma_vs_melanocytic_nevus",
+      "wrong_prediction": "Melanocytic Nevus",
+      "correct_label": "Melanoma",
+      "candidate_rule": {
+        "rule": "When a pigmented lesion contains gray-blue or blue-gray structureless areas (not organized into a network, not red-purple lacunae) alongside brown pigmented components and shows asymmetric, multi-zone architecture, classify as Melanoma.",
+        "feature": "gray_blue_structureless_areas_multicomponent",
+        "favors": "Melanoma",
+        "confidence": "high",
+        "preconditions": [
+          "Gray-blue or blue-gray structureless areas are present within the lesion \u2014 distinct patches of slate-gray or bluish-gray color without an organized network structure",
+          "Brown pigmented components are also present alongside the gray-blue areas (distinguishes from blue nevus, which is entirely blue-gray)",
+          "The gray-blue areas occupy only a portion of the lesion \u2014 NOT the entire lesion uniformly (uniform steel-blue homogeneous lesion = blue nevus, not melanoma)",
+          "Lesion is asymmetric in shape and/or pigment distribution",
+          "At least three distinct colors are visible (e.g., light tan/golden brown, dark brown, gray-blue)",
+          "No red/purple lacunae (rules out hemangioma as source of blue-gray color)",
+          "No seborrheic keratosis features (no milia-like cysts, no comedo-like openings)",
+          "Lesion is flat or only minimally elevated \u2014 not a raised blue-gray nodule (a raised bluish nodule suggests blue nevus or pigmented nodular basal cell carcinoma rather than melanoma)",
+          "No features of dermatofibroma: no shiny central white patch surrounded exclusively by a delicate pigment network restricted to the periphery"
+        ],
+        "rationale": "The pupil hallucinated 'uniform pigmentation' and 'well-circumscribed' when the image clearly shows gray-blue structureless patches (lower-left quadrant) alongside multi-tonal brown areas \u2014 a multi-component melanoma. Gray-blue structureless areas in a melanocytic lesion represent either a blue-white veil (densely packed melanophages in the dermis overlying compact melanin) or regression with fibrosis; both are major melanoma-specific dermoscopic criteria. Benign melanocytic nevi do not produce focal gray-blue structureless patches alongside brown components \u2014 that combination is essentially diagnostic of melanoma. The pupil's failure was a catastrophic under-reading of color: it saw 'brown and tan' and stopped looking, missing the distinct gray-blue zone entirely.",
+        "added_preconditions": [
+          "Lesion is flat or only minimally elevated \u2014 not a raised blue-gray nodule (a raised bluish nodule suggests blue nevus or pigmented nodular basal cell carcinoma rather than melanoma)",
+          "No features of dermatofibroma: no shiny central white patch surrounded exclusively by a delicate pigment network restricted to the periphery"
+        ],
+        "completion_rationale": "The expert implicitly assumed this is a flat melanocytic lesion, not a raised nodular lesion \u2014 because blue-white veil and gray-blue regression structures in melanoma occur in flat superficial spreading lesions, whereas a raised blue-gray nodule points to blue nevus or pigmented nodular BCC. The dermatofibroma exclusion is needed because dermatofibromas can rarely show peripheral pigmentation with a central white-gray area that could superficially mimic focal gray-blue structures; the dermatofibroma pattern is distinct (shiny central white + peripheral-only network) but a naive classifier needs it made explicit."
+      },
+      "semantic_validation": {
+        "precondition_ratings": [
+          {
+            "precondition": "Gray-blue or blue-gray structureless areas are present within the lesion \u2014 distinct patches of slate-gray or bluish-gray color without an organized network structure",
+            "rating": "reliable",
+            "comment": "Gray-blue structureless areas (blue-white veil / regression with fibrosis) are a major melanoma-specific dermoscopic criterion and are essentially absent in benign melanocytic nevi."
+          },
+          {
+            "precondition": "Brown pigmented components are also present alongside the gray-blue areas (distinguishes from blue nevus, which is entirely blue-gray)",
+            "rating": "reliable",
+            "comment": "The mixed brown + gray-blue composition is the defining feature that separates melanoma with regression from blue nevus, which is uniformly steel-blue throughout."
+          },
+          {
+            "precondition": "The gray-blue areas occupy only a portion of the lesion \u2014 NOT the entire lesion uniformly (uniform steel-blue homogeneous lesion = blue nevus, not melanoma)",
+            "rating": "reliable",
+            "comment": "Focal partial gray-blue involvement alongside brown zones is characteristic of melanoma regression; uniform steel-blue occupying the entire lesion is the blue nevus pattern."
+          },
+          {
+            "precondition": "Lesion is asymmetric in shape and/or pigment distribution",
+            "rating": "context_dependent",
+            "comment": "Asymmetry alone is insufficient to discriminate \u2014 dysplastic nevi can be asymmetric \u2014 but it is a sound corroborative condition alongside the gray-blue criterion."
+          },
+          {
+            "precondition": "At least three distinct colors are visible (e.g., light tan/golden brown, dark brown, gray-blue)",
+            "rating": "reliable",
+            "comment": "Polychromia including gray-blue is a well-established melanoma indicator; benign nevi are typically one or two shades of brown without a gray-blue component."
+          },
+          {
+            "precondition": "No red/purple lacunae (rules out hemangioma as source of blue-gray color)",
+            "rating": "reliable",
+            "comment": "Necessary exclusion: hemangioma lacunae are red-purple and can superficially resemble a blue-gray zone; this condition cleanly separates vascular from melanocytic gray-blue."
+          },
+          {
+            "precondition": "No seborrheic keratosis features (no milia-like cysts, no comedo-like openings)",
+            "rating": "reliable",
+            "comment": "SK can have dark pigmented areas but always shows characteristic milia-like cysts or comedo-like openings; their absence excludes SK as a mimic."
+          },
+          {
+            "precondition": "Lesion is flat or only minimally elevated \u2014 not a raised blue-gray nodule (a raised bluish nodule suggests blue nevus or pigmented nodular basal cell carcinoma rather than melanoma)",
+            "rating": "reliable",
+            "comment": "Gray-blue structures from regression in melanoma occur in flat/superficial spreading lesions; a raised blue-gray nodule shifts the differential to blue nevus or pigmented BCC."
+          },
+          {
+            "precondition": "No features of dermatofibroma: no shiny central white patch surrounded exclusively by a delicate pigment network restricted to the periphery",
+            "rating": "reliable",
+            "comment": "Necessary but rarely triggered exclusion: the dermatofibroma pigment pattern (central white scar + peripheral-only network) is sufficiently distinct that including it prevents a rare but possible mimic."
+          }
+        ],
+        "overall": "accept",
+        "rationale": "The core of this rule \u2014 focal gray-blue structureless areas alongside brown components, occupying only part of the lesion \u2014 is one of the strongest single-feature melanoma indicators in dermoscopy. The exclusion conditions (blue nevus, hemangioma, SK, BCC, dermatofibroma) are all clinically sound and target genuine mimics of gray-blue coloration. The one context_dependent condition (asymmetry) is corroborative rather than primary and does not weaken the rule. Safe to proceed to image validation."
+      },
+      "validation": {
+        "fires_on_trigger": true,
+        "tp": 2,
+        "fp": 1,
+        "tn": 3,
+        "fn": 2,
+        "precision": 0.667,
+        "recall": 0.5,
+        "accepted": false,
+        "rejection_reason": "precision=0.67 < 0.75",
+        "early_exited": false
+      },
+      "confirmation_validation": null,
+      "spectrum_history": [
+        {
+          "level": 1,
+          "label": "most_general",
+          "n_preconditions": 1,
+          "rule": {
+            "level": 1,
+            "label": "most_general",
+            "rule": "When a pigmented lesion contains gray-blue or blue-gray structureless areas (not organized into a network, not red-purple lacunae), classify as Melanoma.",
+            "feature": "gray_blue_structureless_areas_present",
+            "favors": "Melanoma",
+            "confidence": "medium",
+            "preconditions": [
+              "Gray-blue or blue-gray structureless areas are present within the lesion \u2014 distinct patches of slate-gray or bluish-gray color without an organized network structure, and not red or purple lacunae"
+            ],
+            "rationale": "Gray-blue structureless areas are the single most diagnostically loaded feature here \u2014 they represent regression (melanophages) or deep melanin deposition, both strongly associated with melanoma in the context of a pigmented lesion. This single condition will cast a wide net but captures the core signal."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 1,
+            "fp": 1,
+            "tn": 3,
+            "fn": 3,
+            "precision": 0.5,
+            "recall": 0.25,
+            "accepted": false,
+            "rejection_reason": "precision=0.50 < 0.75",
+            "early_exited": false
+          },
+          "accepted": false
+        },
+        {
+          "level": 2,
+          "label": "moderate",
+          "n_preconditions": 3,
+          "rule": {
+            "level": 2,
+            "label": "moderate",
+            "rule": "When a pigmented lesion contains gray-blue or blue-gray structureless areas (not organized into a network) alongside brown pigmented components, and the gray-blue areas occupy only a portion of the lesion (NOT the entire lesion uniformly), classify as Melanoma.",
+            "feature": "gray_blue_structureless_with_brown_partial_occupation",
+            "favors": "Melanoma",
+            "confidence": "medium",
+            "preconditions": [
+              "Gray-blue or blue-gray structureless areas are present within the lesion \u2014 distinct patches of slate-gray or bluish-gray color without an organized network structure",
+              "Brown pigmented components are also present alongside the gray-blue areas (distinguishes from blue nevus, which is entirely blue-gray)",
+              "The gray-blue areas occupy only a portion of the lesion \u2014 NOT the entire lesion uniformly (a uniform steel-blue homogeneous lesion = blue nevus, not melanoma)"
+            ],
+            "rationale": "The co-presence of brown pigment with gray-blue (multi-component) and partial rather than total gray-blue coverage together exclude blue nevus, which is the most common benign mimic. This pair of additions substantially reduces FP rate while keeping recall high."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 2,
+            "fp": 2,
+            "tn": 2,
+            "fn": 2,
+            "precision": 0.5,
+            "recall": 0.5,
+            "accepted": false,
+            "rejection_reason": "fp=2 > 1",
+            "early_exited": false
+          },
+          "accepted": false
+        },
+        {
+          "level": 3,
+          "label": "original",
+          "n_preconditions": 9,
+          "rule": {
+            "level": 3,
+            "label": "original",
+            "rule": "When a pigmented lesion contains gray-blue or blue-gray structureless areas (not organized into a network, not red-purple lacunae) alongside brown pigmented components and shows asymmetric, multi-zone architecture, classify as Melanoma.",
+            "feature": "gray_blue_structureless_areas_multicomponent",
+            "favors": "Melanoma",
+            "confidence": "medium",
+            "preconditions": [
+              "Gray-blue or blue-gray structureless areas are present within the lesion \u2014 distinct patches of slate-gray or bluish-gray color without an organized network structure",
+              "Brown pigmented components are also present alongside the gray-blue areas (distinguishes from blue nevus, which is entirely blue-gray)",
+              "The gray-blue areas occupy only a portion of the lesion \u2014 NOT the entire lesion uniformly (uniform steel-blue homogeneous lesion = blue nevus, not melanoma)",
+              "Lesion is asymmetric in shape and/or pigment distribution",
+              "At least three distinct colors are visible (e.g., light tan/golden brown, dark brown, gray-blue)",
+              "No red/purple lacunae (rules out hemangioma as source of blue-gray color)",
+              "No seborrheic keratosis features (no milia-like cysts, no comedo-like openings)",
+              "Lesion is flat or only minimally elevated \u2014 not a raised blue-gray nodule (a raised bluish nodule suggests blue nevus or pigmented nodular basal cell carcinoma rather than melanoma)",
+              "No features of dermatofibroma: no shiny central white patch surrounded exclusively by a delicate pigment network restricted to the periphery"
+            ],
+            "rationale": "Full expert rule integrating asymmetry, multi-zone architecture, negative SK and DF features, and morphological (flat) constraints."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 2,
+            "fp": 1,
+            "tn": 3,
+            "fn": 2,
+            "precision": 0.667,
+            "recall": 0.5,
+            "accepted": false,
+            "rejection_reason": "precision=0.67 < 0.75",
+            "early_exited": false
+          },
+          "accepted": false
+        },
+        {
+          "level": 4,
+          "label": "most_specific",
+          "n_preconditions": 10,
+          "rule": {
+            "level": 4,
+            "label": "most_specific",
+            "rule": "When a pigmented lesion contains gray-blue or blue-gray structureless areas (not organized into a network, not red-purple lacunae) alongside brown pigmented components and shows asymmetric, multi-zone architecture, AND the gray-blue area is visibly LIGHTER than the surrounding dark brown pigment (an intermediate pale zone, not the lesion's darkest zone), classify as Melanoma.",
+            "feature": "gray_blue_lighter_than_surrounding_brown_regression_polarity",
+            "favors": "Melanoma",
+            "confidence": "medium",
+            "preconditions": [
+              "Gray-blue or blue-gray structureless areas are present within the lesion \u2014 distinct patches of slate-gray or bluish-gray color without an organized network structure",
+              "Brown pigmented components are also present alongside the gray-blue areas (distinguishes from blue nevus, which is entirely blue-gray)",
+              "The gray-blue areas occupy only a portion of the lesion \u2014 NOT the entire lesion uniformly (uniform steel-blue homogeneous lesion = blue nevus, not melanoma)",
+              "Lesion is asymmetric in shape and/or pigment distribution",
+              "At least three distinct colors are visible (e.g., light tan/golden brown, dark brown, gray-blue)",
+              "No red/purple lacunae (rules out hemangioma as source of blue-gray color)",
+              "No seborrheic keratosis features (no milia-like cysts, no comedo-like openings)",
+              "Lesion is flat or only minimally elevated \u2014 not a raised blue-gray nodule (a raised bluish nodule suggests blue nevus or pigmented nodular basal cell carcinoma rather than melanoma)",
+              "No features of dermatofibroma: no shiny central white patch surrounded exclusively by a delicate pigment network restricted to the periphery",
+              "The gray-blue area is a lighter intermediate zone relative to the surrounding dark brown pigment \u2014 it is visibly paler than the darkest brown components, consistent with regression (melanophages replacing destroyed tumor). Reject if the gray-blue is the DARKEST zone in the lesion, as that pattern indicates deep Tyndall scattering from a benign deep nevus rather than regression."
+            ],
+            "rationale": "The brightness-polarity condition directly addresses the observed FP: the benign deep nevus had gray-blue as its darkest central zone (Tyndall scattering), while true regression gray-blue in melanoma is a lighter intermediate zone against darker surviving tumor. Adding this condition should eliminate the deep-nevus FP while retaining sensitivity for regression-pattern melanomas."
+          },
+          "validation": {
+            "fires_on_trigger": true,
+            "tp": 0,
+            "fp": 1,
+            "tn": 3,
+            "fn": 4,
+            "precision": 0.0,
+            "recall": 0.0,
+            "accepted": false,
+            "rejection_reason": "precision=0.00 < 0.75",
+            "early_exited": false
+          },
+          "accepted": false
+        }
+      ],
+      "accepted": false,
+      "registered": false
+    }
+  ]
+}

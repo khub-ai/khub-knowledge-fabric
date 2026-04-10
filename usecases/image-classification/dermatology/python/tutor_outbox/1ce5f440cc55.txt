@@ -1,0 +1,1 @@
+{"precondition_met": false, "would_predict": null, "observations": "Tiny uniform brown lesion, symmetric oval, one to two hues. No gray-blue, no white regression, no blue-white veil, no streaks/pseudopods, no atypical pigment network, no irregular dark peripheral globules. Multiple preconditions fail."}
