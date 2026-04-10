@@ -40,6 +40,12 @@ class DomainConfig:
     good_vocabulary_examples: list[str] = field(default_factory=list)
     bad_vocabulary_examples: list[str] = field(default_factory=list)
 
+    # Optional: per-domain pool gate overrides.
+    # If None, the global defaults from constants.py are used.
+    # Safety-critical domains (e.g. road surface) may set stricter thresholds.
+    precision_gate: float | None = None   # e.g. 0.90 for safety-critical domains
+    max_fp: int | None = None             # e.g. 0 to require zero false positives
+
 
 class PairInfo(TypedDict):
     """Standardized confusable pair information."""

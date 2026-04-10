@@ -45,13 +45,27 @@ def encode_image_b64(image_path: str | Path) -> str:
     return base64.standard_b64encode(Path(image_path).read_bytes()).decode("ascii")
 
 
+_MEDIA_TYPES = {
+    ".jpg":  "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png":  "image/png",
+    ".gif":  "image/gif",
+    ".webp": "image/webp",
+}
+
+
 def image_block(image_path: str | Path) -> dict:
-    """Return an Anthropic content block for a JPEG image."""
+    """Return an Anthropic content block for an image file.
+
+    Media type is inferred from the file extension; defaults to image/jpeg.
+    """
+    ext = Path(image_path).suffix.lower()
+    media_type = _MEDIA_TYPES.get(ext, "image/jpeg")
     return {
         "type": "image",
         "source": {
             "type": "base64",
-            "media_type": "image/jpeg",
+            "media_type": media_type,
             "data": encode_image_b64(image_path),
         },
     }
@@ -268,15 +282,16 @@ async def validate_candidate_rule(
 ) -> dict:
     """Test a candidate rule against a pool of labeled images.
 
+    Pool images are validated concurrently (asyncio.gather) for speed.
+    Trigger image is checked first; pool validation is skipped if it fails.
+
     Returns a dict with TP, FP, TN, FN counts, precision, recall, accept flag,
     and per-image case lists for contrastive analysis.
     """
-    tp = fp = tn = fn = 0
-    fires_on_trigger = False
     tp_cases: list[dict] = []
     fp_cases: list[dict] = []
 
-    # Check trigger image first
+    # Check trigger image first — short-circuit if it doesn't fire
     trigger_result, _ = await run_rule_validator_on_image(
         trigger_image_path, trigger_correct_label, candidate_rule,
         config=config, model=model, call_agent_fn=call_agent_fn,
@@ -286,27 +301,44 @@ async def validate_candidate_rule(
     )
 
     if not fires_on_trigger:
-        remaining = len(validation_images)
         favors = candidate_rule.get("favors", "")
         fn = sum(1 for _, gt in validation_images if gt == favors)
-        tn = remaining - fn
+        tn = len(validation_images) - fn
         return {
             "fires_on_trigger": False,
             "tp": 0, "fp": 0, "tn": tn, "fn": fn,
             "precision": 0.0, "recall": 0.0,
             "accepted": False, "rejection_reason": "did not fire on trigger",
             "tp_cases": [], "fp_cases": [],
+            "early_exited": False,
         }
 
     favors = candidate_rule.get("favors", "")
-    early_exited = False
-    checked = 0
-    for img_path, gt in validation_images:
-        res, _ = await run_rule_validator_on_image(
+
+    # Use per-domain gate overrides if set, otherwise fall back to global defaults
+    precision_gate = (
+        config.precision_gate
+        if config.precision_gate is not None
+        else DEFAULT_PRECISION_GATE
+    )
+    max_fp_gate = (
+        config.max_fp
+        if config.max_fp is not None
+        else DEFAULT_MAX_FP
+    )
+
+    # Validate all pool images concurrently
+    pool_tasks = [
+        run_rule_validator_on_image(
             img_path, gt, candidate_rule,
             config=config, model=model, call_agent_fn=call_agent_fn,
         )
-        checked += 1
+        for img_path, gt in validation_images
+    ]
+    results = await asyncio.gather(*pool_tasks)
+
+    tp = fp = tn = fn = 0
+    for (res, _), (img_path, gt) in zip(results, validation_images):
         case = {
             "image_path": img_path, "ground_truth": gt,
             "observations": res.get("observations", ""),
@@ -323,22 +355,14 @@ async def validate_candidate_rule(
                 fn += 1
             else:
                 tn += 1
-        if fp > early_exit_fp:
-            early_exited = True
-            for _, ugt in validation_images[checked:]:
-                if ugt == favors:
-                    fn += 1
-                else:
-                    tn += 1
-            break
 
     total_fires = tp + fp
     precision = tp / total_fires if total_fires > 0 else 0.0
     total_positive = tp + fn
     recall = tp / total_positive if total_positive > 0 else 0.0
 
-    accepted = (fires_on_trigger and precision >= DEFAULT_PRECISION_GATE
-                and fp <= DEFAULT_MAX_FP)
+    accepted = (fires_on_trigger and precision >= precision_gate
+                and fp <= max_fp_gate)
 
     return {
         "fires_on_trigger": fires_on_trigger,
@@ -347,13 +371,13 @@ async def validate_candidate_rule(
         "recall": round(recall, 3),
         "accepted": accepted,
         "rejection_reason": (
-            f"fp={fp} > 1" if fp > DEFAULT_MAX_FP
-            else f"precision={precision:.2f} < 0.75" if precision < DEFAULT_PRECISION_GATE
+            f"fp={fp} > {max_fp_gate}" if fp > max_fp_gate
+            else f"precision={precision:.2f} < {precision_gate}" if precision < precision_gate
             else None
         ),
         "tp_cases": tp_cases,
         "fp_cases": fp_cases,
-        "early_exited": early_exited,
+        "early_exited": False,  # No early exit with concurrent validation
     }
 
 

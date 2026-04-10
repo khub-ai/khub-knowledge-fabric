@@ -123,6 +123,19 @@ For the full case walkthrough with images, the five roles the Tutor plays, and w
 
 For the developer-facing pipeline details and iteration history, see [DESIGN.md](DESIGN.md#3-dermatology-experiments-ham10000--isic).
 
+---
+
+## 4b. Sub-Use-Case C: Road Surface Conditions
+
+> **Full write-up**: [road-surface/README.md](road-surface/README.md) — includes dataset details, confusable pairs, vocabulary gap analysis, and edge deployment context. Written for autonomous driving engineers and road safety researchers.
+
+Road surface condition classification moves KF from biological/medical domains into industrial safety, demonstrating domain-agnosticism. The task: distinguish friction states (dry, wet, ice, snow), materials (asphalt, concrete, gravel), and roughness levels from forward-facing vehicle cameras — a safety-critical classification where expert pavement engineering knowledge adds value that pixels alone cannot provide.
+
+**The story in brief**: A small VLM cannot distinguish wet road from black ice — both appear as a dark, reflective surface. A pavement engineer explains that ice obscures surface texture completely while wet pavement preserves faint aggregate visibility through the film. KF turns that into a testable rule with explicit preconditions.
+
+**Status**: Domain setup complete — dataset identified (RSCD, 1M images, 27 classes), domain config authored, confusable pairs defined. Baseline experiments pending.
+
+**Dataset**: [RSCD](https://thu-rsxd.com/rscd/) — 1M images, 27 classes (6 friction x 4 material x 3 roughness), CC BY-NC.
 
 ---
 
