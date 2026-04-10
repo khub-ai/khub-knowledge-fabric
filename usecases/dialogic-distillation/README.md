@@ -4,8 +4,8 @@
 
 ---
 
-> **Status**: Active research — initial results are encouraging (image classification: dermatology +38pp, ornithology +50pp at 30/class); expanding test coverage and continuing to refine the distillation mechanism; ARC-AGI-3 competition mode: planned
-> **Theme**: [Knowledge Fabric (KF)](../../docs/what-is-kf.md) as a distillation layer between a capable expert model and a constrained deployment model
+> **Status**: Active research — initial results are encouraging (image classification: dermatology +38pp, ornithology +50pp at 30/class); expanding test coverage and continuing to refine the distillation mechanism; ARC-AGI-3 competition mode: planned  
+> **Theme**: [Knowledge Fabric (KF)](../../docs/what-is-kf.md) as a distillation layer between a capable expert model and a constrained deployment model  
 
 ---
 
