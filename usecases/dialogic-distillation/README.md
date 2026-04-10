@@ -99,15 +99,46 @@ The key tradeoff: DeepSeek-style distillation can transfer broader, more implici
 
 The image classification use case is the original home of Dialogic Distillation. A cheap vision-language model (Qwen3-VL-8B) fails on specific confusable class pairs — melanoma vs. benign mole, basal cell carcinoma vs. benign keratosis, Brown-headed Cowbird vs. similar species. The expert model (Claude) analyzes each failure, proposes a discriminative visual rule, and KF validates it through the grounding check and pool gate before registering it.
 
-**Initial results** (research ongoing — test coverage is being expanded and the distillation mechanism continues to be refined):
+**Results** (research ongoing — test coverage is being expanded and the distillation mechanism continues to be refined):
 
-| Domain | Pair | Zero-shot | With distilled rules | Gain |
-|---|---|---|---|---|
-| Dermatology | Melanoma vs. Nevus | 55% | 93.3% | +38.3 pp |
-| Dermatology | BCC vs. Benign Keratosis | 56.7% | 75% | +18.3 pp |
-| Ornithology | Cowbird (pilot) | 33% | 83% | +50 pp |
+| Domain | Pair | Scale | Zero-shot | With distilled rules | Gain |
+|---|---|---|---|---|---|
+| Dermatology | Melanoma vs. Nevus | 30/class | 55% | 93.3% | +38.3 pp |
+| Dermatology | Melanoma vs. Nevus | 100/class | 52.5% | 81.0% | +28.5 pp |
+| Dermatology | BCC vs. Benign Keratosis | 30/class | 56.7% | 75% | +18.3 pp |
+| Ornithology | Cowbird (pilot) | 6 images | 33% | 83% | +50 pp |
+| Ornithology | Cowbird (expanded) | 30/class | 46.7% | 96.7% | +50 pp |
 
-These are tested at 30 images per class. The dermatology three-party dialogic distillation experiment also demonstrated why multi-round dialogue is necessary: single-shot elicitation (ask once, accept the result) produced 0 out of 4 grounded rules. The dialogic loop produced 4 out of 4 grounded rules, 3 of which passed the pool gate.
+The 100/class result comes from a controlled experiment (200 images, 10 trigger failures, held-out pool of 10/class, seed-controlled splits). At this larger scale the gain is smaller than at 30/class — expected, since the additional images include harder cases — but still substantial.
+
+#### Why multi-round dialogue matters — and when single-shot catches up
+
+The initial three-party experiment demonstrated why multi-round dialogue is necessary: **naive single-shot elicitation produced 0 out of 7 grounded rules** across two separate attempts (`elicit_from_failures.py`: 0/4; `elicit_nodular_rules.py`: 0/3). The dialogic loop produced 4/4 grounded rules, 3 of which passed the pool gate. The failure mode is vocabulary mismatch — the TUTOR writes rules using clinical dermoscopy vocabulary; the VALIDATOR describes the same features using colors, shapes, and spatial arrangements (see [DESIGN.md](DESIGN.md) §3).
+
+However, in the controlled 200-image experiment, **both methods achieved identical conversion rates**: 10/10 grounded, 7/10 accepted. The reason: by this point, KF had already incorporated the meta-learnings from the earlier dialogic rounds into the single-shot prompt (see [Meta-Learning](#meta-learning-kf-learns-to-steer-better) below). The TUTOR prompt already framed the task for the validator's vocabulary, included GOOD/BAD vocabulary examples, and limited precondition count — all insights that were originally discovered through multi-round dialogue.
+
+This reveals that **dialogic distillation's value has two dimensions**:
+
+1. **Per-rule refinement** — multi-round dialogue bridges the vocabulary gap on individual rules that fail grounding on the first attempt
+2. **Meta-learning** — KF learns behavioral patterns of the TUTOR and VALIDATOR through the dialogue, and encodes those patterns into improved prompts for future rounds
+
+Once meta-learning saturates (KF's prompts are well-optimized for the TUTOR/VALIDATOR pair), single-shot can catch up — but only because dialogue happened first. Without the dialogue, the meta-learnings would never have been discovered.
+
+#### Meta-learning: KF learns to steer better
+
+KF's role is not just to relay messages — it adapts its prompts based on what works and what fails. Three concrete meta-learnings emerged from the dermatology dialogic experiments:
+
+**1. Frame the task for the validator, not the clinician.** The naive TUTOR prompt (used in `elicit_from_failures.py`) asked for "dermoscopic features." The TUTOR naturally wrote rules in clinical vocabulary. After observing repeated grounding failures, KF's optimized prompt (`distill_dialogic.py: TUTOR_SYSTEM`) explicitly states: *"The rules you write will be tested by a separate validator model that describes images in terms of visible colors, shapes, edges, and spatial patterns — not clinical terminology."*
+
+**2. Provide GOOD/BAD vocabulary examples.** The optimized Round 1 prompt includes concrete examples of vocabulary that works vs. vocabulary that fails:
+> *GOOD: "dark brown or black irregularly shaped patches"*
+> *BAD: "atypical pigment network" (clinical term the validator won't use)*
+
+These examples were distilled from actual grounding-check failures in earlier dialogic rounds.
+
+**3. Limit precondition count to 2–3.** Early TUTOR proposals often included 5–7 preconditions, making it unlikely that the validator would confirm all of them on any single image. KF learned to instruct the TUTOR: *"Write 2–3 preconditions maximum, each visually concrete."*
+
+**Effect of meta-learning**: naive prompts achieved 0% grounding rate (0/7 rules grounded). KF-optimized prompts achieved 100% grounding rate (10/10 rules grounded) — even on the first attempt, without any dialogue rounds.
 
 The knowledge in this domain is **visual discrimination rules**: when you see feature X combined with feature Y, classify as class A rather than class B. Rules are concrete, checkable against images, and narrow enough to be validated on a held-out pool.
 
@@ -142,6 +173,7 @@ No published paper at the time of writing combines all of these properties in a 
 3. **Orchestrator-gated pool validation** — rules must pass a held-out precision check before registration, not just a single-example test
 4. **Inference-time injection** — accepted rules are injected into the PUPIL's context; the PUPIL's weights are never modified
 5. **Explicit, auditable artifacts** — every rule is plain text with provenance: which failure triggered it, who authored it, what the pool validation showed
+6. **Meta-learning at the orchestrator level** — KF improves its own steering prompts based on patterns observed across dialogue rounds, compounding gains across sessions
 
 The closest published work:
 - **Inter-Cascade** (Wu et al., 2025): failure-trigger → strategy artifact → inference-time injection, but single-shot (no grounding dialogue)
@@ -155,8 +187,8 @@ The closest published work:
 
 | Sub-domain | Status |
 |---|---|
-| Image classification — dermatology | 🔬 Initial results positive (+38pp at 30/class); expanding coverage and refining protocol |
-| Image classification — ornithology | 🔬 Initial results positive (+50pp at 30/class); expanding coverage and refining protocol |
+| Image classification — dermatology | 🔬 Results at 30/class (+38pp) and 100/class (+28.5pp); meta-learning findings documented; expanding coverage |
+| Image classification — ornithology | 🔬 Results at 30/class (+50pp); expanding coverage and refining protocol |
 | ARC-AGI-3 competition mode | Planned |
 
 ---

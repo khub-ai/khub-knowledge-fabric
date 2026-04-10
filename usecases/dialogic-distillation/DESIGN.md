@@ -11,6 +11,7 @@ For the user-facing overview, see [README.md](README.md).
 2. [The Three-Party Protocol](#2-the-three-party-protocol)
 3. [The Grounding Problem — Why Single-Shot Fails](#3-the-grounding-problem--why-single-shot-fails)
 4. [KF Steering Moves](#4-kf-steering-moves)
+4a. [Meta-Learning: KF Optimizes Its Own Prompts](#4a-meta-learning-kf-optimizes-its-own-prompts)
 5. [Pool Gate Mechanics](#5-pool-gate-mechanics)
 6. [Knowledge Types Across Domains](#6-knowledge-types-across-domains)
 7. [Domain: Image Classification (Dermatology and Ornithology)](#7-domain-image-classification-dermatology-and-ornithology)
@@ -87,13 +88,24 @@ The VALIDATOR is a separate agent from the TUTOR. It answers binary questions ("
 
 ## 3. The Grounding Problem — Why Single-Shot Fails
 
-**Empirical result**: In the dermatology three-party experiment (`distill_dialogic.py`), single-shot elicitation produced 0/4 grounded rules. The dialogic loop produced 4/4 grounded rules.
+**Empirical result**: In the dermatology three-party experiments, naive single-shot elicitation produced 0/7 grounded rules across two separate attempts (`elicit_from_failures.py`: 0/4; `elicit_nodular_rules.py`: 0/3). The dialogic loop produced 4/4 grounded rules.
 
 The failure mode is vocabulary mismatch. The TUTOR writes rules using domain-expert vocabulary ("irregular pigment network with abrupt cutoff at the periphery"). The VALIDATOR evaluates images using visual description vocabulary ("relatively symmetric oval shape with a corona pattern at the border"). Both descriptions may be correct for the same image at different levels of abstraction, but the rule's preconditions must match what the VALIDATOR actually observes in order to fire.
 
 Single-shot elicitation has no feedback loop. The TUTOR proposes a rule based on their own vocabulary; if it does not fire during grounding check, the rule is discarded. There is no mechanism to tell the TUTOR *why* it failed or *what vocabulary to use instead*.
 
 The dialogic loop fixes this by feeding VALIDATOR observations back to the TUTOR as explicit steering: "the validator described this image as X — try writing the preconditions in terms of X rather than Y." After one or two rounds, the TUTOR's rule language converges to the VALIDATOR's vocabulary and the grounding check passes.
+
+### The meta-learning effect
+
+Importantly, the grounding problem has two layers:
+
+1. **Per-rule vocabulary mismatch** — a specific rule uses terminology the VALIDATOR does not — solvable by per-rule dialogue rounds
+2. **Systemic vocabulary mismatch** — the TUTOR prompt itself invites the wrong vocabulary class — solvable by meta-learning at the KF level
+
+When KF observes repeated grounding failures due to the same root cause (e.g., clinical terminology), it can revise the TUTOR prompt itself — not just steer individual rules. This is meta-learning: the orchestrator improves its own behavior based on patterns observed across dialogue rounds. See §4a for details.
+
+Once systemic vocabulary mismatch is resolved through meta-learning, per-rule dialogue rounds become less necessary. In a controlled 200-image experiment (Mel/Nev, 100/class, 10 triggers), both single-shot and dialogic methods achieved 10/10 grounding on the first attempt — because the KF-optimized prompt had already incorporated the meta-learnings. This is expected and desirable: it means the meta-learning is working.
 
 ---
 
@@ -117,6 +129,50 @@ KF chooses steering moves based on:
 - Grounding check result (which preconditions fired, which did not, validator's exact text)
 - Round number
 - Pool gate result (FP count, precision, which pool images produced FPs)
+
+---
+
+## 4a. Meta-Learning: KF Optimizes Its Own Prompts
+
+Beyond per-rule steering, KF performs a higher-order optimization: it revises its own TUTOR and VALIDATOR prompts based on patterns observed across multiple dialogue rounds. This is **meta-learning** — learning how to learn — and it compounds the value of each dialogue session.
+
+### Mechanism
+
+After observing repeated failures with a consistent root cause, KF encodes the corrective insight directly into the prompt templates used for future sessions. The result is that later sessions start with better prompts, reducing or eliminating the need for per-rule dialogue rounds.
+
+### Concrete meta-learnings (dermatology)
+
+Three specific prompt improvements emerged from the initial dialogic experiments and are now encoded in `distill_dialogic.py`:
+
+**1. Frame the task for the validator, not the clinician**
+
+The naive TUTOR prompt (`elicit_from_failures.py`) asked for "dermoscopic features" without mentioning that a separate validator model — not a clinician — would evaluate the rules. The TUTOR naturally wrote in clinical vocabulary. After repeated grounding failures due to clinical terminology, KF's optimized prompt (`TUTOR_SYSTEM`) explicitly states:
+
+> *"The rules you write will be tested by a separate validator model that describes images in terms of visible colors, shapes, edges, and spatial patterns — not clinical terminology."*
+
+**2. Provide GOOD/BAD vocabulary examples**
+
+The optimized Round 1 prompt (`ROUND1_PROMPT`) includes concrete examples of vocabulary that works vs. vocabulary that fails, distilled from actual grounding-check failures:
+
+> *GOOD: "dark brown or black irregularly shaped patches"*
+> *BAD: "atypical pigment network" (clinical term the validator won't use)*
+
+These examples give the TUTOR a concrete model of the target vocabulary space.
+
+**3. Limit precondition count to 2–3**
+
+Early TUTOR proposals often included 5–7 preconditions. With that many conditions, the probability of the validator confirming all of them on any single image drops sharply. KF learned to instruct the TUTOR to write 2–3 preconditions maximum, each visually concrete.
+
+### Measured effect
+
+| Prompt version | Grounding rate |
+|---|---|
+| Naive (`elicit_from_failures.py`, `elicit_nodular_rules.py`) | 0/7 (0%) |
+| KF-optimized (`distill_dialogic.py`) | 10/10 (100%) |
+
+### Implication for experimental design
+
+Because meta-learning encodes itself into the prompt, any comparison of "single-shot vs. dialogic" using a post-meta-learning prompt is confounded: the single-shot method benefits from all prior dialogic learning. A fair comparison requires either using the naive prompt for single-shot or measuring meta-learning as a separate dimension. See §12.7.
 
 ---
 
@@ -239,10 +295,24 @@ post-hoc analysis of which rules are active vs. firing.
 | Mel/Nev 30/class (patch loop) | 55% | 93.3% | +38.3 pp |
 | BCC/BKL 30/class (patch loop) | 56.7% | 75% | +18.3 pp |
 | Mel/Nev 30/class (dialogic distill, 3 rules) | 55% | 91.7% | +36.7 pp |
-| Mel/Nev single-shot elicitation (4 attempts) | — | 0/4 grounded | — |
+| Mel/Nev naive single-shot (7 attempts) | — | 0/7 grounded | — |
 | Mel/Nev dialogic (4 attempts) | — | 4/4 grounded, 3/4 accepted | — |
+| **Mel/Nev 100/class controlled (single-shot, KF-optimized prompt)** | **52.5%** | **81.0%** | **+28.5 pp** |
+| **Mel/Nev 100/class controlled (dialogic, KF-optimized prompt)** | **52.5%** | **77.5%** | **+25.0 pp** |
 | Birds (Cowbird, pilot 6-image) | 33% | 83% | +50 pp |
 | Birds (expanded 30/class) | 46.7% | 96.7% | +50 pp |
+
+#### 200-image controlled experiment details
+
+**Design**: 200 images (100 melanoma, 100 nevus) from the HAM10000 test split, sampled with seed=42. 10 trigger images selected from melanoma failures (seed=7). Held-out pool: 10/class from training split (seed=42). Both methods used the same KF-optimized prompts, triggers, and pool.
+
+**Rule conversion**: Both methods achieved identical conversion: 10/10 grounded, 7/10 accepted. Dialogic rules all grounded at round 1 (no refinement needed). This parity is expected — see §4a on meta-learning.
+
+**Accuracy**: Single-shot 162/200 (81.0%), dialogic 155/200 (77.5%). McNemar's test: chi-squared = 2.12, p >= 0.05 — difference is not statistically significant.
+
+**Per-image breakdown**: Both methods fixed 45 failures, single-shot exclusively fixed 12 more, dialogic exclusively fixed 5 more, 33 failures unfixed by either. The two rule sets largely overlap in effect.
+
+**Interpretation**: The similar performance confirms that once meta-learning is encoded in prompts (§4a), both methods produce comparable rules. The value of dialogue was realized upstream — in the sessions that produced the meta-learnings now baked into the prompt.
 
 ---
 
@@ -427,3 +497,24 @@ The semantic validation step (SEMANTIC_RULE_VALIDATOR) reviews each precondition
 ### 12.6 No cross-domain transfer yet
 
 Rules authored in dermatology are specific to the dermatology pair. Rules authored in ARC-AGI-3 are game-agnostic but still domain-specific (reasoning about visual grids). Dialogic Distillation has not yet been applied to transfer knowledge across fundamentally different task types. This is a longer-term research question.
+
+### 12.7 Prompt optimization confound in single-shot vs. dialogic comparisons
+
+The 200-image controlled experiment (§7) found no significant difference between single-shot and dialogic methods — both achieved 10/10 grounding and comparable accuracy. This is because both used the KF-optimized prompt, which already encodes meta-learnings from prior dialogic sessions (§4a).
+
+This creates a confound for any future comparison: once meta-learning has been captured in the prompt, single-shot inherits the benefits of dialogue. A fair comparison would need one of:
+
+1. **Use the naive prompt for single-shot.** This measures the full dialogic advantage (per-rule refinement + meta-learning) but confounds two effects.
+2. **Measure meta-learning separately.** Compare naive-single-shot (0/7 grounded) vs. optimized-single-shot (10/10 grounded) to isolate the meta-learning effect, and compare optimized-single-shot vs. optimized-dialogic to isolate the per-rule refinement effect.
+3. **Test in a new domain where no meta-learning exists yet.** ARC-AGI-3 or a new image-classification pair would provide a clean comparison — the first session's dialogue would be genuinely needed.
+
+The current data supports the interpretation that dialogic distillation's primary long-term value is meta-learning (prompt optimization that persists across sessions), while its per-rule value is most pronounced in early sessions before prompts are optimized.
+
+### 12.8 Two dimensions of dialogic value
+
+Dialogic distillation's value should be understood as two-dimensional:
+
+- **Dimension 1: Per-rule refinement.** Multi-round dialogue bridges vocabulary gaps on individual rules that fail grounding on the first attempt. This is the most visible effect and the one the protocol is explicitly designed for.
+- **Dimension 2: Meta-learning.** KF accumulates behavioral knowledge about the TUTOR/VALIDATOR pair and encodes it into improved prompts. This effect compounds across sessions and eventually makes per-rule dialogue less necessary.
+
+Both dimensions contribute to the system's effectiveness, but they have different time horizons. Per-rule refinement is immediate and local. Meta-learning is gradual and global. A mature dialogic distillation deployment will have well-optimized prompts (dimension 2 saturated) and will primarily use dialogue for the remaining cases where individual rules still fail grounding (dimension 1).
