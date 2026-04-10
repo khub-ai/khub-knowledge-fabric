@@ -183,6 +183,14 @@ PIL runs entirely inside your agent process — there is no server, no daemon, a
 | **[5 — Portability](docs/roadmap.md#phase-5--portability-and-cross-agent-compatibility)** | Standard artifact format, import/export, cross-agent compatibility | Planned |
 | **[6 — Governance & Ecosystem](docs/roadmap.md#phase-6--governance-and-ecosystem-long-term)** | Team/org knowledge tiers, access controls, compliance audit trails, knowledge ecosystem and new business models | Long-term |
 
+### Use cases
+
+| Use case | What it demonstrates | Status |
+|---|---|---|
+| **[Image Classification](usecases/image-classification/)** | Runtime knowledge patching: domain experts correct VLM failures in plain language, without fine-tuning — validated in dermatology (+38 pp) and ornithology (+50 pp) | ✅ Done |
+| **[ARC-AGI-3](usecases/arc-agi-3/)** | KF for sequential interactive reasoning: structured knowledge accumulation and goal-directed planning in unknown game environments | ✅ Done (non-competition mode) |
+| **[Dialogic Distillation](usecases/dialogic-distillation/)** | Closing the capability gap between a strong expert model (TUTOR) and a constrained deployment model (PUPIL) through validated multi-round dialogue — no fine-tuning required; rules are explicit, auditable, and injectable at inference time — see [README](usecases/dialogic-distillation/README.md) · [design spec](usecases/dialogic-distillation/DESIGN.md) | 🔬 Research (image classification validated; ARC-AGI-3 planned) |
+
 → *[Detailed roadmap with milestones](docs/roadmap.md)* · *[Enterprise vision and investment thesis](docs/enterprise-vision.md)*
 
 ## Repository structure
