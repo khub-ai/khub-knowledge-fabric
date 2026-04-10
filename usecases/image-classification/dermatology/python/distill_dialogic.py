@@ -55,7 +55,7 @@ console = Console()
 # ── defaults ────────────────────────────────────────────────────────────────
 DEFAULT_DATA_DIR   = r"C:\_backup\ml\data\DermaMNIST_HAM10000"
 DEFAULT_PAIR       = "melanoma_vs_melanocytic_nevus"
-DEFAULT_TUTOR      = "claude-opus-4-6"
+DEFAULT_TUTOR      = "claude-sonnet-4-6"
 DEFAULT_VALIDATOR  = "claude-sonnet-4-6"
 DEFAULT_MAX_ROUNDS = 4
 DEFAULT_VAL_PER_CLASS = 10
