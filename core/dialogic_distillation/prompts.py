@@ -381,35 +381,3 @@ Please author a REVISED rule. Use the validator's own observations as
 a vocabulary guide — if the validator described seeing "X", use "X" in
 your preconditions rather than a synonym. Keep to 2-3 preconditions max.
 """
-
-
-# Tightening prompt template.
-TIGHTEN_PROMPT = """\
-You are the TUTOR. Your rule fires on the trigger {item_noun} (good!) but
-also fired on {n_fp} {item_noun_plural} from the opposite {class_noun} (bad).
-
-YOUR RULE:
-{rule_text}
-
-PRECONDITIONS:
-{preconditions}
-
-TRUE POSITIVES (correctly identified {favors}):
-{tp_observations}
-
-FALSE POSITIVES (wrongly fired on {opposing_class}):
-{fp_observations}
-
-{extra_guidance}
-
-What single additional precondition would exclude the false positives
-while keeping the true positives? The precondition MUST still be true
-for the trigger {item_noun}. Describe it in concrete visual terms — something
-a validator could confirm or deny by looking at a {item_noun}.
-
-Reply with a JSON object:
-{{{{
-  "tightening_precondition": "the new precondition in concrete visual terms",
-  "rationale": "why this separates TP from FP"
-}}}}
-"""

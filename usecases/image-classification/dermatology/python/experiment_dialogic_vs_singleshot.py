@@ -5,7 +5,7 @@ Controlled comparison: single-shot elicitation vs three-party dialogic
 distillation, using the same triggers, same pool, same test set.
 
 Independent variable: whether KF steers a multi-round dialog.
-Both methods use Sonnet as tutor and validator, same pool gate.
+TUTOR uses Opus, VALIDATOR uses Sonnet, same pool gate.
 
 Phases:
   1. baseline   — Qwen zero-shot on 100 mel + 100 nev (test split)
@@ -58,7 +58,7 @@ IMAGES_PER_CLASS = 100     # test set size per class
 N_TRIGGERS     = 10        # number of failure images to seed from
 TRIGGER_SEED   = 7         # fixed seed for trigger selection
 POOL_PER_CLASS = 10        # pool gate size per class (train split, seed=42)
-TUTOR_MODEL    = "claude-sonnet-4-6"
+TUTOR_MODEL    = "claude-opus-4-6"
 VALIDATOR_MODEL = "claude-sonnet-4-6"
 CHEAP_MODEL    = "qwen/qwen3-vl-8b-instruct"
 MAX_ROUNDS     = 5         # max dialog rounds for dialogic method
