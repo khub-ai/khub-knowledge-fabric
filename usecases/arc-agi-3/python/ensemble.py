@@ -61,6 +61,7 @@ from agents import (
 )
 from core.knowledge.co_occurrence import CoOccurrenceRegistry, events_from_step
 from state_store import StateStore
+from distillation_recorder import DistillationRecorder
 from nav_bfs import (
     compute_navigation_plan,
     find_player_position,
@@ -139,6 +140,12 @@ COMPETITION_MAX_LLM_USD = 1.0
 # mode.  After this many cycles the LLM path is silently skipped; BFS-direct
 # continues.  Set to 0 to disable.
 COMPETITION_MAX_LLM_CYCLES = 8
+
+# Stuck detection: if this many consecutive steps have pixel_diff below the
+# threshold, the system forces a fresh OBSERVER+MEDIATOR call and bypasses
+# BFS-DIRECT.  Prevents burning all steps against a wall.
+STUCK_STEP_THRESHOLD = 3     # consecutive stuck steps before intervention
+STUCK_DIFF_THRESHOLD = 10    # pixel_diff at or below this counts as "stuck"
 
 # Known action sequences to pre-solve (skip) levels that are already mastered.
 # Keys are env_id strings.  Values are ordered action names.
@@ -937,6 +944,7 @@ def _compute_bfs_nav_dynamic(
     level_initial_frame: list[list[int]],
     concept_bindings: dict,
     history_start_idx: int = 0,
+    tracked_player_colors: Optional[set] = None,
 ) -> str:
     """
     Build a BFS navigation section for levels that have no hardcoded positions
@@ -979,8 +987,11 @@ def _compute_bfs_nav_dynamic(
     # Each inference is independent; failures leave obs_* as None so the
     # effective_* property falls back to the prior from game_knowledge.json.
     # ------------------------------------------------------------------
-    _obs_step = infer_step_size_from_positions(action_history)
-    if _obs_step is not None:
+    # Skip first position (often computed with wrong colors before
+    # self-discovery kicks in).  Use history from index 1+ only.
+    _hist_for_inference = action_history[1:] if len(action_history) > 1 else action_history
+    _obs_step = infer_step_size_from_positions(_hist_for_inference)
+    if _obs_step is not None and _obs_step >= 2:
         hypothesis.obs_step_size = _obs_step
         print(f"  [HYP] inferred step_size={_obs_step}", flush=True)
 
@@ -997,7 +1008,11 @@ def _compute_bfs_nav_dynamic(
         if _fb is not None:
             _last_frame_before = _fb
             break
-    if _last_frame_before is not None:
+    # Only infer player colors from diff when tracked_player_colors (from
+    # self-discovery in the step loop) is not set.  Self-discovery is more
+    # reliable (uses obj_diff with magnitude + uniqueness filters) whereas
+    # infer_player_colors_from_diff picks up background colors.
+    if _last_frame_before is not None and not tracked_player_colors:
         _obs_pc = infer_player_colors_from_diff(
             _last_frame_before, frame, hypothesis.effective_step_size
         )
@@ -1363,24 +1378,42 @@ def _compute_bfs_nav_section(
     if gk_registry is None or not frame:
         return ""
 
-    # Retrieve per-level entry
-    entry = gk_registry.get_level(game_id, level)
-    # entry may be None OR an empty dict {} (stripped level placeholder)
+    # Retrieve per-level entry — treat None as empty dict so dynamic
+    # discovery can still run without static per-level data.
+    entry = gk_registry.get_level(game_id, level) or {}
     _has_static_data = bool(entry and (
         entry.get("rot_changers") or entry.get("win_target")
     ))
-    if entry is None:
-        return ""
 
     # Retrieve top-level game config keys (action_map, walkable_colors, etc.)
+    # When game_knowledge.json is empty, provide reasonable defaults so
+    # dynamic discovery can still attempt BFS navigation.
     game_data = gk_registry._data.get(game_id, {})
     action_map: dict[str, str] | None = game_data.get("action_map")
     walkable_colors_raw = game_data.get("walkable_colors")
     step_size: int = game_data.get("step_size", 5)
     player_colors_raw = game_data.get("player_colors")
 
-    if not action_map or not walkable_colors_raw or not player_colors_raw:
-        return ""
+    # Infer missing keys from action_history + tracked_player_colors
+    if not action_map and action_history:
+        # Default 4-action map: UP/DOWN/LEFT/RIGHT
+        action_map = {"UP": "ACTION1", "DOWN": "ACTION2",
+                      "LEFT": "ACTION3", "RIGHT": "ACTION4"}
+    if not action_map:
+        return ""  # Can't navigate without action_map
+
+    if tracked_player_colors:
+        player_colors_raw = list(tracked_player_colors)
+    if not player_colors_raw:
+        return ""  # Can't navigate without player colors
+
+    if not walkable_colors_raw:
+        # Default walkable: colors 3 (dark-grey) and 5 (black) are common
+        # arena/walkable colors in ARC games.  Remove any known wall colors.
+        _cb_walk = concept_bindings or {}
+        _wall_cols = set(_cb_walk.get("wall_colors") or [])
+        _default_walkable = {3, 5} - _wall_cols
+        walkable_colors_raw = list(_default_walkable) if _default_walkable else [3, 5]
 
     walkable_colors: set[int] = set(walkable_colors_raw)
     # tracked_player_colors (from step loop) takes precedence over game_knowledge
@@ -1435,6 +1468,7 @@ def _compute_bfs_nav_section(
             action_history=action_history or [],
             level_initial_frame=level_initial_frame or frame,
             concept_bindings=concept_bindings or {},
+            tracked_player_colors=tracked_player_colors,
             history_start_idx=history_start_idx,
         )
 
@@ -1791,6 +1825,7 @@ async def run_episode(
     state_manager = StateManager(task_id=task_id, dataset_tag="arc-agi-3")
     goal_manager  = GoalManager(task_id=task_id, dataset_tag="arc-agi-3")
     store         = StateStore()  # unified fact store (parallel to state_manager)
+    recorder      = DistillationRecorder(game_id=env_id)  # OBSERVER/MEDIATOR I/O capture
 
     # -- Inject initial goals ------------------------------------------------
     # Load bootstrap-derived goal template if available (gt_registry),
@@ -1971,6 +2006,16 @@ async def run_episode(
     # for one cycle, executing one neutral step first to get the real frame.
     _level_just_changed: bool = False
 
+    # Stuck detection: counts consecutive steps with low pixel_diff.
+    _consecutive_stuck_steps: int = 0
+    _last_stuck_actions: list[str] = []  # actions that were stuck, for context
+    # Blocked-action tracking: maps player_pos → set of action names that
+    # produced diff ≤ STUCK_DIFF_THRESHOLD from that position.  Persists
+    # across cycles so the MEDIATOR knows which directions are walls.
+    _blocked_actions: dict[tuple, set[str]] = {}  # pos → {action_name, ...}
+    _last_player_pos: tuple | None = None
+    _consecutive_skipped_cycles: int = 0  # dead-spin detection
+
     log(f"\n{'-' * 50}")
     log(f"Episode {episode_num}  env={env_id}  model={DEFAULT_MODEL}")
     log(f"Rules: {rule_engine.stats_summary()}  Tools: {tool_registry.stats_summary()}")
@@ -2104,6 +2149,28 @@ async def run_episode(
             _gs += f"\n{_sc}"
         if _store_str:
             _gs += f"\n{_store_str}"
+        # Inject blocked-action knowledge so MEDIATOR avoids wall directions.
+        # This persists across cycles — not just when stuck threshold is hit.
+        _blocked_at_pos = set()
+        if _last_player_pos is not None and _last_player_pos in _blocked_actions:
+            _blocked_at_pos = _blocked_actions[_last_player_pos]
+        if _blocked_at_pos:
+            _blocked_str = ", ".join(sorted(_blocked_at_pos))
+            _gs += (
+                f"\n\n## BLOCKED ACTIONS at current position\n"
+                f"The following actions are confirmed BLOCKED at the player's "
+                f"current position (hit wall/obstacle, no movement): {_blocked_str}.\n"
+                f"Do NOT use these actions. Choose from unblocked actions only."
+            )
+        if _consecutive_stuck_steps >= STUCK_STEP_THRESHOLD:
+            _stuck_acts = ", ".join(_last_stuck_actions[-STUCK_STEP_THRESHOLD:])
+            _gs += (
+                f"\n\n## ⚠ STUCK DETECTION\n"
+                f"The player has NOT moved for {_consecutive_stuck_steps} consecutive "
+                f"steps (pixel_diff ≤ {STUCK_DIFF_THRESHOLD}). "
+                f"Recent stuck actions: {_stuck_acts}.\n"
+                f"You MUST try DIFFERENT unblocked actions NOW."
+            )
 
         # ------------------------------------------------------------------
         # Round 1: OBSERVER
@@ -2202,6 +2269,29 @@ async def run_episode(
                     else f"llm_cycles={_llm_cycles_used}>={COMPETITION_MAX_LLM_CYCLES}"
                 print(f"  [GATE] LLM suppressed ({reason}) — BFS-direct only", flush=True)
 
+        # --- Stuck detection: override BFS-DIRECT when player isn't moving ---
+        _is_stuck = _consecutive_stuck_steps >= STUCK_STEP_THRESHOLD
+        if _is_stuck:
+            _stuck_actions_str = ", ".join(_last_stuck_actions[-STUCK_STEP_THRESHOLD:])
+            log(f"  [STUCK] {_consecutive_stuck_steps} consecutive low-diff steps "
+                f"(actions: {_stuck_actions_str}) — forcing fresh OBSERVER+MEDIATOR")
+            ep_log._write(
+                f"  [STUCK] {_consecutive_stuck_steps} steps with diff<={STUCK_DIFF_THRESHOLD} "
+                f"(actions: {_stuck_actions_str})"
+            )
+            # Force fresh OBSERVER by clearing cache
+            _last_obs_frame = []
+            _frame_diff = 999
+            # Suppress BFS-DIRECT to let MEDIATOR re-evaluate
+            _bfs_direct_actions = []
+            # Bump LLM allowance: if we're stuck and under-budget, let one
+            # extra LLM cycle through even if the cycle cap was hit
+            if not _llm_allowed and COMPETITION_MODE:
+                _current_cost_stuck = get_cost_tracker().cost_usd()
+                if _current_cost_stuck < COMPETITION_MAX_LLM_USD * 1.5:
+                    _llm_allowed = True
+                    log(f"  [STUCK] Temporarily allowing LLM call despite gate")
+
         # --- BFS-DIRECT: skip OBSERVER+MEDIATOR when BFS has a valid path ---
         _bfs_direct_mode = COMPETITION_MODE and bool(_bfs_direct_actions)
         if _bfs_direct_mode:
@@ -2217,6 +2307,11 @@ async def run_episode(
         elif COMPETITION_MODE and not _llm_allowed:
             log("  [GATE] No BFS path and LLM suppressed — skipping cycle")
             print("  [GATE] No BFS path and LLM suppressed — skipping cycle", flush=True)
+            _consecutive_skipped_cycles += 1
+            if _consecutive_skipped_cycles >= 3:
+                log("  [GATE] 3 consecutive skipped cycles — ending episode")
+                print("  [GATE] 3 consecutive skipped cycles — ending episode", flush=True)
+                break
             continue
         # --- Puzzle-level OBSERVER bypass (SKIP_OBSERVER_FOR_PUZZLES) ---
         # On puzzle levels the structural context already contains groups,
@@ -2313,6 +2408,20 @@ async def run_episode(
 
         _obs_text_current = obs_text
         ep_log.observer_output(obs_text)
+
+        # Record OBSERVER I/O for distillation
+        recorder.set_step(step_count)
+        recorder.set_level(levels_now + 1)
+        if obs_text and obs_text != _obs_text_current:
+            pass  # reused cached — don't re-record
+        elif obs_text and not _bfs_direct_mode:
+            recorder.record_observer(
+                frame=_curr_frame,
+                system_prompt="(see prompts/observer.md)",
+                user_message="(assembled from frame + action_effects + concept_bindings)",
+                response=obs_text,
+                duration_ms=_observer_ms,
+            )
 
         # Merge any new concept bindings the OBSERVER proposed.
         # For integer (color) keys, accumulate confidence and observation count
@@ -2445,6 +2554,16 @@ async def run_episode(
         _med_reason_current = _extract_reasoning(med_text)
         ep_log.mediator_output(med_text, action_plan)
 
+        # Record MEDIATOR I/O for distillation
+        if med_text and not _bfs_direct_mode:
+            recorder.record_mediator(
+                system_prompt="(see prompts/mediator.md)",
+                user_message="(assembled from observer_text + rules + goals + state)",
+                response=med_text,
+                action_plan=action_plan,
+                duration_ms=_mediator_ms,
+            )
+
         # Parse goal + state updates from MEDIATOR response
         _updates = GoalManager.parse_agent_updates(med_text or "")
         if _updates:
@@ -2543,6 +2662,7 @@ async def run_episode(
         # Round 3: Execute action plan
         # ------------------------------------------------------------------
         log(f"  [ACTOR] Executing {len(action_plan)} action(s)...")
+        _consecutive_skipped_cycles = 0  # reset dead-spin counter
 
         matched_ids_now = [m.rule_id for m in matched]
         active_goals_snap = [
@@ -2639,6 +2759,21 @@ async def run_episode(
                 "frame_before": frame_before,
             })
 
+            # -- Stuck detection: track consecutive low-diff steps --
+            # Always update last known player position
+            if _ppos2 is not None:
+                _last_player_pos = _ppos2
+            if _step_diff >= 0 and _step_diff <= STUCK_DIFF_THRESHOLD:
+                _consecutive_stuck_steps += 1
+                _last_stuck_actions.append(action_name)
+                _last_stuck_actions = _last_stuck_actions[-STUCK_STEP_THRESHOLD * 2:]
+                # Record blocked action at this position
+                if _ppos2 is not None:
+                    _blocked_actions.setdefault(_ppos2, set()).add(action_name)
+            else:
+                _consecutive_stuck_steps = 0
+                _last_stuck_actions = []
+
             # Always-on progress line: step / action / diff / player pos / levels.
             # P1: use _tracked_player_colors (adaptive), not re-read from gk.
             try:
@@ -2724,6 +2859,68 @@ async def run_episode(
             known_dynamic_colors.update(
                 m.obj.color for m in obj_diff.moved if not m.obj.is_background
             )
+
+            # -- Self-discovery: infer player_colors from movement --
+            # After first moves, use moved objects as candidates. Filter out
+            # step_counter and stationary objects (which change size but don't
+            # translate). Also corrects bad inferences that include background.
+            if _step_diff > 20:
+                # Collect moved objects that look like player pieces
+                _player_candidates: list[tuple[int, int]] = []  # (color, obj_size)
+                for m in obj_diff.moved:
+                    if (not m.obj.is_background
+                        and m.magnitude >= 3.0
+                        and m.obj.size <= 100):
+                        _player_candidates.append((m.obj.color, m.obj.size))
+                # Exclude auto-detected step_counter and wall colors
+                _cb_now = state_manager._data.get("concept_bindings") or {}
+                _excluded = set()
+                for _ck, _cv in _cb_now.items():
+                    if isinstance(_cv, dict) and _cv.get("role") in ("step_counter",):
+                        _excluded.add(_ck)
+                wall_cols = set(_cb_now.get("wall_colors") or [])
+                _excluded.update(wall_cols)
+                # Uniqueness filter: count total pixels of each color in frame.
+                # Exclude colors that have > 3x the moved object's pixels
+                # (means there are non-player instances of that color).
+                from collections import Counter as _Counter
+                _color_counts = _Counter()
+                for _row_px in curr_frame:
+                    for _px in _row_px:
+                        _color_counts[_px] += 1
+                # Pick the single most unique color: smallest ratio of
+                # total-pixels-in-frame to moved-object-size.  This avoids
+                # colors that appear in UI elements beyond the player sprite.
+                _best_color = None
+                _best_ratio = float("inf")
+                for _pc, _ps in _player_candidates:
+                    if _pc in _excluded or _ps == 0:
+                        continue
+                    _total_in_frame = _color_counts.get(_pc, 0)
+                    _ratio = _total_in_frame / _ps
+                    if _ratio < _best_ratio:
+                        _best_ratio = _ratio
+                        _best_color = _pc
+                _inferred_player = {_best_color} if _best_color else set()
+                # Only update if inferred set is non-empty and either:
+                # (a) tracked is empty, or
+                # (b) inferred is a strict subset (more precise)
+                if _inferred_player and (
+                    not _tracked_player_colors
+                    or _inferred_player < _tracked_player_colors  # subset = more precise
+                    or not _inferred_player.issubset(_tracked_player_colors)
+                ):
+                    _old = _tracked_player_colors
+                    _tracked_player_colors = _inferred_player
+                    if _old != _inferred_player:
+                        log(f"    [SELF-DISCOVER] player_colors: "
+                            f"{_old or '{}'} -> {_inferred_player}")
+                        ep_log._write(
+                            f"  [SELF-DISCOVER] player_colors={_inferred_player} "
+                            f"(from moved objects with translation)")
+                        store.set(("world", "player_colors"),
+                                  _inferred_player, confidence=0.7,
+                                  source="inferred", scope="episode")
 
             # Update confirmed action directions from latest observations.
             new_dirs = infer_action_directions(
@@ -2958,6 +3155,10 @@ async def run_episode(
                 last_matched = []  # force rule re-match on new level
                 _last_obs_frame = []  # force OBSERVER re-run on new level
                 _level_just_changed = True  # next cycle: skip stale transition frame
+                _consecutive_stuck_steps = 0  # reset stuck counter on level advance
+                _last_stuck_actions = []
+                _blocked_actions = {}  # reset blocked actions for new level
+                _last_player_pos = None
                 log(f"  [ACTOR] Level advanced: {levels_before} -> {levels_after}")
                 ep_log.level_advance(levels_before, levels_after)
                 # StateStore: log event and clear level-scoped facts
@@ -2966,6 +3167,9 @@ async def run_episode(
                     properties={"from": levels_before, "to": levels_after},
                 )
                 store.clear_scope("level")
+                # Distillation: mark completed level's data as solved
+                recorder.mark_level_solved(levels_before + 1)
+                recorder.set_level(levels_after + 1)
                 # Persist discovered knowledge for this level (RC visits, color roles).
                 # This allows future episodes to navigate without hardcoded data.
                 try:
@@ -3109,6 +3313,7 @@ async def run_episode(
         f"steps={step_count} cycles={cycle_count} "
         f"cost=${meta.cost_usd:.4f}")
     log(f"  [STORE] {store}")
+    log(f"  [DISTILL] {recorder.stats()}")
 
     # Update rule stats based on episode outcome
     for m in last_matched:
