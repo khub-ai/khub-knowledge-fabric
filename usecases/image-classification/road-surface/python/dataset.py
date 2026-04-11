@@ -2,48 +2,77 @@
 dataset.py — RSCD (Road Surface Classification Dataset) loader for the KF road surface use case.
 
 Provides:
-  load(data_dir)         Load RSCD from a directory.
+  load(data_dir)         Load RSCD from a directory (or zip file).
   RSCDDataset            Container with per-class split access and sampling.
-  RoadImage              Single image record (image_id, friction, material, unevenness, file_path).
+  RoadImage              Single image record.
   CONFUSABLE_PAIRS       List of confusable pair dicts ranked by safety priority.
-  DEFAULT_DATA_DIR       Default path to RSCD folder.
+  DEFAULT_DATA_DIR       Default path to RSCD zip or extracted folder.
 
 Dataset source:
   RSCD — Road Surface Classification Dataset (Tsinghua University)
-  ~1M images (240×360px), 27 classes: friction × material × roughness
-  Download: https://thu-rsxd.com/dxhdiefb/  (~14 GB, CC BY-NC)
+  ~1M images (240×360px), labels encoded in filenames
   Kaggle:   https://www.kaggle.com/datasets/cristvollerei/rscd-dataset-1million
   GitHub:   https://github.com/ztsrxh/RSCD-Road_Surface_Classification_Dataset
 
-RSCD directory structure expected:
-  <data_dir>/
-    train.csv   (columns: filename, friction, material, unevenness)
-    val.csv
-    test.csv
-    images/
-      00000001.jpg
-      00000002.jpg
-      ...
+Actual layout (confirmed from zip inspection):
+  rscd-dataset-1million.zip
+    RSCD dataset-1million/
+      train/               ~557,600 images
+      test_50k/            ~29,900 images
+      vali_20k/            ~12,500 images
 
-Split logic:
-  Uses RSCD's built-in train/val/test splits from the CSV files.
-  If only a single CSV is present, falls back to 80/20 per-class split by filename order.
+  Filenames:  <timestamp>-<friction>-<material>-<roughness>.jpg
+  Example:    2022012523413511-wet-asphalt-smooth.jpg
+
+  friction classes (3):  dry, wet, water
+  material classes (2):  asphalt, concrete
+  roughness classes (3): smooth, slight, severe
+
+Split mapping:
+  "train"  ← train/
+  "test"   ← test_50k/
+  "val"    ← vali_20k/
+
+Note on class scope:
+  This release contains only dry/wet/water friction classes.
+  No ice, snow, or slush classes exist in this version.
+  The primary DD confusable pair is dry vs wet (subtle, hard).
+  The secondary pair is wet vs water (moderate, still valuable).
 """
 
 from __future__ import annotations
-import csv
+
+import re
 import random
+import zipfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Iterator, List, Optional
 
+# ---------------------------------------------------------------------------
+# Defaults
+# ---------------------------------------------------------------------------
 
-DEFAULT_DATA_DIR = Path(r"C:\_backup\ml\data\RSCD")
+DEFAULT_DATA_DIR = Path(r"C:\_backup\ml\data")
+DEFAULT_ZIP_NAME = "rscd-dataset-1million.zip"
+ZIP_ROOT         = "RSCD dataset-1million"   # top-level folder inside the zip
 
 _SEED = 42
 
+# Regex to parse RSCD filenames
+# Matches: <timestamp>-<friction>-<material>-<roughness>.jpg
+# friction and material can contain underscores (e.g. fresh_snow, dirt_mud)
+_FNAME_RE = re.compile(
+    r"^(\d+)-"
+    r"(dry|wet|water|fresh_snow|melted_snow|ice)"
+    r"-(asphalt|concrete|dirt|gravel|dirt_mud)"
+    r"-(smooth|slight|severe)"
+    r"\.jpg$",
+    re.IGNORECASE,
+)
+
 # ---------------------------------------------------------------------------
-# Class name mappings
+# Human-readable label maps
 # ---------------------------------------------------------------------------
 
 FRICTION_NAMES = {
@@ -51,15 +80,16 @@ FRICTION_NAMES = {
     "wet":          "Wet",
     "water":        "Standing Water",
     "fresh_snow":   "Fresh Snow",
-    "melted_snow":  "Melted Snow",
+    "melted_snow":  "Melted Snow / Slush",
     "ice":          "Ice",
 }
 
 MATERIAL_NAMES = {
-    "asphalt":  "Asphalt",
-    "concrete": "Concrete",
-    "dirt":     "Dirt/Mud",
-    "gravel":   "Gravel",
+    "asphalt":   "Asphalt",
+    "concrete":  "Concrete",
+    "dirt":      "Dirt/Mud",
+    "dirt_mud":  "Dirt/Mud",
+    "gravel":    "Gravel",
 }
 
 ROUGHNESS_NAMES = {
@@ -68,25 +98,20 @@ ROUGHNESS_NAMES = {
     "severe": "Severe Unevenness",
 }
 
+# Folder name → canonical split name
+_SPLIT_DIRS = {
+    "train":    "train",
+    "test_50k": "test",
+    "vali_20k": "val",
+}
+
 # ---------------------------------------------------------------------------
-# Confusable pairs — ranked by safety priority
+# Confusable pairs — ranked by DD interest
 # ---------------------------------------------------------------------------
-# Each pair focuses on the FRICTION dimension since that is safety-critical.
-# class_a / class_b are human-readable labels used in prompts.
-# friction_a / friction_b are the raw CSV labels for filtering.
-# material_filter: if set, restrict both classes to this material for cleaner pairs.
+# Only pairs present in this RSCD release (dry/wet/water).
+# Ice and snow pairs removed — not available in this dataset version.
 
 CONFUSABLE_PAIRS = [
-    # Priority 1 — Safety-critical friction confusions
-    {
-        "pair_id":       "wet_vs_ice",
-        "friction_a":    "wet",
-        "class_a":       "Wet Road",
-        "friction_b":    "ice",
-        "class_b":       "Icy Road",
-        "material_filter": "asphalt",   # Restrict to asphalt for cleaner comparison
-        "description":   "Both appear as dark reflective surfaces; ice obscures surface texture completely",
-    },
     {
         "pair_id":       "dry_vs_wet",
         "friction_a":    "dry",
@@ -94,30 +119,43 @@ CONFUSABLE_PAIRS = [
         "friction_b":    "wet",
         "class_b":       "Wet Road",
         "material_filter": "asphalt",
-        "description":   "Early-stage wetting is ambiguous; surface begins to darken unevenly",
+        "description": (
+            "Primary DD pair. Subtle tonal darkening and reduced inter-aggregate "
+            "contrast are the main visual cues. Early-stage wetting is genuinely "
+            "ambiguous. Strong vocabulary gap: Qwen describes both as 'grey road'."
+        ),
+        "dd_priority": "high",
     },
-    # Priority 2 — Snow state confusions
     {
-        "pair_id":       "fresh_snow_vs_melted_snow",
-        "friction_a":    "fresh_snow",
-        "class_a":       "Fresh Snow",
-        "friction_b":    "melted_snow",
-        "class_b":       "Melted Snow / Slush",
-        "material_filter": None,
-        "description":   "Partial melt creates mixed appearance; slush varies widely",
-    },
-    # Priority 3 — Water depth confusion
-    {
-        "pair_id":       "wet_vs_standing_water",
+        "pair_id":       "wet_vs_water",
         "friction_a":    "wet",
         "class_a":       "Wet Road",
         "friction_b":    "water",
         "class_b":       "Standing Water",
         "material_filter": "asphalt",
-        "description":   "Thin film vs pooled water; aquaplaning risk differs substantially",
+        "description": (
+            "Secondary pair. Standing water produces dramatic specular reflections "
+            "from surrounding light sources. More visually obvious than dry vs wet, "
+            "but the boundary between thin water film and standing water remains "
+            "genuinely ambiguous. Aquaplaning risk differs substantially."
+        ),
+        "dd_priority": "medium",
+    },
+    {
+        "pair_id":       "dry_vs_wet_concrete",
+        "friction_a":    "dry",
+        "class_a":       "Dry Concrete",
+        "friction_b":    "wet",
+        "class_b":       "Wet Concrete",
+        "material_filter": "concrete",
+        "description": (
+            "Concrete variant of the primary pair. Lighter base colour makes "
+            "moisture detection harder — wet concrete contrast is lower than wet "
+            "asphalt. Useful for testing rule transfer across materials."
+        ),
+        "dd_priority": "medium",
     },
 ]
-
 
 # ---------------------------------------------------------------------------
 # Data classes
@@ -125,12 +163,15 @@ CONFUSABLE_PAIRS = [
 
 @dataclass
 class RoadImage:
-    image_id:    str         # e.g. "00000001"
-    friction:    str         # e.g. "wet", "ice", "dry"
-    material:    str         # e.g. "asphalt", "concrete", "" (unlabeled for snow/ice)
-    unevenness:  str         # e.g. "smooth", "slight", "severe", "" (unlabeled)
-    file_path:   Path        # absolute path to JPEG
-    split:       str         # "train", "val", "test"
+    image_id:   str     # timestamp portion of filename, e.g. "2022012523413511"
+    friction:   str     # "dry" | "wet" | "water"
+    material:   str     # "asphalt" | "concrete"
+    roughness:  str     # "smooth" | "slight" | "severe"
+    split:      str     # "train" | "val" | "test"
+    # Exactly one of file_path / zip_path is set
+    file_path:  Optional[Path] = None   # set when loaded from extracted folder
+    zip_path:   Optional[str]  = None   # set when loaded from zip (internal path)
+    _zip_ref:   Optional[zipfile.ZipFile] = None  # shared zip handle (not serialised)
 
     @property
     def friction_label(self) -> str:
@@ -138,210 +179,287 @@ class RoadImage:
 
     @property
     def material_label(self) -> str:
-        return MATERIAL_NAMES.get(self.material, self.material) if self.material else ""
+        return MATERIAL_NAMES.get(self.material, self.material)
+
+    @property
+    def roughness_label(self) -> str:
+        return ROUGHNESS_NAMES.get(self.roughness, self.roughness)
+
+    def read_bytes(self) -> bytes:
+        """Return raw JPEG bytes regardless of source (file or zip)."""
+        if self.file_path is not None:
+            return self.file_path.read_bytes()
+        if self._zip_ref is not None and self.zip_path is not None:
+            return self._zip_ref.read(self.zip_path)
+        raise RuntimeError(
+            f"RoadImage {self.image_id} has no file_path and no zip reference."
+        )
+
+    def __repr__(self) -> str:
+        src = str(self.file_path) if self.file_path else self.zip_path
+        return (
+            f"RoadImage(id={self.image_id}, "
+            f"{self.friction}/{self.material}/{self.roughness}, "
+            f"split={self.split}, src={src})"
+        )
 
 
 @dataclass
 class RSCDDataset:
+    """Container providing split-aware access to RSCD images."""
+
     _images: List[RoadImage]
-    # Nested dict: friction -> split -> list[RoadImage]
-    _split_index: Dict[str, Dict[str, List[RoadImage]]]
+    # {friction: {split: [RoadImage]}}
+    _index: Dict[str, Dict[str, List[RoadImage]]]
 
     # ------------------------------------------------------------------
-    # Public accessors
+    # Accessors
     # ------------------------------------------------------------------
 
-    def images_for_friction(self, friction: str, split: str = "test") -> List[RoadImage]:
-        """Return all images for a friction class in the given split."""
-        return self._split_index.get(friction, {}).get(split, [])
+    def images_for_friction(
+        self,
+        friction: str,
+        split: str = "test",
+    ) -> List[RoadImage]:
+        """All images for a friction class in the given split."""
+        return self._index.get(friction, {}).get(split, [])
 
     def images_for_pair(
         self,
         friction: str,
         split: str = "test",
         material_filter: Optional[str] = None,
+        roughness_filter: Optional[str] = None,
     ) -> List[RoadImage]:
-        """Return images for a friction class, optionally filtered by material."""
+        """Images for a friction class with optional material/roughness filters."""
         imgs = self.images_for_friction(friction, split=split)
         if material_filter:
-            imgs = [img for img in imgs if img.material == material_filter]
+            imgs = [i for i in imgs if i.material == material_filter]
+        if roughness_filter:
+            imgs = [i for i in imgs if i.roughness == roughness_filter]
         return imgs
 
     def sample_images(
         self,
         friction: str,
         n: int,
-        split: str = "train",
+        split: str = "test",
         seed: int = _SEED,
         material_filter: Optional[str] = None,
+        roughness_filter: Optional[str] = None,
     ) -> List[RoadImage]:
-        """Return up to n images from the given split, deterministically sampled."""
-        imgs = self.images_for_pair(friction, split=split, material_filter=material_filter)
+        """Return up to n images, deterministically sampled."""
+        imgs = self.images_for_pair(
+            friction,
+            split=split,
+            material_filter=material_filter,
+            roughness_filter=roughness_filter,
+        )
         rng = random.Random(seed)
         return rng.sample(imgs, min(n, len(imgs)))
 
+    def sample_pair(
+        self,
+        pair_id: str,
+        n_per_class: int = 20,
+        split: str = "test",
+        seed: int = _SEED,
+    ) -> tuple[List[RoadImage], List[RoadImage]]:
+        """Return (class_a_images, class_b_images) for a named confusable pair."""
+        cp = next((p for p in CONFUSABLE_PAIRS if p["pair_id"] == pair_id), None)
+        if cp is None:
+            raise ValueError(
+                f"Unknown pair_id '{pair_id}'. "
+                f"Available: {[p['pair_id'] for p in CONFUSABLE_PAIRS]}"
+            )
+        mf = cp.get("material_filter")
+        a = self.sample_images(cp["friction_a"], n_per_class, split=split,
+                               seed=seed, material_filter=mf)
+        b = self.sample_images(cp["friction_b"], n_per_class, split=split,
+                               seed=seed + 1, material_filter=mf)
+        return a, b
+
     def class_stats(self) -> Dict[str, Dict[str, int]]:
-        """Return {friction: {split: count}} for all classes."""
-        stats: Dict[str, Dict[str, int]] = {}
-        for friction, splits in self._split_index.items():
-            stats[friction] = {sp: len(imgs) for sp, imgs in splits.items()}
-        return stats
+        """{friction: {split: count}} for all classes."""
+        return {
+            f: {sp: len(imgs) for sp, imgs in splits.items()}
+            for f, splits in self._index.items()
+        }
+
+    def __len__(self) -> int:
+        return len(self._images)
 
 
 # ---------------------------------------------------------------------------
-# CSV reader helpers
+# Internal helpers
 # ---------------------------------------------------------------------------
 
-def _read_csv(csv_path: Path, images_dir: Path, split: str) -> List[RoadImage]:
-    """Parse one RSCD CSV file and return a list of RoadImage records."""
-    images: List[RoadImage] = []
-    if not csv_path.exists():
-        return images
-
-    with csv_path.open(newline="", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        # Normalize column names (RSCD CSVs may vary: 'filename' or 'image' etc.)
-        for row in reader:
-            fname = (row.get("filename") or row.get("image") or row.get("file") or "").strip()
-            friction = (row.get("friction") or row.get("label_friction") or "").strip().lower()
-            material = (row.get("material") or row.get("label_material") or "").strip().lower()
-            unevenness = (row.get("unevenness") or row.get("roughness")
-                         or row.get("label_unevenness") or "").strip().lower()
-
-            if not fname or not friction:
-                continue
-
-            image_id = Path(fname).stem
-            file_path = images_dir / fname
-            # Try without subdir too
-            if not file_path.exists():
-                file_path = images_dir / Path(fname).name
-
-            images.append(RoadImage(
-                image_id=image_id,
-                friction=friction,
-                material=material,
-                unevenness=unevenness,
-                file_path=file_path,
-                split=split,
-            ))
-
-    return images
+def _parse_filename(fname: str) -> Optional[tuple[str, str, str, str]]:
+    """Parse RSCD filename → (image_id, friction, material, roughness) or None."""
+    m = _FNAME_RE.match(Path(fname).name)
+    if not m:
+        return None
+    return m.group(1), m.group(2).lower(), m.group(3).lower(), m.group(4).lower()
 
 
-def _build_split_index(
-    all_images: List[RoadImage],
-) -> Dict[str, Dict[str, List[RoadImage]]]:
-    """Build {friction: {split: [images]}} index."""
+def _build_index(images: List[RoadImage]) -> Dict[str, Dict[str, List[RoadImage]]]:
     index: Dict[str, Dict[str, List[RoadImage]]] = {}
-    for img in all_images:
+    for img in images:
         index.setdefault(img.friction, {}).setdefault(img.split, []).append(img)
-    # Sort each list by image_id for reproducibility
-    for friction in index:
-        for split in index[friction]:
-            index[friction][split].sort(key=lambda x: x.image_id)
+    # Sort for reproducibility
+    for f in index:
+        for sp in index[f]:
+            index[f][sp].sort(key=lambda x: x.image_id)
     return index
 
 
-def _fallback_split(images: List[RoadImage]) -> List[RoadImage]:
-    """Assign train/test splits when no pre-split CSVs are found.
-
-    Groups by friction, sorts by image_id, takes first 80% as train and last 20% as test.
-    """
-    by_friction: Dict[str, List[RoadImage]] = {}
-    for img in images:
-        by_friction.setdefault(img.friction, []).append(img)
-
-    result: List[RoadImage] = []
-    for friction, imgs in by_friction.items():
-        sorted_imgs = sorted(imgs, key=lambda x: x.image_id)
-        n = len(sorted_imgs)
-        split_point = int(n * 0.8)
-        for i, img in enumerate(sorted_imgs):
-            split = "train" if i < split_point else "test"
-            result.append(RoadImage(
-                image_id=img.image_id,
-                friction=img.friction,
-                material=img.material,
-                unevenness=img.unevenness,
-                file_path=img.file_path,
+def _iter_extracted(root: Path) -> Iterator[RoadImage]:
+    """Yield RoadImage records from an extracted RSCD folder."""
+    for folder_name, split in _SPLIT_DIRS.items():
+        split_dir = root / folder_name
+        if not split_dir.exists():
+            continue
+        for fpath in sorted(split_dir.glob("*.jpg")):
+            parsed = _parse_filename(fpath.name)
+            if parsed is None:
+                continue
+            image_id, friction, material, roughness = parsed
+            yield RoadImage(
+                image_id=image_id,
+                friction=friction,
+                material=material,
+                roughness=roughness,
                 split=split,
-            ))
-    return result
+                file_path=fpath,
+            )
+
+
+def _iter_zip(zf: zipfile.ZipFile) -> Iterator[RoadImage]:
+    """Yield RoadImage records from RSCD zip without extracting."""
+    for entry in zf.namelist():
+        parts = entry.split("/")
+        # Expected: ZIP_ROOT / <split_folder> / <filename>.jpg
+        if len(parts) != 3:
+            continue
+        _, folder_name, fname = parts
+        if not fname.lower().endswith(".jpg"):
+            continue
+        split = _SPLIT_DIRS.get(folder_name)
+        if split is None:
+            continue
+        parsed = _parse_filename(fname)
+        if parsed is None:
+            continue
+        image_id, friction, material, roughness = parsed
+        yield RoadImage(
+            image_id=image_id,
+            friction=friction,
+            material=material,
+            roughness=roughness,
+            split=split,
+            zip_path=entry,
+            _zip_ref=zf,
+        )
 
 
 # ---------------------------------------------------------------------------
 # Public loader
 # ---------------------------------------------------------------------------
 
-def load(data_dir: Optional[str | Path] = None) -> RSCDDataset:
-    """Load RSCD from disk and build per-friction split index.
+def load(
+    data_dir: Optional[str | Path] = None,
+    *,
+    from_zip: Optional[str | Path] = None,
+    max_per_class: Optional[int] = None,
+    splits: Optional[List[str]] = None,
+) -> RSCDDataset:
+    """Load RSCD and return an RSCDDataset.
 
-    Supports two directory layouts:
-      Layout A (with pre-split CSVs):
-        <data_dir>/train.csv, val.csv, test.csv
-        <data_dir>/images/  (or images directly in data_dir)
-
-      Layout B (single CSV):
-        <data_dir>/labels.csv  (or metadata.csv, rscd.csv)
-        <data_dir>/images/
-
-    Falls back to 80/20 per-friction split if no CSV splits exist.
+    Two modes:
+      1. Extracted folder  (data_dir points to folder containing train/, test_50k/, vali_20k/)
+      2. Direct from zip   (from_zip points to rscd-dataset-1million.zip)
 
     Args:
-        data_dir: Path to the RSCD root folder. Defaults to DEFAULT_DATA_DIR.
+        data_dir:      Path to extracted RSCD root folder. Defaults to DEFAULT_DATA_DIR.
+                       Loader checks for train/ subfolder; if not found and a zip is
+                       present in data_dir, automatically switches to zip mode.
+        from_zip:      Explicit path to the RSCD zip file. Overrides data_dir.
+        max_per_class: Cap images per (friction, split) combination — useful for
+                       quick development runs (e.g. max_per_class=500).
+        splits:        Restrict to these splits, e.g. ["test"]. Default: all splits.
 
     Returns:
-        RSCDDataset with pre-built split index.
+        RSCDDataset with built index.
 
     Raises:
-        FileNotFoundError: if data_dir does not exist.
-        ValueError: if no images could be loaded (empty CSVs / wrong path).
+        FileNotFoundError: if neither a folder nor a zip can be found.
+        ValueError: if no images could be loaded.
     """
-    root = Path(data_dir) if data_dir is not None else DEFAULT_DATA_DIR
-    if not root.exists():
-        raise FileNotFoundError(
-            f"RSCD data directory not found: {root}\n"
-            f"Download from https://thu-rsxd.com/dxhdiefb/ and extract here."
-        )
-
-    images_dir = root / "images" if (root / "images").exists() else root
-
-    all_images: List[RoadImage] = []
+    allowed_splits = set(splits) if splits else {"train", "val", "test"}
 
     # ------------------------------------------------------------------
-    # Try Layout A: separate train/val/test CSVs
+    # Resolve source
     # ------------------------------------------------------------------
-    train_csv = root / "train.csv"
-    val_csv   = root / "val.csv"
-    test_csv  = root / "test.csv"
+    if from_zip is not None:
+        zip_path = Path(from_zip)
+        if not zip_path.exists():
+            raise FileNotFoundError(f"RSCD zip not found: {zip_path}")
+        zf = zipfile.ZipFile(zip_path)
+        all_images = list(_iter_zip(zf))
 
-    if train_csv.exists():
-        all_images.extend(_read_csv(train_csv, images_dir, "train"))
-        all_images.extend(_read_csv(val_csv,   images_dir, "val"))
-        all_images.extend(_read_csv(test_csv,  images_dir, "test"))
     else:
-        # ------------------------------------------------------------------
-        # Layout B: single CSV with all images, then split manually
-        # ------------------------------------------------------------------
-        for candidate in ("labels.csv", "metadata.csv", "rscd.csv", "dataset.csv",
-                          "annotations.csv"):
-            csv_path = root / candidate
-            if csv_path.exists():
-                raw = _read_csv(csv_path, images_dir, "all")
-                all_images = _fallback_split(raw)
-                break
+        root = Path(data_dir) if data_dir is not None else DEFAULT_DATA_DIR
+
+        # Check if this is the folder containing train/ subdirs
+        if (root / "train").exists() or (root / "test_50k").exists():
+            all_images = list(_iter_extracted(root))
+
+        # Check if data_dir itself is the zip
+        elif root.suffix == ".zip" and root.exists():
+            zf = zipfile.ZipFile(root)
+            all_images = list(_iter_zip(zf))
+
+        # Auto-detect zip in the data_dir folder
+        else:
+            zip_candidate = root / DEFAULT_ZIP_NAME
+            if zip_candidate.exists():
+                zf = zipfile.ZipFile(zip_candidate)
+                all_images = list(_iter_zip(zf))
+            else:
+                raise FileNotFoundError(
+                    f"Could not find RSCD data at: {root}\n"
+                    f"Expected either:\n"
+                    f"  - Extracted folder with train/, test_50k/, vali_20k/ subfolders\n"
+                    f"  - Zip file at {zip_candidate}\n"
+                    f"Download: https://www.kaggle.com/datasets/cristvollerei/rscd-dataset-1million"
+                )
+
+    # ------------------------------------------------------------------
+    # Filter splits
+    # ------------------------------------------------------------------
+    all_images = [img for img in all_images if img.split in allowed_splits]
 
     if not all_images:
         raise ValueError(
-            f"No images loaded from {root}.\n"
-            f"Expected CSV files (train.csv/val.csv/test.csv or labels.csv) "
-            f"with columns: filename, friction, material, unevenness.\n"
-            f"Check dataset layout against README in road-surface/README.md."
+            "No images loaded. Check data_dir path and that the zip is not corrupted."
         )
 
-    split_index = _build_split_index(all_images)
-    return RSCDDataset(_images=all_images, _split_index=split_index)
+    # ------------------------------------------------------------------
+    # Optional per-class cap (for development)
+    # ------------------------------------------------------------------
+    if max_per_class is not None:
+        from collections import defaultdict
+        counters: Dict[tuple, int] = defaultdict(int)
+        capped: List[RoadImage] = []
+        for img in all_images:
+            key = (img.friction, img.split)
+            if counters[key] < max_per_class:
+                capped.append(img)
+                counters[key] += 1
+        all_images = capped
+
+    index = _build_index(all_images)
+    return RSCDDataset(_images=all_images, _index=index)
 
 
 # ---------------------------------------------------------------------------
@@ -349,25 +467,30 @@ def load(data_dir: Optional[str | Path] = None) -> RSCDDataset:
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    ds = load()
-    print("RSCD dataset loaded.")
+    import sys
+
+    zip_path = Path(r"C:\_backup\ml\data\rscd-dataset-1million.zip")
+
+    print("Loading RSCD from zip (test split only, max 1000/class for speed)...")
+    ds = load(from_zip=zip_path, splits=["test"], max_per_class=1000)
+
+    print(f"\nLoaded {len(ds)} images.\n")
+    print(f"{'Friction':<18} {'Test':>8}")
+    print("-" * 30)
     stats = ds.class_stats()
-    print(f"\n{'Friction':<16} {'Train':>8} {'Val':>8} {'Test':>8}")
-    print("-" * 44)
-    for friction, splits in sorted(stats.items()):
+    for friction in sorted(stats):
         label = FRICTION_NAMES.get(friction, friction)
-        train = splits.get("train", 0)
-        val   = splits.get("val", 0)
-        test  = splits.get("test", 0)
-        print(f"  {label:<14} {train:>8} {val:>8} {test:>8}")
+        test_n = stats[friction].get("test", 0)
+        print(f"  {label:<16} {test_n:>8,}")
 
-    print(f"\nTotal: {len(ds._images)} images")
-
-    print(f"\nConfusable pairs:")
+    print(f"\nConfusable pairs (test split):")
     for cp in CONFUSABLE_PAIRS:
-        a_imgs = ds.images_for_pair(cp["friction_a"], split="test",
-                                    material_filter=cp.get("material_filter"))
-        b_imgs = ds.images_for_pair(cp["friction_b"], split="test",
-                                    material_filter=cp.get("material_filter"))
-        print(f"  {cp['pair_id']:40s}  {cp['class_a']}: {len(a_imgs):4d}  "
-              f"{cp['class_b']}: {len(b_imgs):4d} (test)")
+        a, b = ds.sample_pair(cp["pair_id"], n_per_class=20, split="test")
+        print(f"  {cp['pair_id']}")
+        print(f"    {cp['class_a']}: {len(a)} images")
+        print(f"    {cp['class_b']}: {len(b)} images")
+        if a:
+            print(f"    Sample A: {a[0]}")
+        if b:
+            print(f"    Sample B: {b[0]}")
+        print()
