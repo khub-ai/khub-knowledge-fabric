@@ -195,6 +195,21 @@ class RoadImage:
             f"RoadImage {self.image_id} has no file_path and no zip reference."
         )
 
+    def resolve_path(self, tmp_dir: Path) -> Path:
+        """Return a real filesystem path to the JPEG, extracting to tmp_dir if needed.
+
+        For file-backed images returns file_path directly.
+        For zip-backed images extracts to tmp_dir/<image_id>.jpg on first call
+        and returns that path. Subsequent calls return the cached path.
+        """
+        if self.file_path is not None:
+            return self.file_path
+        out = tmp_dir / f"{self.image_id}.jpg"
+        if not out.exists():
+            tmp_dir.mkdir(parents=True, exist_ok=True)
+            out.write_bytes(self.read_bytes())
+        return out
+
     def __repr__(self) -> str:
         src = str(self.file_path) if self.file_path else self.zip_path
         return (
@@ -335,13 +350,23 @@ def _iter_extracted(root: Path) -> Iterator[RoadImage]:
 
 
 def _iter_zip(zf: zipfile.ZipFile) -> Iterator[RoadImage]:
-    """Yield RoadImage records from RSCD zip without extracting."""
+    """Yield RoadImage records from RSCD zip without extracting.
+
+    Handles two internal layouts:
+      test_50k / vali_20k  — flat:  ZIP_ROOT/<split>/<fname>.jpg      (3 parts)
+      train                — nested: ZIP_ROOT/<split>/<class>/<fname>.jpg (4 parts)
+    """
     for entry in zf.namelist():
         parts = entry.split("/")
-        # Expected: ZIP_ROOT / <split_folder> / <filename>.jpg
-        if len(parts) != 3:
+        if len(parts) == 3:
+            # Flat layout: ZIP_ROOT / <split_folder> / <filename>.jpg
+            _, folder_name, fname = parts
+        elif len(parts) == 4:
+            # Nested layout: ZIP_ROOT / <split_folder> / <class_subdir> / <filename>.jpg
+            _, folder_name, _subdir, fname = parts
+        else:
             continue
-        _, folder_name, fname = parts
+
         if not fname.lower().endswith(".jpg"):
             continue
         split = _SPLIT_DIRS.get(folder_name)

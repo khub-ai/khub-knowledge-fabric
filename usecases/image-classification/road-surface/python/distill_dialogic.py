@@ -59,12 +59,16 @@ console = Console()
 # ---------------------------------------------------------------------------
 # Defaults
 # ---------------------------------------------------------------------------
-DEFAULT_PAIR          = "wet_vs_ice"
+DEFAULT_PAIR          = "dry_vs_wet"
 DEFAULT_TUTOR         = "claude-opus-4-6"
 DEFAULT_VALIDATOR     = "claude-sonnet-4-6"
 DEFAULT_MAX_ROUNDS    = 4
 DEFAULT_VAL_PER_CLASS = 10
 DEFAULT_OUTPUT        = "distill_dialogic_session.json"
+
+# Temp dir for extracting zip-backed images during session
+_TMP_DIR = _HERE / ".." / ".." / ".." / ".." / ".tmp" / "rscd_session"
+_TMP_DIR = _TMP_DIR.resolve()
 
 # Canonical failure cases for wet_vs_ice pair.
 # Replace with real RSCD image IDs once dataset is downloaded.
@@ -132,7 +136,7 @@ async def discover_failures(
         other_label  = class_b if true_label == class_a else class_a
 
         content = [
-            image_block(str(img.file_path)),
+            image_block(str(img.resolve_path(_TMP_DIR))),
             {
                 "type": "text",
                 "text": (
@@ -174,7 +178,7 @@ async def discover_failures(
         if prediction != true_label:
             failures.append({
                 "image_id":        img.image_id,
-                "image_path":      str(img.file_path),
+                "image_path":      str(img.resolve_path(_TMP_DIR)),
                 "correct_label":   true_label,
                 "wrong_prediction": prediction,
                 "pupil_reasoning": reasoning,
@@ -238,16 +242,15 @@ async def main():
 
     # Load dataset
     console.print(f"\n[dim]Loading RSCD from {args.data_dir}...[/dim]")
+    _TMP_DIR.mkdir(parents=True, exist_ok=True)
     try:
         ds = load_rscd(args.data_dir)
     except FileNotFoundError as e:
         console.print(f"\n[red]Dataset not found:[/red] {e}")
         console.print(
             "\n[yellow]To download RSCD:[/yellow]\n"
-            "  1. Visit https://thu-rsxd.com/dxhdiefb/\n"
-            "  2. Download the ~14 GB ZIP\n"
-            "  3. Extract to C:\\\\backup\\\\ml\\\\data\\\\RSCD\\\\\n"
-            "  4. Re-run this script"
+            "  kaggle datasets download cristvollerei/rscd-dataset-1million\n"
+            "  Place zip at C:\\\\backup\\\\ml\\\\data\\\\rscd-dataset-1million.zip"
         )
         return
 
@@ -256,13 +259,13 @@ async def main():
 
     # Build validation pool from training split
     pool_a = [
-        (str(img.file_path), class_a)
+        (str(img.resolve_path(_TMP_DIR)), class_a)
         for img in ds.sample_images(
             pair_info["friction_a"], args.val_per_class,
             split="train", seed=42, material_filter=mat_filter)
     ]
     pool_b = [
-        (str(img.file_path), class_b)
+        (str(img.resolve_path(_TMP_DIR)), class_b)
         for img in ds.sample_images(
             pair_info["friction_b"], args.val_per_class,
             split="train", seed=42, material_filter=mat_filter)
@@ -273,8 +276,8 @@ async def main():
 
     # Gather failure cases
     if args.failure_ids:
-        # Build image_id → path map from full dataset
-        img_map = {img.image_id: str(img.file_path) for img in ds._images}
+        # Build image_id → resolved path map from full dataset
+        img_map = {img.image_id: str(img.resolve_path(_TMP_DIR)) for img in ds._images}
         failure_ids = [fid.strip() for fid in args.failure_ids.split(",") if fid.strip()]
         failures = []
         for fid in failure_ids:
@@ -389,7 +392,10 @@ async def main():
         f"\n  {n_grounded}/{len(all_transcripts)} grounded  |  "
         f"{n_accepted} accepted"
     )
-    console.print(f"  Cost: [cyan]${tracker.cost_usd():.4f}[/cyan]")
+    try:
+        console.print(f"  Cost: [cyan]${tracker.cost_usd():.4f}[/cyan]")
+    except Exception:
+        pass  # cost display is best-effort
 
     # Save session
     session = {

@@ -20,9 +20,26 @@ from pathlib import Path
 _DERM_AGENTS_PATH = (
     Path(__file__).resolve().parents[2] / "dermatology" / "python" / "agents.py"
 )
+_DERM_PYTHON_DIR = str(_DERM_AGENTS_PATH.parent)
+
+# Temporarily ensure dermatology's python dir is first on sys.path so that
+# dermatology/agents.py resolves its own `from domain_config import DERM_CONFIG`
+# correctly, rather than finding road-surface's domain_config.py.
+_orig_path = sys.path[:]
+if _DERM_PYTHON_DIR not in sys.path:
+    sys.path.insert(0, _DERM_PYTHON_DIR)
+
 _derm_spec = _ilu.spec_from_file_location("derm_agents", _DERM_AGENTS_PATH)
 _derm_agents = _ilu.module_from_spec(_derm_spec)
 _derm_spec.loader.exec_module(_derm_agents)
+
+# Restore sys.path so road-surface modules resolve normally afterwards
+sys.path[:] = _orig_path
+
+# Evict dermatology's domain_config from the module cache so that the
+# subsequent `from domain_config import ROAD_SURFACE_CONFIG` below
+# re-imports from road-surface's own domain_config.py, not derm's.
+sys.modules.pop("domain_config", None)
 
 # Re-export backend infrastructure
 call_agent         = _derm_agents.call_agent
