@@ -2,6 +2,7 @@
   "benchmark_id": "road_surface_dry_vs_wet_probe_v1",
   "version": "1.0.0",
   "benchmark_type": "probe",
+  "domain": "road_surface",
   "created": "2026-04-12",
   "pair_id": "dry_vs_wet",
   "class_a": "Dry Road",

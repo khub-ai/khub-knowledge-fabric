@@ -25,7 +25,8 @@ Public API:
 
   image_block               — Anthropic image content block from file path
   encode_image_b64          — base64-encode an image file
-  parse_json_block          — extract JSON from LLM output
+  parse_json_block          — extract JSON object from LLM output
+  parse_json_array          — extract JSON array from LLM output
 
   DEFAULT_PRECISION_GATE, DEFAULT_MAX_FP, DEFAULT_MAX_TIGHTENING_ROUNDS
 
@@ -71,6 +72,7 @@ from .agents import (
     image_block,
     encode_image_b64,
     parse_json_block,
+    parse_json_array,
 )
 
 # PUPIL Domain Readiness Probe

@@ -116,6 +116,56 @@ def parse_json_block(text: str) -> Optional[dict]:
     return None
 
 
+def parse_json_array(text: str) -> Optional[list]:
+    """Extract the first complete JSON array from LLM output and parse it.
+
+    Uses bracket counting — handles arrays that contain nested objects.
+    Handles fenced ```json ... ``` blocks and raw arrays.
+    """
+    # Try fenced block first
+    match = re.search(r"```(?:json)?\s*(\[.*?\])\s*```", text, re.DOTALL | re.IGNORECASE)
+    if match:
+        try:
+            result = json.loads(match.group(1))
+            if isinstance(result, list):
+                return result
+        except json.JSONDecodeError:
+            pass
+
+    # Fallback: bracket counting from first '['
+    start = text.find("[")
+    if start == -1:
+        return None
+    depth = 0
+    in_string = False
+    escape = False
+    for i, ch in enumerate(text[start:], start):
+        if escape:
+            escape = False
+            continue
+        if ch == "\\" and in_string:
+            escape = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if ch == "[":
+            depth += 1
+        elif ch == "]":
+            depth -= 1
+            if depth == 0:
+                try:
+                    result = json.loads(text[start : i + 1])
+                    if isinstance(result, list):
+                        return result
+                except json.JSONDecodeError:
+                    pass
+                break
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Agent runner functions
 # ---------------------------------------------------------------------------

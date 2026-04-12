@@ -62,6 +62,7 @@ from .protocols import DomainConfig
 from .agents import (
     image_block,
     parse_json_block,
+    parse_json_array,
     encode_image_b64,
     _get_default_call_agent,
 )
@@ -251,6 +252,25 @@ def clear_probe_cache(disk: bool = False) -> None:
                 pass
 
 
+# Max concurrent PUPIL calls in asyncio.gather — prevents OpenRouter rate limits
+_MAX_CONCURRENT_PUPIL = 5
+
+
+async def _bounded_gather(coros, max_concurrent: int = _MAX_CONCURRENT_PUPIL):
+    """Run coroutines concurrently with a semaphore cap.
+
+    Replacement for raw asyncio.gather() when calling external APIs that may
+    impose per-model concurrency limits (e.g. OpenRouter free-tier models).
+    """
+    sem = asyncio.Semaphore(max_concurrent)
+
+    async def _bounded(coro):
+        async with sem:
+            return await coro
+
+    return list(await asyncio.gather(*[_bounded(c) for c in coros]))
+
+
 # ---------------------------------------------------------------------------
 # Internal LLM call helper
 # ---------------------------------------------------------------------------
@@ -373,18 +393,11 @@ async def _tutor_generate_feature_queries(
         cache=True, image_hash=anchor_hash + "_queries",
     )
 
-    parsed = parse_json_block(raw)
+    # TUTOR returns a JSON array — parse_json_block only finds objects,
+    # so try parse_json_array first, then fall back to parse_json_block.
+    parsed = parse_json_array(raw) or parse_json_block(raw)
     if not isinstance(parsed, list):
-        # Try to find array in raw text
-        import re
-        m = re.search(r'\[.*?\]', raw, re.DOTALL)
-        if m:
-            try:
-                parsed = json.loads(m.group())
-            except Exception:
-                parsed = []
-        else:
-            parsed = []
+        parsed = []
 
     queries = []
     for item in parsed:
@@ -947,7 +960,9 @@ async def probe(
     rule_aided_correct = 0
     cls_images = probe_images  # all images
 
-    zero_shot_results = await asyncio.gather(*[
+    # Use _bounded_gather (max 5 concurrent) rather than raw asyncio.gather
+    # to avoid hitting OpenRouter per-model concurrency limits.
+    zero_shot_results = await _bounded_gather([
         _classify_zero_shot(img, pair_info, domain_config, pupil_model, call_agent_fn)
         for img in cls_images
     ])
@@ -955,7 +970,7 @@ async def probe(
         if pred == img.true_class:
             zero_shot_correct += 1
 
-    rule_aided_results = await asyncio.gather(*[
+    rule_aided_results = await _bounded_gather([
         _classify_with_rule(img, pair_info, domain_config, pupil_model,
                             seed_rule, call_agent_fn)
         for img in cls_images
