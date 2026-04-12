@@ -1,0 +1,257 @@
+{
+  "benchmark_id": "road_surface_dry_vs_wet_probe_v1",
+  "version": "1.0.0",
+  "benchmark_type": "probe",
+  "created": "2026-04-12",
+  "pair_id": "dry_vs_wet",
+  "class_a": "Dry Road",
+  "class_b": "Wet Road",
+  "material_filter": "asphalt",
+  "rscd_split": "train",
+  "selection_seed": 7,
+  "pupil_model": null,
+  "n_per_class": 12,
+  "description": "Fixed probe image set for PUPIL Domain Readiness Probe. 12 Dry Road + 12 Wet Road images, sampled from RSCD training split (seed=7).",
+  "images": [
+    {
+      "image_id": "20220321182055148",
+      "filename": "20220321182055148-dry-asphalt-smooth.jpg",
+      "friction": "dry",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Dry Road",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "2022021018461116",
+      "filename": "2022021018461116-dry-asphalt-smooth.jpg",
+      "friction": "dry",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Dry Road",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "202204251326231",
+      "filename": "202204251326231-dry-asphalt-slight.jpg",
+      "friction": "dry",
+      "material": "asphalt",
+      "roughness": "slight",
+      "true_class": "Dry Road",
+      "difficulty": "medium",
+      "notes": ""
+    },
+    {
+      "image_id": "202207022314431641",
+      "filename": "202207022314431641-dry-asphalt-smooth.jpg",
+      "friction": "dry",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Dry Road",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "2022021011335410",
+      "filename": "2022021011335410-dry-asphalt-severe.jpg",
+      "friction": "dry",
+      "material": "asphalt",
+      "roughness": "severe",
+      "true_class": "Dry Road",
+      "difficulty": "hard",
+      "notes": ""
+    },
+    {
+      "image_id": "202202101357457",
+      "filename": "202202101357457-dry-asphalt-smooth.jpg",
+      "friction": "dry",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Dry Road",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "20220715003039285",
+      "filename": "20220715003039285-dry-asphalt-smooth.jpg",
+      "friction": "dry",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Dry Road",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "20220604230403836",
+      "filename": "20220604230403836-dry-asphalt-smooth.jpg",
+      "friction": "dry",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Dry Road",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "202202101525334",
+      "filename": "202202101525334-dry-asphalt-slight.jpg",
+      "friction": "dry",
+      "material": "asphalt",
+      "roughness": "slight",
+      "true_class": "Dry Road",
+      "difficulty": "medium",
+      "notes": ""
+    },
+    {
+      "image_id": "202204212245281",
+      "filename": "202204212245281-dry-asphalt-smooth.jpg",
+      "friction": "dry",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Dry Road",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "202206212203471557",
+      "filename": "202206212203471557-dry-asphalt-smooth.jpg",
+      "friction": "dry",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Dry Road",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "2022021013150912",
+      "filename": "2022021013150912-dry-asphalt-smooth.jpg",
+      "friction": "dry",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Dry Road",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "20220622155519502",
+      "filename": "20220622155519502-wet-asphalt-smooth.jpg",
+      "friction": "wet",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Wet Road",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "20220330144623829",
+      "filename": "20220330144623829-wet-asphalt-slight.jpg",
+      "friction": "wet",
+      "material": "asphalt",
+      "roughness": "slight",
+      "true_class": "Wet Road",
+      "difficulty": "medium",
+      "notes": ""
+    },
+    {
+      "image_id": "202206221601391914",
+      "filename": "202206221601391914-wet-asphalt-smooth.jpg",
+      "friction": "wet",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Wet Road",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "2022071500272212",
+      "filename": "2022071500272212-wet-asphalt-smooth.jpg",
+      "friction": "wet",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Wet Road",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "202203202202157",
+      "filename": "202203202202157-wet-asphalt-smooth.jpg",
+      "friction": "wet",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Wet Road",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "202203241622461",
+      "filename": "202203241622461-wet-asphalt-slight.jpg",
+      "friction": "wet",
+      "material": "asphalt",
+      "roughness": "slight",
+      "true_class": "Wet Road",
+      "difficulty": "medium",
+      "notes": ""
+    },
+    {
+      "image_id": "20220714234429504",
+      "filename": "20220714234429504-wet-asphalt-smooth.jpg",
+      "friction": "wet",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Wet Road",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "20220329200741781",
+      "filename": "20220329200741781-wet-asphalt-smooth.jpg",
+      "friction": "wet",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Wet Road",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "20220622155859141",
+      "filename": "20220622155859141-wet-asphalt-smooth.jpg",
+      "friction": "wet",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Wet Road",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "20220715002053108",
+      "filename": "20220715002053108-wet-asphalt-smooth.jpg",
+      "friction": "wet",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Wet Road",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "20220321222926387",
+      "filename": "20220321222926387-wet-asphalt-slight.jpg",
+      "friction": "wet",
+      "material": "asphalt",
+      "roughness": "slight",
+      "true_class": "Wet Road",
+      "difficulty": "medium",
+      "notes": ""
+    },
+    {
+      "image_id": "20220714234237684",
+      "filename": "20220714234237684-wet-asphalt-smooth.jpg",
+      "friction": "wet",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Wet Road",
+      "difficulty": "easy",
+      "notes": ""
+    }
+  ]
+}

@@ -2,9 +2,9 @@
 
 > **For**: Autonomous driving engineers, ADAS developers, and road safety researchers interested in how domain expertise can improve small-model accuracy on safety-critical surface classification without retraining.
 >
-> **Status**: Domain setup complete — dataset identified, domain config authored, confusable pairs defined. Baseline experiments pending.
+> **Status**: Active experiments — benchmark manifests committed, first DD session run (dry vs wet, Qwen3-VL-8B). PUPIL Domain Readiness Probe implemented.
 >
-> **Dataset**: RSCD (Road Surface Classification Dataset), Tsinghua University — 1M images, 27 classes across friction, material, and roughness.
+> **Dataset**: RSCD (Road Surface Classification Dataset), Tsinghua University — ~600K images, labels encoded in filenames across friction, material, and roughness.
 >
 > **Also see**: [Image Classification Overview](../README.md) for the broader Knowledge Fabric context, including the dermatology and ornithology use cases.
 
@@ -152,26 +152,152 @@ Dialogic distillation's value in this architecture: the expert rules make the VL
 ### Prerequisites
 
 - Python 3.10+
-- RSCD dataset downloaded and extracted
-- Anthropic API key (for TUTOR model)
+- RSCD dataset zip (see [Dataset Download](#dataset-download) below)
+- `ANTHROPIC_API_KEY` for TUTOR/VALIDATOR models (Claude Opus / Sonnet)
+- `OPENROUTER_API_KEY` for PUPIL model (Qwen3-VL-8B via OpenRouter)
 
-### Domain Configuration
+### Dataset Download
 
-The domain config is defined in `python/domain_config.py`:
+The RSCD zip (~14 GB) is not included in this repository. Download once and
+keep it locally:
 
-```python
-from road_surface.python.domain_config import ROAD_SURFACE_CONFIG
+```bash
+# Via Kaggle CLI (recommended)
+pip install kaggle
+kaggle datasets download cristvollerei/rscd-dataset-1million
+# Place the zip at: C:\_backup\ml\data\rscd-dataset-1million.zip
+
+# Or direct download from Figshare (~14 GB):
+# https://thu-rsxd.com/dxhdiefb/
 ```
 
-This provides the vocabulary mapping (expert role, feature nouns, observation guidance, vocabulary examples) that the core dialogic distillation library uses to generate domain-appropriate prompts.
+The code reads directly from the zip — no extraction step needed.
+Default zip path is `C:\_backup\ml\data\rscd-dataset-1million.zip`.
+Override with `--data-dir /your/path` on any script.
 
-### Recommended First Experiment
+> **Note on actual class coverage**: This RSCD release contains only
+> **dry, wet, and water** friction classes (~600K images). Ice, snow, and
+> slush classes referenced in the Tsinghua paper are absent from this release.
+> The primary DD pair is **dry vs wet** (subtle, genuine visual confusion).
 
-Start with the **Wet vs. Ice** confusable pair:
-1. Filter RSCD for friction labels `wet` and `ice` on asphalt material
-2. Run zero-shot baseline with a small VLM (e.g., Qwen2.5-VL-3B or Qwen3-VL-4B)
-3. Identify failure cases where the model confuses wet for ice or vice versa
-4. Run dialogic distillation to author corrective rules
-5. Re-test with rules injected
+---
 
-This pair has the strongest safety motivation, the clearest vocabulary gap, and should produce the most compelling demonstration of DD's value.
+### Step 1 — Generate benchmark manifests (maintainer, run once)
+
+Benchmark manifests are fixed sets of image IDs committed to git. They ensure
+every run — yours, a collaborator's, a reviewer's — uses the exact same images.
+
+```bash
+cd usecases/image-classification/road-surface/python
+
+# Generate probe manifest (24 images) and pool manifest (40 images).
+# No API calls, no cost. Completes in ~30 seconds (zip scanning only).
+python create_benchmark.py --pair dry_vs_wet --types probe,pool
+
+# Optional: call TUTOR (Claude Opus) to annotate visual difficulty per image.
+# Costs ~$0.10–0.15, takes ~3 minutes.
+python create_benchmark.py --pair dry_vs_wet --types probe,pool --annotate-difficulty
+
+# Optional: discover which images Qwen3-VL-8B gets wrong (failure manifest).
+# Costs ~$0.01, takes ~5 minutes.
+python create_benchmark.py --pair dry_vs_wet --types failures \
+    --pupil-model qwen/qwen3-vl-8b-instruct --n-failures 8
+```
+
+Commit the resulting JSON files — they are the reproducible benchmark:
+
+```bash
+git add usecases/image-classification/road-surface/benchmarks/*.json
+git commit -m "Add dry_vs_wet benchmark manifests v1"
+git push
+```
+
+See [`benchmarks/README.md`](benchmarks/README.md) for the manifest format,
+versioning policy, and full options reference.
+
+---
+
+### Step 2 — Check PUPIL readiness (optional but recommended)
+
+Before running a full DD session, check whether the PUPIL model has sufficient
+visual and verbal capability for this domain:
+
+```bash
+# Not yet a standalone script — see core/dialogic_distillation/probe.py
+# and docs/probe.md for the API. A probe_rscd.py driver is planned.
+```
+
+The probe runs five steps (TUTOR descriptions → PUPIL vocabulary → feature
+detection → rule comprehension delta → consistency) and returns a
+`go / partial / no-go` verdict. TUTOR and VALIDATOR outputs are cached so
+testing a second PUPIL model costs only PUPIL API calls.
+
+---
+
+### Step 3 — Run a DD experiment
+
+```bash
+cd usecases/image-classification/road-surface/python
+
+# Auto-discover failures and run distillation (uses fixed pool from benchmark)
+python distill_dialogic.py --pair dry_vs_wet \
+    --val-per-class 20 --max-rounds 4
+
+# Use a fixed failure manifest instead of auto-discovery
+# (once dry_vs_wet_failures_qwen3_v1.json is generated)
+python distill_dialogic.py --pair dry_vs_wet \
+    --failure-ids 20220321182055148,2022021018461116,...
+```
+
+The session is saved to `distill_dialogic_session.json`. Key outputs per failure:
+
+| Field | Description |
+|---|---|
+| `grounded_at_round` | Round where the rule's preconditions fired on the trigger image |
+| `pool_result.precision` | Fraction of rule activations that were true positives |
+| `pool_result.accepted` | Whether rule passed the precision gate (≥0.90, max 0 FP) |
+
+---
+
+### Step 4 — Interpret results
+
+**What to look for:**
+
+- `grounded=True, accepted=True` — rule is usable; add to injection library
+- `grounded=True, accepted=False` — rule fires on trigger image but overfires on pool; needs tightening
+- `grounded=False` — PUPIL cannot observe the described feature; try simpler vocabulary
+
+**First experiment results (dry vs wet, 2026-04-12):**
+
+| Metric | Value |
+|---|---|
+| PUPIL zero-shot error rate | ~57% (essentially random) |
+| Rules grounded | 4/4 |
+| Rules accepted (precision ≥ 0.90) | 1/4 |
+| Best rule | High-key white-to-gray tonal range with individual aggregates visible |
+| Best rule precision | 1.0 on small pool |
+
+The 57% error rate confirms this is a genuinely hard confusable pair — a good
+DD target. The low acceptance rate (1/4) reflects that dry vs wet on asphalt
+is highly context-dependent; most visual features that indicate "dry" are also
+occasionally present on lightly-wet surfaces.
+
+---
+
+### Files
+
+```
+usecases/image-classification/road-surface/
+  README.md                     ← this file
+  benchmarks/
+    README.md                   ← manifest format, versioning policy
+    dry_vs_wet_probe_v1.json    ← 24 probe images (committed)
+    dry_vs_wet_pool_v1.json     ← 40 pool images (committed)
+  python/
+    domain_config.py            ← DomainConfig for road surface domain
+    dataset.py                  ← RSCD loader (zip-native, no extraction needed)
+    benchmark.py                ← load_benchmark(), to_probe_images(), to_pool_images()
+    create_benchmark.py         ← one-time manifest generator (run by maintainer)
+    distill_dialogic.py         ← three-party DD session runner
+    agents.py                   ← model backend wiring
+```
