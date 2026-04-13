@@ -452,30 +452,101 @@ problem.** The full 5456-px frame is processed as a single context; the
 attention never lands on it. The feature information is there; the detection is
 not.
 
-### The architectural implication
+### The architectural implication: uncertain_investigate
 
-This maps cleanly onto the detect-then-classify pipeline pattern:
+Drones can fly closer. If the scout classifier can signal "I see something
+anomalous, I need a second look" rather than "nothing here," the fleet can
+act on that signal — dispatch a commander drone for a low-altitude FLIR pass.
+This converts a dead-end `other` prediction into an actionable investigation
+request.
+
+**`uncertain_investigate` is now a 6th classifier output**, added to the
+PUPIL prompt alongside the five original classes. The classifier is instructed
+to use it — instead of `other` — whenever any person-consistent feature is
+visible: orange/red colouring consistent with a PFD, an isolated bright spot
+above the water surface, or proximity to SAR vessels. It also outputs an
+`investigation_urgency` score (0–1) reflecting feature strength.
+
+**Partial credit scoring:** `uncertain_investigate` on a true person frame
+is scored 0.5 rather than 0.0. Rationale: in a real deployment, this
+prediction triggers a commander dispatch that would likely recover the person.
+A confident wrong prediction (`other`) triggers nothing.
+
+**Results on the 60 hardest frames with the new prompt:**
+
+| Class | Count | Meaning |
+|---|---|---|
+| `person_in_water` | 16 | Correct ✓ |
+| `uncertain_investigate` | 7 | Actionable — commander would be dispatched |
+| `other` | 35 | Dead-end miss |
+| `life_ring_unoccupied` | 1 | Systematic confusion (fixed by lru_001) |
+| `whitecap` | 1 | — |
+
+| Metric | Value |
+|---|---|
+| Strict recall (TP only) | 26.7% |
+| Weighted recall (TP + 0.5×partial) | **32.5%** |
+| Avg urgency on uncertain_investigate | 0.86 |
+
+### Temporal urgency accumulation and escalation
+
+A single `uncertain_investigate` at urgency 0.45 does not warrant diverting a
+commander drone. But three passes over the same grid cell, each returning
+`uncertain_investigate` with increasing urgency, is strong evidence. The fleet
+accumulates urgency per cell with exponential time decay:
 
 ```
-Full frame → Object detector (YOLO / RT-DETR, small-object tuned)
-                        ↓
-              Candidate crop (person-scale region)
-                        ↓
-              Classifier + DD rules (KF layer)
+accumulated_urgency(cell, t) = Σ_i urgency_i · exp(-λ · (t_now - t_i))
 ```
 
-The DD/KF layer operates correctly at the classification step. The upstream
-failure is detection — locating the candidate in the full frame before
-classification is attempted. These are separable problems with separable
-solutions.
+where λ = ln(2) / 600 s (10-minute half-life). A whitecap-like false signal
+from a single pass decays to half value in 10 minutes. A person-consistent
+signal from repeated passes accumulates.
 
-**This is not a weakness of the KF result.** It clarifies the scope: KF
-corrects *classification confusion* (model perceives the object, assigns the
-wrong class). It does not substitute for a *detection* step (model must first
-locate the object in the frame). On a detect-first pipeline, the DD rules
-demonstrated here apply directly to the classification of the extracted crops,
-where the swimmer is unambiguous and the life_ring confusion is the real
-discriminating challenge.
+**Simulated escalation sequence:**
+
+```
+Scout S07  (-12 min): uncertain_investigate  urgency=0.45  → accumulated=0.20
+Scout S22  ( -6 min): uncertain_investigate  urgency=0.65  → accumulated=0.63
+Scout S31  (  now  ): uncertain_investigate  urgency=0.80  → accumulated=1.00
+
+*** accumulated=1.00 ≥ threshold=0.70 → ESCALATION TRIGGERED ***
+Commander C2 dispatched to (47.672°N, 9.270°E)
+
+[C2 FLIR: 37°C oval, stable across 3 frames]
+Resolution: confirmed_person
+```
+
+The full pipeline is implemented in `fleet.py` (`UrgencyCell`,
+`FleetManager.report_uncertain()`, `check_escalations()`, `escalate()`,
+`resolve_escalation()`).
+
+```
+Full frame → Scout PUPIL classifier
+                  ↓
+       ┌──────────┴──────────────────────────┐
+       │                                      │
+  person_in_water              uncertain_investigate (urgency U)
+  life_ring_unoccupied              ↓
+  (DD rules fix these)     report_uncertain(coords, U)
+                                    ↓
+                           accumulated_urgency(cell) + decay
+                                    ↓
+                           ≥ threshold (0.70)?
+                                    ↓ yes
+                           Commander dispatch → FLIR pass
+                                    ↓
+                           confirmed_person → DD session
+                                    ↓
+                           Rule broadcast → all scouts
+                           Retroactive reprocess archive
+```
+
+The KF/DD layer operates on the classification step throughout: fixing
+confident confusions (life_ring → person) and calibrating when to signal
+uncertainty. Detection at scale remains the upstream problem; `uncertain_
+investigate` is the bridge that makes detection failures recoverable within
+the existing fleet architecture, without requiring a separate detector model.
 
 ### Failure: frame 71.jpg
 
