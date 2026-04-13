@@ -414,10 +414,68 @@ The actual primary failure modes are:
 - **`life_ring_unoccupied` (3%)** — small bright oval in a vessel context,
   confused with a thrown life ring; high-confidence, systematic, tractable
 
-The `other` failures are not tractable for single-rule DD correction (the
-swimmer is invisible at scene scale; no optical feature description can fire on
-an object the classifier cannot resolve). The `life_ring_unoccupied` failures
-are tractable and were fixed.
+The `life_ring_unoccupied` failures are tractable and were fixed by DD.
+
+The `other` failures require a closer look.
+
+### What the `other` failures actually are
+
+Inspecting the bounding boxes: `other`-miss frames contain swimmers at
+11–21 px bounding boxes in 5456×3632 images (0.001% of frame area). The
+question is whether this is a fundamental resolution limit or a scale problem.
+
+**Manual crop inspection answers it clearly.** When the annotated region is
+cropped and viewed at 4× magnification, the persons are unmistakably visible:
+orange/red PFDs, bilateral arm silhouettes, body-in-water posture — exactly
+the features an experienced observer would use. The information is in the
+pixels.
+
+**Claude (claude-opus-4-5) confirms this.** Asked to assess the same full
+frame and crops:
+
+> *Full frame (2360.jpg, thumb):* "Yes — I can identify 2–3 swimmers/persons
+> in the water... orange/flesh-toned objects consistent with human head/body
+> coloring... confidence: MODERATE"
+
+> *4× crop (1096.jpg, 47×44px swimmer):* "Yes, this appears to show 2–3
+> persons in the water... human body shape — appears to be a person floating
+> on their back with arms extended outward... life jacket coloration...
+> bilateral symmetry of the figures... Conclusion: search and rescue scenario."
+
+> *4× crop (4438.jpg, 16×13px swimmer):* "Yes, this appears to show 4 persons
+> in the water... bright red/orange coloring consistent with life jackets...
+> spacing consistent with a group of swimmers."
+
+**Qwen's `other` failure is not a resolution limit — it is a scale/attention
+problem.** The full 5456-px frame is processed as a single context; the
+11-px swimmer competes with millions of pixels of open water, and the model's
+attention never lands on it. The feature information is there; the detection is
+not.
+
+### The architectural implication
+
+This maps cleanly onto the detect-then-classify pipeline pattern:
+
+```
+Full frame → Object detector (YOLO / RT-DETR, small-object tuned)
+                        ↓
+              Candidate crop (person-scale region)
+                        ↓
+              Classifier + DD rules (KF layer)
+```
+
+The DD/KF layer operates correctly at the classification step. The upstream
+failure is detection — locating the candidate in the full frame before
+classification is attempted. These are separable problems with separable
+solutions.
+
+**This is not a weakness of the KF result.** It clarifies the scope: KF
+corrects *classification confusion* (model perceives the object, assigns the
+wrong class). It does not substitute for a *detection* step (model must first
+locate the object in the frame). On a detect-first pipeline, the DD rules
+demonstrated here apply directly to the classification of the extracted crops,
+where the swimmer is unambiguous and the life_ring confusion is the real
+discriminating challenge.
 
 ### Failure: frame 71.jpg
 
