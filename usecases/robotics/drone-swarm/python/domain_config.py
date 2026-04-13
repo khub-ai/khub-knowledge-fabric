@@ -221,4 +221,17 @@ Focus only on: silhouette geometry, brightness distribution, bilateral symmetry,
 colour contrast, shadow patterns, and within-frame water-disturbance geometry.
 Do not reference thermal readings, AIS data, or any cross-frame temporal
 comparison.
+
+Precondition quality rules — CRITICAL:
+1. Write 3–4 preconditions maximum. Fewer, stronger preconditions beat many weak ones.
+2. Every precondition must describe a POSITIVE feature that IS visibly present
+   in the image. Do NOT write absence conditions ("lacks X", "no X", "without X",
+   "does not have X") — a validator checking a new image cannot reliably confirm
+   the absence of a feature.
+3. Avoid ALL measurements (pixel size, aspect ratio numbers, distances, angles).
+   Use qualitative terms: "small", "compact", "roughly circular", not "1:1.5 ratio".
+4. Describe features that are TRUE FOR THE CLASS in general, not just this one
+   instance. This frame is an example; the preconditions must generalise.
+5. Only include a precondition if you are CERTAIN a third-party observer could
+   confirm it just by looking at this image. When in doubt, leave it out.
 """.strip()

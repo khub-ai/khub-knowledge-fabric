@@ -122,6 +122,30 @@ Rules:
   what those temporal phenomena leave as traces in a single frame.
 - Be concrete: brightness levels, shapes, aspect ratios, spatial arrangements
 
+PRECONDITION QUALITY — CRITICAL:
+Write exactly 3 preconditions. Follow these rules strictly:
+
+1. POSITIVE PRESENCE ONLY. Every precondition must state a feature that IS
+   visibly present. Never write absence conditions ("no X", "lacks X",
+   "without X", "does not show X") — a validator cannot reliably confirm
+   that something is absent.
+
+   BAD:  "The object lacks a dark central void"
+   GOOD: "The object is solid-filled with bright material visible at its centre"
+
+2. NO MEASUREMENTS. No pixel sizes, no aspect ratio numbers, no distances.
+   Use qualitative words: "small", "compact", "roughly oval", "bright".
+
+   BAD:  "Aspect ratio approximately 1:1 to 1:1.5"
+   GOOD: "The object has a compact, roughly oval or circular shape"
+
+3. CERTAIN AND CONFIRMABLE. Only write a precondition if a third-party
+   observer could confirm it immediately from this single image. When in
+   doubt, leave it out — 3 strong conditions beat 5 uncertain ones.
+
+   BAD:  "A faint localized ripple disturbance surrounds the object"
+   GOOD: "A small bright oval region is visible against the dark water surface"
+
 Output ONLY a JSON object:
 {{
   "rule": "When [preconditions], classify as [class].",
@@ -129,8 +153,9 @@ Output ONLY a JSON object:
   "favors": "<exact class name>",
   "confidence": "high" | "medium" | "low",
   "preconditions": [
-    "<Condition 1 — visually concrete, single-frame observable>",
-    "<Condition 2 — ...>"
+    "<Condition 1 — positive presence, no measurements, clearly confirmable>",
+    "<Condition 2 — ...>",
+    "<Condition 3 — ...>"
   ],
   "rationale": "<Why these optical features correspond to the thermal confirmation.>"
 }}
@@ -556,7 +581,7 @@ async def run_maritime_dd_session(
             _print("  [red]No spectrum level passed pool gate[/red]")
             transcript["outcome"] = "pool_failed"
 
-    if not accepted and transcript["outcome"] == "pending":
+    if not accepted:
         transcript["outcome"] = "pool_failed"
         transcript["final_rules"] = {}
         elapsed = int((time.monotonic() - t0) * 1000)

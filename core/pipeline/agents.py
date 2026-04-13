@@ -55,6 +55,22 @@ def _is_anthropic_model(model: str) -> bool:
     return model.startswith("claude-")
 
 
+def _is_openrouter_model(model: str) -> bool:
+    """Return True for OpenRouter models (lowercase provider prefix, e.g. qwen/...).
+
+    Convention:
+      Together.ai uses CamelCase provider prefix:  Qwen/Qwen3-VL-8B-Instruct
+      OpenRouter uses lowercase provider prefix:    qwen/qwen3-vl-8b-instruct
+    """
+    if _is_anthropic_model(model):
+        return False
+    slash = model.find("/")
+    if slash == -1:
+        return False
+    provider = model[:slash]
+    return provider == provider.lower()
+
+
 # ---------------------------------------------------------------------------
 # Anthropic client (lazy singleton)
 # ---------------------------------------------------------------------------
@@ -91,6 +107,27 @@ def _get_together_client():
             base_url="https://api.together.xyz/v1",
         )
     return _together_client
+
+
+# ---------------------------------------------------------------------------
+# OpenRouter client (lazy singleton, OpenAI-compatible)
+# ---------------------------------------------------------------------------
+
+_openrouter_client = None  # openai.AsyncOpenAI
+
+
+def _get_openrouter_client():
+    global _openrouter_client
+    if _openrouter_client is None:
+        from openai import AsyncOpenAI
+        api_key = os.environ.get("OPENROUTER_API_KEY")
+        if not api_key:
+            raise RuntimeError("OPENROUTER_API_KEY environment variable not set")
+        _openrouter_client = AsyncOpenAI(
+            api_key=api_key,
+            base_url="https://openrouter.ai/api/v1",
+        )
+    return _openrouter_client
 
 
 # ---------------------------------------------------------------------------
@@ -337,6 +374,9 @@ async def call_agent(
     if _is_anthropic_model(model):
         return await _call_anthropic(agent_id, user_message, system_prompt,
                                      model, max_tokens, max_retries)
+    elif _is_openrouter_model(model):
+        return await _call_openrouter(agent_id, user_message, system_prompt,
+                                      model, max_tokens, max_retries)
     else:
         return await _call_together(agent_id, user_message, system_prompt,
                                     model, max_tokens, max_retries)
@@ -487,6 +527,92 @@ async def _call_together(
             err_str = str(e)
             is_rate_limit = "rate" in err_str.lower() or "429" in err_str
             is_overloaded = "overloaded" in err_str.lower() or "529" in err_str
+            if (is_rate_limit or is_overloaded) and attempt < max_retries - 1:
+                wait = 2 ** attempt if is_overloaded else 30 * (attempt + 1)
+                print(f"  [{'rate-limit' if is_rate_limit else 'overloaded'}] "
+                      f"{agent_id} retry {attempt+1}/{max_retries-1} in {wait}s...")
+                await asyncio.sleep(wait)
+            else:
+                raise
+
+
+# ---------------------------------------------------------------------------
+# OpenRouter backend (OpenAI-compatible, lowercase model names)
+# ---------------------------------------------------------------------------
+
+async def _call_openrouter(
+    agent_id: str,
+    user_message: Union[str, list],
+    system_prompt: str,
+    model: str,
+    max_tokens: int,
+    max_retries: int,
+) -> tuple[str, int]:
+    """Call OpenRouter API (OpenAI-compatible, same image format as Together.ai)."""
+    # --- Check local cache ---
+    _ck = _cache_key(model, system_prompt, user_message)
+    _cached = _cache_get(_ck)
+    if _cached is not None:
+        print(f"  [{agent_id}] LLM cache hit (0 tokens billed)", flush=True)
+        return _cached
+
+    client = _get_openrouter_client()
+    t0 = time.time()
+
+    # Build messages in OpenAI format (identical conversion to Together.ai)
+    messages = []
+    if system_prompt:
+        messages.append({"role": "system", "content": system_prompt})
+
+    if isinstance(user_message, str):
+        messages.append({"role": "user", "content": user_message})
+    elif isinstance(user_message, list):
+        oai_content = []
+        for block in user_message:
+            if isinstance(block, dict):
+                if block.get("type") == "text":
+                    oai_content.append({"type": "text", "text": block["text"]})
+                elif block.get("type") == "image":
+                    src = block.get("source", {})
+                    media = src.get("media_type", "image/png")
+                    data = src.get("data", "")
+                    oai_content.append({
+                        "type": "image_url",
+                        "image_url": {"url": f"data:{media};base64,{data}"},
+                    })
+            else:
+                oai_content.append({"type": "text", "text": str(block)})
+        messages.append({"role": "user", "content": oai_content})
+    else:
+        messages.append({"role": "user", "content": str(user_message)})
+
+    for attempt in range(max_retries):
+        try:
+            response = await client.chat.completions.create(
+                model=model,
+                max_tokens=max_tokens,
+                messages=messages,
+            )
+            duration_ms = int((time.time() - t0) * 1000)
+            text = response.choices[0].message.content if response.choices else ""
+            if response.usage:
+                _cost_tracker.add_together(
+                    response.usage.prompt_tokens or 0,
+                    response.usage.completion_tokens or 0,
+                    model,
+                )
+            result = (text, duration_ms)
+            _cache_put(_ck, result)
+            return result
+        except Exception as e:
+            err_str = str(e)
+            is_rate_limit = "rate" in err_str.lower() or "429" in err_str
+            is_overloaded = (
+                "overloaded" in err_str.lower()
+                or "529" in err_str
+                or "503" in err_str
+                or "unavailable" in err_str.lower()
+            )
             if (is_rate_limit or is_overloaded) and attempt < max_retries - 1:
                 wait = 2 ** attempt if is_overloaded else 30 * (attempt + 1)
                 print(f"  [{'rate-limit' if is_rate_limit else 'overloaded'}] "
