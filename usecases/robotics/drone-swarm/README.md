@@ -1,6 +1,6 @@
 # SeaPatch: Cross-Modal Knowledge Propagation for Maritime Search-and-Rescue Drone Fleets
 
-> **New to Dialogic Distillation?** This use case involves multiple sensor
+> **New to [Dialogic Distillation](../../dialogic-distillation/README.md) (DD)?** This use case involves multiple sensor
 > modalities, heterogeneous hardware tiers, and fleet-scale knowledge
 > propagation — it is among the more advanced applications in this
 > repository. If you prefer to start with something simpler and
