@@ -153,8 +153,17 @@ Dialogic distillation's value in this architecture: the expert rules make the VL
 
 - Python 3.10+
 - RSCD dataset zip (see [Dataset Download](#dataset-download) below)
-- `ANTHROPIC_API_KEY` for TUTOR/VALIDATOR models (Claude Opus / Sonnet)
-- `OPENROUTER_API_KEY` for PUPIL model (Qwen3-VL-8B via OpenRouter)
+- API keys for the models you plan to use as TUTOR, VALIDATOR, and PUPIL
+
+The default models are Anthropic (TUTOR: `claude-opus-4-6`, VALIDATOR:
+`claude-sonnet-4-6`) and OpenRouter (PUPIL: `qwen/qwen3-vl-8b-instruct`).
+Any model can be substituted via `--tutor-model`, `--validator-model`,
+`--pupil-model`. Local models served on an OpenAI-compatible endpoint are
+also supported.
+
+The runner reads API keys from environment variables:
+- `ANTHROPIC_API_KEY` — for Anthropic models
+- `OPENROUTER_API_KEY` — for OpenRouter models
 
 ### Dataset Download
 
@@ -191,15 +200,13 @@ every run — yours, a collaborator's, a reviewer's — uses the exact same imag
 cd usecases/image-classification/road-surface/python
 
 # Generate probe manifest (24 images) and pool manifest (40 images).
-# No API calls, no cost. Completes in ~30 seconds (zip scanning only).
+# No model API calls needed.
 python create_benchmark.py --pair dry_vs_wet --types probe,pool
 
-# Optional: call TUTOR (Claude Opus) to annotate visual difficulty per image.
-# Costs ~$0.10–0.15, takes ~3 minutes.
+# Optional: call TUTOR model to annotate visual difficulty per image.
 python create_benchmark.py --pair dry_vs_wet --types probe,pool --annotate-difficulty
 
-# Optional: discover which images Qwen3-VL-8B gets wrong (failure manifest).
-# Costs ~$0.01, takes ~5 minutes.
+# Optional: discover which images the PUPIL gets wrong (failure manifest).
 python create_benchmark.py --pair dry_vs_wet --types failures \
     --pupil-model qwen/qwen3-vl-8b-instruct --n-failures 8
 ```
@@ -223,14 +230,27 @@ Before running a full DD session, check whether the PUPIL model has sufficient
 visual and verbal capability for this domain:
 
 ```bash
-# Not yet a standalone script — see core/dialogic_distillation/probe.py
-# and docs/probe.md for the API. A probe_rscd.py driver is planned.
+cd usecases/image-classification/road-surface/python
+
+# Run probe with default models
+python probe_rscd.py --pair dry_vs_wet
+
+# Run with a different PUPIL model
+python probe_rscd.py --pair dry_vs_wet --pupil-model llava-hf/llava-1.5-7b-hf
+
+# Override TUTOR/VALIDATOR models
+python probe_rscd.py --pair dry_vs_wet \
+    --tutor-model     <your-tutor-model> \
+    --validator-model <your-validator-model>
+
+# List available probe manifests
+python probe_rscd.py --list-manifests
 ```
 
-The probe runs five steps (TUTOR descriptions → PUPIL vocabulary → feature
-detection → rule comprehension delta → consistency) and returns a
-`go / partial / no-go` verdict. TUTOR and VALIDATOR outputs are cached so
-testing a second PUPIL model costs only PUPIL API calls.
+The probe runs four steps (TUTOR expert descriptions → PUPIL vocabulary probe →
+feature detection → rule comprehension delta + consistency) and returns a
+`go / partial / no-go` verdict. TUTOR and VALIDATOR outputs are cached after
+the first run — testing a second PUPIL model skips those calls entirely.
 
 ---
 
@@ -293,11 +313,14 @@ usecases/image-classification/road-surface/
     README.md                   ← manifest format, versioning policy
     dry_vs_wet_probe_v1.json    ← 24 probe images (committed)
     dry_vs_wet_pool_v1.json     ← 40 pool images (committed)
+    reports/                    ← probe reports saved here (gitignored)
+  knowledge_base/               ← accepted rules committed here after DD sessions
   python/
     domain_config.py            ← DomainConfig for road surface domain
     dataset.py                  ← RSCD loader (zip-native, no extraction needed)
     benchmark.py                ← load_benchmark(), to_probe_images(), to_pool_images()
     create_benchmark.py         ← one-time manifest generator (run by maintainer)
+    probe_rscd.py               ← PUPIL domain readiness probe driver
     distill_dialogic.py         ← three-party DD session runner
     agents.py                   ← model backend wiring
 ```

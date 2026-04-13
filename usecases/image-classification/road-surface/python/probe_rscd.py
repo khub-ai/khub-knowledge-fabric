@@ -8,17 +8,17 @@ TUTOR and VALIDATOR outputs are cached between runs — testing a second PUPIL
 model costs only PUPIL API calls (typically < $0.01 for Qwen3-VL-8B).
 
 Usage:
-  # First run — all models called, TUTOR/VALIDATOR results cached
+  # First run — all model roles called; TUTOR/VALIDATOR results cached to disk
   python probe_rscd.py
 
-  # Different PUPIL model — TUTOR/VALIDATOR served from cache
+  # Different PUPIL model — TUTOR/VALIDATOR outputs served from cache
   python probe_rscd.py --pupil-model llava-hf/llava-1.5-7b-hf
 
   # Specific pair and custom models
   python probe_rscd.py --pair dry_vs_wet \\
-      --pupil-model     qwen/qwen3-vl-8b-instruct \\
-      --tutor-model     claude-opus-4-6 \\
-      --validator-model claude-sonnet-4-6
+      --pupil-model     your-org/your-model \\
+      --tutor-model     your-tutor-model \\
+      --validator-model your-validator-model
 
   # List available probe manifests and exit
   python probe_rscd.py --list-manifests

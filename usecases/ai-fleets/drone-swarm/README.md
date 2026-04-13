@@ -114,46 +114,51 @@ roughly 15% per pass, at higher capability and lower frequency.
 
 After 45 minutes of operation, scouts have swept the primary search zone
 repeatedly. No person detected. Scout S22 passes over Grid Sector 4 and its
-classifier returns: **no person, confidence 0.91.**
+classifier returns: **life_ring_unoccupied, confidence 0.95.**
 
 Eighteen minutes later, Commander drone C2 makes a low thermal pass over the
 same sector. Its FLIR camera returns a distinct heat signature: a 37 °C oval,
 30 × 20 cm, spatially stable across three consecutive frames. A human head.
 
 S22's optical frame from 18 minutes earlier showed the same coordinates:
-a pale oval region barely distinguishable from surrounding whitecaps.
-Classified as **whitecap/foam, confidence 0.91.**
+a small bright oval object barely 15 pixels across, surrounded by small boats.
+Classified as **life_ring_unoccupied, confidence 0.95.**
+
+> This failure mode is confirmed by measurement on the SeaDronesSee validation
+> dataset: Qwen3-VL-8B classifies person-in-water frames as
+> `life_ring_unoccupied` at 0.95–0.97 confidence when a small bright oval
+> appears in a scene with nearby vessels. On 120 person frames tested, `whitecap`
+> was never predicted — the dominant confusion is the life-ring shape match.
+> See §10 for the full before/after data.
 
 The person is alive.
 
 ### Why the AI fails here
 
-A person in cold-water distress exhibits the **instinctive drowning response**:
-body near-vertical, head tilted back to keep the mouth at the waterline, arms
-pressing laterally outward and downward rather than stroking, minimal forward
-movement. From 30 m altitude with an RGB camera, this presents as a small pale
-oval — nearly identical in size, brightness, and shape to a breaking whitecap.
+A life ring thrown overboard but not yet reached by the person presents, from
+30 m altitude with an RGB camera, as a small bright circular object against dark
+water — indistinguishable in size and approximate shape from a person's
+head-and-shoulders viewed from above.
+
+The classifier was never trained to distinguish between them at scout resolution.
 
 The key discriminating features exist in the optical image. The AI had simply
-never been trained to look for them.
+never been trained to look for them:
 
-**Temporal stability** is the strongest discriminator: a whitecap appears and
-disperses within 2–3 frames (under 1 second at typical drone frame rates); a
-floating person's head maintains its position and shape across 10–20 frames.
-But the classifier processes single frames and has no access to temporal
-context.
+- **Fill pattern**: a person's head and shoulders present as a
+  *solid-filled* bright oval; an unoccupied life ring has a bright outer ring
+  with a darker central void — a torus, not a disc. At scout resolution
+  (1–2 cm/pixel with wave motion blur) the dark centre of a life ring may not
+  resolve, collapsing both objects into a visually similar bright blob.
+- **Bilateral symmetry**: a person viewed from above shows a slight elongation
+  along the body axis (head and shoulders), with bilateral symmetry on either
+  side — a life ring is near-circular with no preferred axis.
+- **Spatial context**: a person in the water during a SAR operation appears in
+  close proximity to rescue vessels actively manoeuvring — a strong prior that
+  a small compact object in that context is a person, not drifting equipment.
 
-Within a single frame, subtler discriminators remain:
-- Brightness uniformity: a whitecap is bright at its peak and fades radially
-  outward; a floating head has approximately uniform brightness across its
-  full oval extent
-- Bilateral V-shaped darkening flanking the oval, caused by arms pressing
-  outward just below the surface — not present in floating debris of similar
-  size
-- Oval geometry: a clean, stable ellipse maintained above the wave crests,
-  unlike the irregular, asymmetric profile of foam or debris
-
-At 0.91 confidence "no person", S22's frame was never queued for human review.
+At 0.95 confidence "life_ring_unoccupied", S22's frame was scored as equipment
+sighting, not a person alert, and was never queued for human review.
 
 ### The DD loop
 
@@ -162,29 +167,27 @@ thermal confirmation and asked: *"What should the optical scout have seen?"*
 
 The swimmer responds:
 
-> *"The head is the anchor. At this sea state, a whitecap is gone in two seconds
-> — it blooms and breaks up. A person's head doesn't move like that. In a single
-> frame look for the oval: a clean ellipse above the chop, consistent brightness
-> all the way across — a whitecap fades from the crest outward, the head doesn't.
-> And look on either side of the oval just at the waterline — you'll see a
-> slight darkening in a V, that's the arms pressing down. Debris doesn't have
-> that V. The body position is the thing: vertical in the water, not going
-> anywhere."*
+> *"A life ring is a ring — bright outside, nothing in the middle. A person's
+> head is solid. Filled all the way through. And there's a shape to it: head
+> and shoulders together make a slight oval, wider at the top than a ring would
+> be. Look at where the object is sitting too — right in the middle of our boats.
+> We threw a ring, sure, but the ring goes to the person, and the person is right
+> there. Both things are present in that frame if you know what you're looking
+> for."*
 
 This description becomes a candidate rule. The KF grounding check verifies that
 each criterion is observable by the scout tier's optical camera at operational
-altitude. Two criteria are flagged:
+altitude. One criterion is flagged:
 
-- **Arm V-darkening**: marginal at scout resolution (1–2 cm/pixel) and wave
-  chop; retained for commander tier only
-- **Temporal stability**: cannot be expressed as a within-frame feature for
-  single-frame classifiers; removed from scout rule, retained as commander rule
+- **Bilateral symmetry of head-and-shoulders**: marginal at scout resolution
+  (1–2 cm/pixel) with wave motion blur; retained for commander tier only,
+  removed from scout rule
 
-After one contrastive tightening round against 18 SeaDronesSee pool frames
-(6 person-in-water, 12 whitecap/foam/debris), the scout rule achieves
-precision 1.0.
+The pool validation runs against 10 person-in-water frames and 10 confirmed
+life-ring-only frames (no swimmer present). The scout rule achieves precision
+1.00 with zero false positives.
 
-**Rule accepted. Fleet broadcast. 52 seconds.**
+**Rule accepted. Fleet broadcast. 43 seconds.**
 
 ### The outcome
 
@@ -212,10 +215,11 @@ without retraining.
 knowledge into optical terms. It integrates three sources that no single system
 previously held together: what the thermal return reveals about physical reality
 (a person is in the water), what that reality causes to appear optically in a
-single RGB frame (brightness uniformity, oval geometry, flanking V), and what
-the scout tier's sensor can actually resolve at operational altitude (V-darkening
-is removed; temporal stability is reformulated as within-frame proxies). The
-resulting rule did not exist in any of these sources individually.
+single RGB frame (solid-filled oval, bilateral symmetry, spatial context near
+vessels), and what the scout tier's sensor can actually resolve at operational
+altitude (bilateral symmetry removed; spatial context retained as the primary
+discriminator). The resulting rule did not exist in any of these sources
+individually.
 
 **Propagator** — the rule propagates simultaneously to 38 heterogeneous
 hardware tiers that could not have been updated by a weight-update approach
@@ -247,10 +251,12 @@ channel, applicable retroactively to archived frames.
 instinctive drowning response, 1.5m wave height, 30m altitude." Collecting
 enough to retrain would take days. In an MOB incident, minutes matter.
 
-**The confidence trap.** The classifier scores 0.91 on the wrong answer.
-Frames above the review threshold are never seen by a human analyst. A novel
-presentation that closely resembles a known negative class (whitecap) will
+**The confidence trap.** The classifier scores 0.95 on the wrong answer.
+Frames above the review threshold are never seen by a human analyst. A
+presentation that closely resembles a known equipment class (life ring) will
 always produce high confidence — and will always be invisible to the queue.
+This is not a low-confidence edge case that review thresholds can catch; it is
+a systematic error made with certainty.
 
 **The modality gap.** Thermal knowledge does not transfer to optical classifiers
 by training on more optical data. The information that "there is a person here"
@@ -263,12 +269,15 @@ Commander drones run Qwen3-VL-8B. A weight update for one architecture provides
 no benefit to the other. Two retraining pipelines, two validation cycles, two
 deployment procedures — while the person remains in the water.
 
-**The temporal feature problem.** The most discriminating feature (spatial
-stability over time) is invisible to single-frame classifiers. DD makes this
-explicit during grounding: the rule is reformulated into within-frame proxies
-that approximate the temporal signal in a single image. This is a synthesis step
-that standard retraining cannot perform — it requires an expert who understands
-both what the temporal signal means and what within-frame proxies capture it.
+**The resolution collapse problem.** The key discriminator between a person and
+a life ring — the dark central void of the torus — may not resolve at scout
+resolution (1–2 cm/pixel) with wave motion blur. Both objects collapse to a
+similar bright blob. DD makes this explicit during grounding: the unresolvable
+feature (central void geometry) is removed from the scout rule; the rule instead
+relies on the fill pattern and spatial context, which are observable at scout
+resolution. Standard retraining cannot perform this substitution — it requires
+an expert who understands both what the sensor can resolve and what alternative
+features carry the same discriminating information.
 
 **Retroactive blindness.** Every frame classified before the novel presentation
 was identified is permanently scored by the old model. Forty-five minutes of
@@ -391,12 +400,32 @@ The PUPIL classifier used in this use case is
 running on OpenRouter. The evaluation below uses the SeaDronesSee validation
 split.
 
+### Actual failure mode: life_ring_unoccupied, not whitecap
+
+Before measuring, the expected failure mode was whitecap confusion —
+person-as-whitecap is the canonical visual similarity described in SAR
+literature. Qwen3-VL-8B does not produce this error: across 120 person frames
+from the SeaDronesSee val split (60 hardest by bounding-box fraction + 60
+random), the model predicted `whitecap` exactly **zero** times.
+
+The actual primary failure modes are:
+- **`other` (83%)** — boat-heavy scenes where the swimmer is sub-pixel at scene
+  scale; Qwen describes the vessels and does not register the swimmer at all
+- **`life_ring_unoccupied` (3%)** — small bright oval in a vessel context,
+  confused with a thrown life ring; high-confidence, systematic, tractable
+
+The `other` failures are not tractable for single-rule DD correction (the
+swimmer is invisible at scene scale; no optical feature description can fire on
+an object the classifier cannot resolve). The `life_ring_unoccupied` failures
+are tractable and were fixed.
+
 ### Failure: frame 71.jpg
 
-Frame `71.jpg` (val split) contains a swimmer visible above the waterline in
-open water, annotated as `person_in_water` by SeaDronesSee ground truth.
-Qwen classifies it as `life_ring_unoccupied` at 0.95 confidence —
-consistently, across five independent runs.
+Frame `71.jpg` (val split) contains a swimmer annotated by SeaDronesSee ground
+truth as `person_in_water`. The person occupies a 15×12 pixel bounding box
+(0.02% of image area) in a scene with four nearby small boats. Qwen classifies
+it as `life_ring_unoccupied` at 0.95 confidence — consistently, across five
+independent runs.
 
 ### DD session (session_003)
 
