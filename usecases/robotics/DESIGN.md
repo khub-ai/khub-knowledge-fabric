@@ -394,7 +394,195 @@ It should **not** be described as:
 
 ---
 
-## 12. Suggested Repo Layout
+## 12. Simulation Platform Selection
+
+### The choice: AI2-THOR/ProcTHOR vs NVIDIA Isaac Sim
+
+Two platforms are the strongest candidates. They serve different audiences and different phases of the roadmap — the right answer is to use both in sequence, not to choose one.
+
+### Head-to-head comparison
+
+| Dimension | AI2-THOR / ProcTHOR | NVIDIA Isaac Sim |
+|---|---|---|
+| Primary purpose | Embodied AI benchmarking | Robot engineering + RL training |
+| Physics fidelity | Unity-based, simplified | PhysX, photorealistic, GPU-accelerated |
+| Unitree R1/G1 support | None | `unitree_sim_isaaclab` repo, working |
+| ROS 2 integration | Minimal | Full, native |
+| Hardware requirement | 8GB VRAM, any modern GPU | RTX 4080 min, 16GB VRAM, 64GB RAM |
+| Procedural layout library | ProcTHOR: 10,000+ houses | Manual scene authoring, no equivalent |
+| Peer-recognized benchmark baselines | Hundreds (SayCan, ReAct, HELPER…) | Robotics engineering community |
+| Episode iteration speed | Seconds | Minutes at full fidelity |
+| RAI adapter complexity | ~150 lines | ~400 lines + ROS 2 node |
+| Action realism / embodied friction | Needs artificial injection | PhysX baked in |
+| VLM OBSERVER perception realism | Simplified Unity visuals | Photorealistic |
+| Sim-to-real transfer story | Weak | Strong — ROS 2 bridge to SDK2 |
+| Getting started time | Days | Weeks |
+| Open source | Yes | Yes (since Isaac Sim 5.0, Aug 2025) |
+| Windows support | Yes | Yes (rougher than Linux) |
+
+### AI2-THOR / ProcTHOR — key strengths and weaknesses
+
+**Strengths:**
+- Hundreds of peer-reviewed papers use it; results are immediately legible to NeurIPS/CoRL/RSS AI planning reviewers without extra framing
+- ProcTHOR's 10,000 procedural layouts are the only way to run held-out generalization at scale — the metric that distinguishes real adaptation from memorization
+- Python API is trivially simple: `controller.step("PickupObject", objectId="Mug_1")` returns a structured observation dict; the full RAI adapter is ~150 lines
+- Low hardware bar means results are reproducible by anyone
+- Fast episode cycles (seconds) make it practical to run the hundreds of correction-governance experiments needed for Tier 2 metrics
+
+**Weaknesses:**
+- Domestic environments only (kitchens, living rooms); warehouse/lab settings require custom ProcTHOR layout authoring
+- No Unitree or humanoid robot model — the "cognitive OS + named shipping robot" story cannot be told here
+- Embodied friction (action uncertainty, silent precondition failures) must be injected artificially, not simulated
+- Uncertain long-term maintenance trajectory
+
+### Isaac Sim — key strengths and weaknesses
+
+**Strengths:**
+- `unitree_sim_isaaclab` (Unitree's own repo) provides working G1/H1 simulation in Isaac Lab today; this is a real named tie-in to a shipping product
+- Full ROS 2 integration means the RAI adapter is directly reusable against the real R1 SDK2 with minimal changes — the sim-to-real path for the cognitive layer is genuine
+- PhysX physics gives realistic action failure modes and embodied friction without artificial injection
+- Photorealistic rendering means VLM OBSERVER perception is closer to real camera input
+- NVIDIA GR00T N1.6 VLA integration pattern is documented and used by major robotics teams
+- Multi-robot simulation handles heterogeneous robot types in the same scene
+
+**Weaknesses:**
+- Hardware requirements are punishing: RTX 4080 minimum, 16GB VRAM, 64GB RAM recommended — most reviewers cannot reproduce results without significant hardware
+- Steep learning curve: Omniverse, USD scene composition, complex extension system — getting a basic task running takes days-to-weeks, not hours
+- No procedural layout library equivalent to ProcTHOR; every scene must be authored or imported
+- Robotics engineering community audience, not the AI planning community that will review KF's first papers
+- Windows development is supported but rougher than Linux
+
+### Recommended strategy: sequence, not choose
+
+The two simulators serve different stages of the roadmap and different audiences.
+
+**Phases 0–4 — use AI2-THOR / ProcTHOR:**
+- Fast experiment iteration for Phase 2 correction-governance work
+- ProcTHOR generalization metrics essential for Tier 2 evaluation
+- Peer-legible results for CoRL LangRob / RSS Lifelong Learning workshop
+- Low hardware bar for reproducibility
+
+**Phase 5 — add Isaac Sim + unitree_sim_isaaclab:**
+- Replace AI2-THOR adapter with Isaac Sim / ROS 2 adapter (~300 lines, no changes to cognitive OS)
+- Run Demo C with a real Unitree G1/H1 model in sim
+- Targets robotics engineering audience and industry
+- ROS 2 bridge directly reusable against real R1 SDK2
+
+**The paper claim:** *"We validated the cognitive OS on AI2-THOR/ProcTHOR (peer-recognized benchmark, 10,000 layouts, direct baseline comparisons). We then ported the same layer to Unitree G1 in Isaac Sim via a 300-line adapter with no changes to the cognitive OS code."* This covers both audiences with appropriate evidence for each.
+
+---
+
+## 13. Implementation Roadmap
+
+The path from the current ARC-AGI-3 codebase to a demo-ready cognitive OS is evolutionary. ARC-AGI-3's StateStore, rule lifecycle, and OBSERVER/MEDIATOR pipeline become the cognitive OS core. Each phase adds one capability layer.
+
+### Phase 0 — Extract and harden the cognitive OS core
+**~3–4 weeks | Medium difficulty**
+
+Promote ARC-AGI-3 components that belong in the cognitive OS into a shared `core/cognitive_os/` module, cleaned up and extended for multi-domain use.
+
+- Extend StateStore scope hierarchy: add `session` and `deployment` tiers above `game`; define serialization contract for `persistence="persistent"` facts
+- Harden rule lifecycle: add `scope`, `expiry`, and `operator` fields; formalize candidate→active promotion as configurable policy, not hardcoded thresholds
+- Generalize OBSERVER/MEDIATOR prompt contract: strip ARC-specific vocabulary; replace game concepts (level, frame, color) with domain-agnostic equivalents
+- Extract `cognitive_os/` module: `state_store.py`, `rule_engine.py`, `goal_manager.py`, `episode_logger.py` importable without any ARC dependency; ARC-AGI-3 becomes one client
+- Write domain-agnostic integration tests for StateStore confidence resolution, scope expiry, and rule promotion
+
+*Risk: Low. Main risk is over-engineering the abstraction. Err on thin interfaces.*
+
+### Phase 1 — Robot Adapter Interface + AI2-THOR sim adapter
+**~5–7 weeks | Medium-High difficulty**
+
+Define the RAI schema and implement the first adapter.
+
+- Define the RAI schema: `skill_call(name, params) → Outcome`, `observe() → BeliefUpdate`, `alert(type, payload)`; define `BeliefUpdate` schema with confidence and staleness fields
+- Implement AI2-THOR adapter: map AI2-THOR action space to RAI `skill_call`; map observation dict to `BeliefUpdate` with confidence and partial visibility; inject controlled noise (~150 lines)
+- Add partial observability model: sensing cone, stale cached beliefs with confidence decay, sensing as budget-costed explicit action
+- Add action uncertainty model: configurable failure injection; failures detected from next `observe()`, not from error return codes
+- Port OBSERVER/MEDIATOR prompts to robotics domain vocabulary
+- Build warehouse task suite on AI2-THOR: 10–15 tasks using ProcTHOR layouts for held-out generalization
+
+*Risk: Medium. AI2-THOR's action semantics are richer than ARC-AGI-3's discrete space; the adapter must handle failures without leaking sim concepts upward.*
+
+### Phase 2 — Correction governance layer ← critical path
+**~6–8 weeks | High difficulty**
+
+The headline contribution. No published embodied-agent system has this.
+
+- Correction parser: LLM call extracts intent, `applies_to`, `preconditions`, proposed expiry from natural-language utterance; unrecoverable scope triggers clarification, not silent storage
+- Advisory/executable distinction: corrections enter as advisories (influence planning, logged); promotion to executable requires dry-run + operator confirmation
+- Dry-run mechanism: replay last N steps with proposed rule active; show operator what behavior changes
+- Conflict detection: check new rule against existing rules of overlapping scope before storage; conflicts surface as explicit resolution prompt; supersession written to audit log
+- Hazard tagging: `hazard_flags` on objects/locations/action classes; corrections weakening hazard constraints require elevated confirmation; hazard constraints cannot be expired by plain correction
+- Audit log: every action records `rule_trace` and `constraint_trace`; every rule records origin, scope, promotion history, revocations; queryable by rule, action, time window
+- Operator CLI: text prompt at episode boundaries and mid-episode on `ask_human()`
+
+*Risk: High. Conflict detection over compound scopes is non-trivial. LLM correction parser will occasionally hallucinate scope. Build a test suite of 20–30 correction examples early and run them through the parser before implementing the governance machinery.*
+
+### Phase 3 — Closed-loop executive
+**~3–4 weeks | Medium difficulty**
+
+Replace the round-based pipeline with an event-driven executive.
+
+- Define four preemption event types: `BeliefChange`, `ActionFailure`, `OperatorCorrection`, `SafetyTrigger`
+- Implement lightweight event bus: skill calls publish outcomes; constraint checker and belief updater subscribe and emit preemption events
+- Interruptible skill execution: skill calls yield at defined checkpoints; executive checks for pending events at each checkpoint
+- Event-driven replan: MEDIATOR called with replan reason as context; triggered by events, not round completion
+- Retain round logging as evaluation annotation only
+
+*Risk: Low-medium. Main risk is regression on ARC-AGI-3 performance. Run ARC-AGI-3 regression suite before starting this phase.*
+
+### Phase 4 — Wow demonstrations (AI2-THOR / ProcTHOR)
+**~3–4 weeks | Medium difficulty**
+
+Three integrated demo scenarios, each telling a different part of the cognitive OS story. All run in simulation; all are designed to be filmed.
+
+**Demo A — "The Correction That Sticks"**
+Agent runs 20 warehouse tasks. Baseline (long-context LLM) follows a correction for 3 tasks, forgets it by task 8. KF agent encodes it as a scoped artifact, follows it at task 18, and the audit log traces the rule at every relevant action. Side-by-side comparison.
+*Wow factor: "The baseline forgot. Ours didn't — and here's the proof."*
+
+**Demo B — "Shift Handoff"**
+Agent runs tasks across two sessions (restart between them). Session 1 operator teaches conventions. Session 2 starts with those conventions loaded (deployment-scope persistence). Session 2 operator tries to override a hazard-tagged constraint; the system prompts for elevated confirmation. No retraining.
+*Wow factor: "The robot remembered everything from yesterday, and it refused an unsafe instruction."*
+
+**Demo C — "Same Brain, Different Robot"**
+The same KF cognitive layer, configuration unchanged, runs against two different RAI adapters: AI2-THOR warehouse and a second minimal adapter (Spot-style GraphNav API mocked in Python). Identical correction governance, identical audit trail. Each adapter is ~250 lines.
+*Wow factor: "We changed the robot. We didn't change the brain."*
+
+*Risk: Medium. Demo reliability depends on Phase 2 robustness. Script corrections exhaustively and test before filming.*
+
+**Target venue:** CoRL 2026 LangRob workshop or RSS 2026 Lifelong Learning workshop (submissions ~July 2026). Phases 0–4 are achievable by June 2026 with focused effort.
+
+### Phase 5 — Unitree R1 adapter (Isaac Sim)
+**~2–3 weeks | Low-Medium difficulty**
+
+Complete the "cognitive OS" claim with a named shipping product.
+
+- Implement Unitree R1 RAI adapter against Isaac Sim + `unitree_sim_isaaclab`: map `LocoClient.Move()`, `ArmActionClient` to RAI `skill_call`; map DDS observations to `BeliefUpdate`; handle Unitree's fire-and-observe failure semantics (~300 lines, ROS 2 node)
+- Rerun Demo C replacing the mock Spot adapter with the Unitree G1/H1 Isaac Sim adapter; same cognitive layer, no changes
+- Optional: tabletop webcam + VLM OBSERVER + Wizard-of-Oz actuation for a real-perception sanity-check video
+
+*Risk: Low. The RAI was designed with Unitree in mind. The adapter is additive, not architectural.*
+
+### Roadmap summary
+
+```
+Phase 0   Cognitive OS core extraction        3–4 wks    Medium
+Phase 1   RAI + AI2-THOR adapter              5–7 wks    Medium-High
+Phase 2   Correction governance           ★   6–8 wks    High
+Phase 3   Closed-loop executive               3–4 wks    Medium
+Phase 4   Wow demos (AI2-THOR)                3–4 wks    Medium
+Phase 5   Unitree R1 / Isaac Sim adapter      2–3 wks    Low-Medium
+──────────────────────────────────────────────────────────────────
+Total                                        22–30 wks
+```
+
+★ Phase 2 is the critical path. Everything else is well-understood engineering or scoped integration. Starting Phase 2 design — especially the correction parser and scope representation — in parallel with Phase 1 implementation is strongly recommended.
+
+With one focused developer plus AI assistance, Phases 0–4 are achievable in 6–8 months; Phase 5 adds ~2 months.
+
+---
+
+## 14. Suggested Repo Layout
 
 ```
 usecases/
@@ -422,27 +610,7 @@ robotics
 
 ---
 
-## 13. Recommended First Build
-
-The first concrete implementation should be:
-
-**KF as the planner layer on top of AI2-THOR/ProcTHOR (or ALFWorld), running a warehouse/lab-assistant task suite with partial observability, noisy perception, action uncertainty, episodic environment changes, and a governed correction loop.**
-
-Target headline experiment: **correction governance under partial observability.** Run the agent over a batch of tasks, inject operator corrections of varying scope, and measure Tier 2 metrics (safety, over-generalization, audit completeness, adaptation efficiency) against long-context and RAG baselines. This is the single most defensible story for a robotics audience and needs no hardware.
-
-That is enough to test:
-
-- environment learning under uncertainty
-- procedure reuse across held-out layouts
-- event-driven replanning
-- failure recovery
-- governed natural-language correction
-
-without getting trapped in simulator complexity — and without the "toy environment" critique that would apply to a bespoke world.
-
----
-
-## 14. Competitive Landscape — Who Is Doing What
+## 15. Competitive Landscape — Who Is Doing What
 
 Understanding what adjacent systems have already demonstrated is important for positioning KF's contribution clearly and avoiding redundant work.
 
@@ -504,7 +672,7 @@ The editorial "The Robot in Your Living Room Has No Rulebook" (AI Frontiers, 202
 
 ---
 
-## 15. KF As A Cross-Robot Cognitive OS
+## 16. KF As A Cross-Robot Cognitive OS
 
 The longer-term strategic opportunity is not a memory layer for one robot — it is infrastructure that the embodied-AI industry is missing above the skill layer, comparable to what an OS kernel provides above hardware.
 
@@ -563,7 +731,7 @@ The cross-robot claim is uniquely well-suited to simulation — in fact, sim is 
 
 ---
 
-## 16. Why This Use Case Matters
+## 17. Why This Use Case Matters
 
 The broader thesis this use case supports:
 
