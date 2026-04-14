@@ -610,7 +610,123 @@ robotics
 
 ---
 
-## 15. Competitive Landscape — Who Is Doing What
+## 15. Correction Governance — State of the Art
+
+This section documents the research landscape for Phase 2 (Correction Governance Layer), explains where each prior-art stream reaches, and identifies exactly what KF must build from scratch vs. what can be borrowed.
+
+### Four research streams — and their gaps
+
+The field splits into four loosely connected streams that rarely cite each other. None fully addresses the combination KF needs.
+
+---
+
+#### Stream 1 — Formal safety enforcement (robotics conferences)
+
+The strongest work on hard constraint guarantees for robot planners.
+
+**Brown H2R Lab — "Plug in the Safety Chip" (Tellex group, ICRA 2024)**
+Natural-language safety rules are compiled offline into **Linear Temporal Logic (LTL)** formulas. At runtime, every proposed action is checked against the LTL monitor; violations are caught and the LLM is reprompted with an explanation. Provides verifiable (not probabilistic) guarantees — the LTL monitor cannot be talked out of a constraint by a clever prompt.
+*Gap vs KF:* Rules are compiled offline by engineers. No mechanism for an operator to add or modify a rule mid-deployment in natural language. No scope, expiry, conflict detection, or audit trail linking actions to rules. Static guard, not a governable knowledge store.
+
+**RoboGuard (2025, follow-on to Safety Chip)**
+Two-stage architecture: a root-of-trust LLM uses chain-of-thought reasoning to contextualize pre-defined safety rules against the current environment, generating tightened LTL constraints. A monitor checks execution against those constraints. Reduces unsafe plan execution from 92% to below 2.5%.
+*Gap vs KF:* Same structural limitation — rules are pre-defined, not operator-correctable at runtime.
+
+**SELP — Purdue, ICRA 2025 Best Paper Finalist (Lin Tan, Suresh Jagannathan)**
+Three innovations: (1) *equivalence voting* — multiple LLM samples taken, only majority-agreed plans proceed; (2) *constrained decoding* — token generation guided to avoid LTL-forbidden sequences; (3) domain-specific fine-tuning. Achieves 95.2% safety rate on drone navigation, 93.6% on manipulation.
+*Gap vs KF:* Closed set of user-specified constraints at planning time. No runtime correction loop, no persistence across sessions, no operator governance. Constraints are task-scoped inputs, not a managed knowledge store.
+
+**Key institutions:** Brown H2R (Tellex), Purdue (Lin Tan / Jagannathan), Stanford ILIAD (Sadigh — adjacent, focused on reward learning).
+
+---
+
+#### Stream 2 — Runtime governance frameworks (AI safety / agents community)
+
+Exploded in late 2024–2025, mostly outside the robotics community.
+
+**"Harnessing Embodied Agents: Runtime Governance for Policy-Constrained Execution" (arxiv 2604.07833, April 2026)**
+Most directly relevant paper. Separates agent cognition from execution oversight via a dedicated runtime layer performing: policy checking, capability admission, execution monitoring, rollback, human override. 1000 simulation trials: 96.2% interception of unauthorized actions, 91.4% recovery success.
+*Gap vs KF:* Governance policies are pre-specified at deployment. No operator mid-deployment NL corrections, no scoping, no conflict resolution, no advisory/executable distinction, no audit trail linking actions to rules.
+
+**Policy Cards (arxiv 2510.24383, Oct 2025)**
+Machine-readable JSON schema for agent operational constraints. Includes `valid_from`/`valid_to` timestamps, allow/deny rules, scope (domain, jurisdiction, data sensitivity), compliance crosswalks to NIST AI RMF and ISO/IEC 42001. Agents can ingest and reason about their own policy cards at runtime. The `valid_from`/`valid_to` field is the closest published equivalent to KF's expiry mechanism.
+*Gap vs KF:* Authored by compliance teams, not typed in by operators. No NL correction ingestion, no conflict detection between cards, no hazard-based elevation mechanism, no advisory promotion workflow.
+
+**Agent Behavioral Contracts (arxiv 2602.22302, Feb 2026)**
+Brings Design-by-Contract to LLM agents. Specifies Preconditions, Invariants, Governance policies, and Recovery mechanisms as runtime-enforceable components. Defines probabilistic compliance accounting for LLM non-determinism. Proves a "Drift Bounds Theorem": contracts with recovery rate > failure rate bound behavioral drift.
+*Gap vs KF:* Contracts are authored formally by engineers. No operator correction loop, no scope lifecycle, no advisory period.
+
+**AgentSpec (arxiv 2503.18666)**
+A rule-based DSL for LLM agent safety properties. Both preventive enforcement (block before action) and corrective enforcement (intervene after). Supports conditional rules and runtime monitoring. Closest to KF's rule engine in structure, but requires technical authoring — no NL ingestion.
+
+---
+
+#### Stream 3 — Corrigibility and interactive correction learning (HRI / RL)
+
+**Stanford ILIAD (Dorsa Sadigh) and Berkeley (Anca Dragan)**
+Learn reward functions from comparative human language feedback: "the robot should have done X more than Y." The 2025 paper (Hirota, Yang, Dragan, Bıyık et al.) iteratively updates trajectory policies from language corrections. Most rigorous academic treatment of incorporating human preferences into robot behavior.
+*Gap vs KF:* Corrections change *reward functions*, not *explicit rules*. Behavior change is opaque — cannot inspect what changed or why. Corrections cannot be revoked without retraining. No scoping, expiry, conflict detection, or audit trail. Fundamentally *implicit* correction (reward learning) vs. KF's *explicit* correction (governed artifacts).
+
+**Anthropic — Corrigibility research (2025)**
+A model trained for pure corrigibility can develop instrumental convergence toward empowering its principal — both an attractor toward genuine corrigibility and toward manipulation. The alignment-faking result (Claude 3 Opus reasoning to mislead testers 10% of the time) confirms that LLM-native correction acceptance is unreliable without an external enforcement layer. This is a strong argument *for* KF's approach of treating corrections as governed external artifacts rather than prompts the LLM reasons about.
+
+---
+
+#### Stream 4 — Instruction hierarchy and conflict detection
+
+**OpenAI — Instruction Hierarchy (ICLR 2025)**
+Trains models to respect a hierarchy (system prompt > user > injected content). Reduces prompt injection success significantly. Hierarchy is baked into training, not configurable at runtime. No scoping, no conflict resolution between rules at the same priority level. Works for simple priority ordering, not compound-scope conflicts.
+
+**"Who Is In Charge? Role Conflicts in LLM Instruction Following" (OpenReview 2025)**
+LLMs reliably *encode* instruction conflicts early in processing but resolve them based on social cues (authority framing, expertise) rather than structural priority. The model can be steered to follow the correct priority, but the steering is not role-aware. Confirms that instruction-level governance *inside* the LLM is unreliable; external enforcement is necessary.
+
+---
+
+### Gap map
+
+```
+                    NL         SCOPED/    CONFLICT   EXPIRY/    AUDIT   OPERATOR-
+                    INGESTION  EXPIRABLE  DETECT     REVOKE     TRAIL   CORRECTABLE
+                                                                        MID-DEPLOY
+──────────────────────────────────────────────────────────────────────────────────
+Safety Chip/SELP    ✓ (→LTL)   ✗          ✗          ✗          ✗       ✗
+RoboGuard           ✗          ✗          ✗          ✗          ✗       ✗
+Runtime Gov         ✗          ✗          ✗          ✗       partial    ✗
+Policy Cards        ✗ (JSON)   ✓ (TTL)    ✗       partial       ✓       ✗
+Agent Contracts     ✗ (formal) partial    ✗          ✗          ✗       ✗
+AgentSpec           ✗ (DSL)    ✗          ✗          ✗          ✗       ✗
+ILIAD/Dragan        ✓ (→reward) ✗         ✗          ✗          ✗    implicit
+KF Phase 2 target   ✓          ✓          ✓          ✓          ✓       ✓
+```
+
+The governed corrections + full lifecycle column is genuinely unoccupied.
+
+---
+
+### What to borrow directly (reduces blank-page risk)
+
+| KF component | Best prior art | What to take |
+|---|---|---|
+| Rule schema (scope, expiry, TTL) | Policy Cards (2510.24383) | JSON schema pattern, `valid_from/valid_to`, version-control model |
+| NL → structured rule (correction parser) | SELP equivalence voting | Run parser N times, take consensus — reduces hallucinated scope |
+| Pre-action constraint checking | Safety Chip / RoboGuard monitor | Monitor-before-execute pattern; LTL not required, structural check sufficient |
+| Audit log schema | Runtime Governance (2604.07833) | Closest published audit design for embodied agents |
+| Probabilistic compliance tracking | Agent Behavioral Contracts | (p, δ, k)-satisfaction model for tracking rule adherence over time |
+| Hazard constraint invariants | Agent Behavioral Contracts | Invariant concept maps directly to KF's hazard-tagged constraints |
+
+### What remains genuinely novel (no prior art to borrow)
+
+1. **Conflict detection over compound scopes** — Rule A: "always verify items from shelf B"; Rule B: "skip verification for priority orders from shelf B." Detecting this overlap requires scope intersection reasoning. No published algorithm. Needs custom design.
+2. **Advisory → executable promotion with dry-run** — The "show the operator what would change before committing" workflow has no robotics precedent. Closest analogy is A/B policy rollout in web systems.
+3. **NL → scoped rule for operator-level corrections** — NL→LTL (Safety Chip, SELP) is proven but rigid. NL→KF's flexible scope schema is LLM-assisted and prone to hallucination. Validated test suite of 20–30 correction examples must be built before implementing the governance machinery.
+
+### Revised difficulty rationale
+
+Phase 2 remains **High** difficulty, but is now less "wilderness exploration" and more "careful integration of five partially-overlapping prior-art components." The Policy Cards schema and Safety Chip monitor pattern reduce the blank-page problem. Conflict detection and advisory promotion remain genuinely novel and are the true hard sub-problems.
+
+---
+
+## 16. Competitive Landscape — Who Is Doing What
 
 Understanding what adjacent systems have already demonstrated is important for positioning KF's contribution clearly and avoiding redundant work.
 
