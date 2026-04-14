@@ -3,12 +3,11 @@
 
 ---
 
-> **Status**: First use case implemented and measured — SeaPatch maritime SAR
-> drone swarm, based on the SeaDronesSee public dataset.
-> **Theme**: [Knowledge Fabric (KF)](../../docs/what-is-kf.md) as a
-> zero-retraining update mechanism for large-scale deployments of heterogeneous
+> **Status**: SeaPatch maritime SAR and PyroWatch wildfire detection both
+> implemented and measured. **Theme**: [Knowledge Fabric (KF)](../../docs/what-is-kf.md)
+> as a zero-retraining update mechanism for large-scale deployments of heterogeneous
 > AI agents organised in capability tiers.
-> **Last updated**: 2026-04-13
+> **Last updated**: 2026-04-14
 
 ---
 
@@ -89,6 +88,7 @@ Knowledge propagation path
 | Domain | High-capability tier | Low-capability tier | Knowledge gap |
 |---|---|---|---|
 | **Maritime SAR** (implemented) | Commander drone: thermal FLIR + stabilised RGB | Scout drones: fixed-mount RGB | Thermal confirms person; optical scout missed it |
+| **Wildfire detection** (specified) | Commander aircraft: MWIR + calibrated temp + anemometer | Sentinels: RGB PTZ; Scout drones: RGB + LWIR | MWIR confirms ignition; optical tiers miss early terpene smoke |
 | **Hospital monitoring** | ICU: full ECG, arterial line, continuous nursing | Ward: pulse-ox wearables, periodic checks | ICU recognises early deterioration pattern wearable misses |
 | **Industrial IoT** | Cloud: full sensor fusion, ML inference | Edge: lightweight anomaly detector | Cloud confirms equipment failure mode edge never saw |
 | **Agricultural drones** | Research UAV: hyperspectral + LiDAR | Scout fleet: RGB cameras | Hyperspectral identifies disease; RGB scouts miss early stage |
@@ -126,6 +126,33 @@ person-in-water frames from the val split, recall improves from 8% to 52%
 temporal feature reformulation (temporal stability → single-frame proxies),
 architecture-agnostic broadcast (MobileNetV3 scouts + Qwen3-VL-8B commander
 updated by the same natural-language rule).
+
+---
+
+### 2. PyroWatch — Wildfire Early Ignition Detection Fleet
+
+**[wildfire-detection/README.md](wildfire-detection/README.md)**
+
+A 164-agent fleet covering fire-prone terrain during red flag conditions:
+120 ground sentinel cameras (RGB PTZ + LWIR), 40 scout drones (RGB + LWIR),
+and 4 commander aircraft (calibrated MWIR + high-res RGB). A commander
+aircraft's MWIR sensor confirmed a 380°C ignition at coordinates where 160
+sentinels and scouts had logged "heat_shimmer, 0.94 confidence" for 18 minutes.
+
+A Cal Fire lookout explained that early chaparral smoke is blue (terpene
+combustion), originates from a single point source, and drifts with consistent
+wind direction — all distinguishable from shimmer in the optical frames. DD
+turns that explanation into tier-differentiated rules in 38 seconds. The
+fleet retroactively identifies the ignition 18 minutes earlier than the MWIR
+pass that confirmed it.
+
+**Implementation complete (Phase 1). Measured results available** — see [§10](wildfire-detection/README.md#10-measured-results). Python in `wildfire-detection/python/`.
+
+**Distinctive elements**: three-tier fleet (sentinels + scout drones +
+commander aircraft), environmental context injection (RAWS meteorological
+preconditions evaluated at inference time without retraining), temporal feature
+reformulation (multi-frame drift → single-frame wind-elongation proxy for
+drone tier), tier-differentiated rule variants from a single DD session.
 
 ---
 

@@ -81,10 +81,19 @@ _client: Optional[anthropic.AsyncAnthropic] = None
 def get_client() -> anthropic.AsyncAnthropic:
     global _client
     if _client is None:
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        api_key = (
+            os.environ.get("ANTHROPIC_API_KEY")
+            or os.environ.get("CLAUDE_CODE_OAUTH_TOKEN")
+        )
         if not api_key:
-            raise RuntimeError("ANTHROPIC_API_KEY environment variable not set")
-        _client = anthropic.AsyncAnthropic(api_key=api_key)
+            raise RuntimeError(
+                "Neither ANTHROPIC_API_KEY nor CLAUDE_CODE_OAUTH_TOKEN is set"
+            )
+        base_url = os.environ.get("ANTHROPIC_BASE_URL")
+        _client = anthropic.AsyncAnthropic(
+            api_key=api_key,
+            **({"base_url": base_url} if base_url else {}),
+        )
     return _client
 
 
