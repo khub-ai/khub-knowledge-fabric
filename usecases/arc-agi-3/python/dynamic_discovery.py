@@ -41,6 +41,208 @@ from typing import Optional
 
 
 # ---------------------------------------------------------------------------
+# Curiosity / Hypothesis system
+# ---------------------------------------------------------------------------
+
+class HypothesisStore:
+    """Tracks curiosity-driven hypotheses arising from visual similarities.
+
+    On initialisation (or reset), scans the initial frame for pairs of objects
+    that look similar but differ in size/state — these are "unusual coincidences"
+    that may signal a match-to-win sub-goal.
+
+    Each hypothesis tracks how the Jaccard distance between the pair evolves
+    as the agent acts.  Decreasing distance = the pair is converging.
+    Distance == 0 = confirmed match.
+
+    Usage:
+        store = HypothesisStore()
+        store.seed(initial_frame)           # call once per level
+        new_confirmed = store.update(frame, diff)  # call after each step with diff > baseline
+        goals = store.active_subgoals()     # human-readable strings for prompt injection
+    """
+
+    # Walk-baseline diff.  Only update hypotheses on steps that exceed this,
+    # so normal movement doesn't trigger expensive rescans.
+    DIFF_THRESHOLD = 60
+
+    def __init__(self) -> None:
+        # List of live hypotheses.  Each entry:
+        # {
+        #   "color_small": int, "color_large": int,
+        #   "distance_initial": float, "distance_current": float,
+        #   "best_transform": str,
+        #   "centroid_small": (row, col), "centroid_large": (row, col),
+        #   "confirmed": bool,
+        #   "history": [(step, distance), ...]   # last N observations
+        # }
+        self._hypotheses: list[dict] = []
+        self._step: int = 0
+
+    def reset(self) -> None:
+        """Clear all hypotheses (call at the start of each level)."""
+        self._hypotheses.clear()
+        self._step = 0
+
+    def seed(self, frame: list[list[int]]) -> None:
+        """Scan frame for similar object pairs and seed hypotheses.
+
+        Safe to call multiple times — existing hypotheses with the same
+        (color_small, color_large) key are not duplicated.
+        """
+        from object_tracker import find_similar_object_pairs
+        pairs = find_similar_object_pairs(frame)
+        # Key includes rounded centroid to distinguish same-color pairs at
+        # different positions (e.g. two blue objects of different sizes).
+        def _hyp_key(p: dict) -> tuple:
+            cs = tuple(round(x) for x in p["centroid_small"])
+            cl = tuple(round(x) for x in p["centroid_large"])
+            return (p["color_small"], p["color_large"], cs, cl)
+
+        existing_keys = {
+            _hyp_key({
+                "color_small": h["color_small"], "color_large": h["color_large"],
+                "centroid_small": h["centroid_small"], "centroid_large": h["centroid_large"],
+            })
+            for h in self._hypotheses
+        }
+        for p in pairs:
+            key = _hyp_key(p)
+            if key in existing_keys:
+                continue
+            self._hypotheses.append({
+                "color_small":       p["color_small"],
+                "color_large":       p["color_large"],
+                "distance_initial":  p["distance"],
+                "distance_current":  p["distance"],
+                "best_transform":    p["best_transform"],
+                "centroid_small":    p["centroid_small"],
+                "centroid_large":    p["centroid_large"],
+                "confirmed":         p["distance"] == 0.0,
+                "history":           [(self._step, p["distance"])],
+            })
+            existing_keys.add(key)
+        if pairs:
+            print(
+                f"  [CURIOSITY] Seeded {len(pairs)} similar-object hypothesis(es): "
+                + ", ".join(
+                    f"color{p['color_small']}<->color{p['color_large']} "
+                    f"dist={p['distance']:.3f} via {p['best_transform']}"
+                    for p in pairs
+                ),
+                flush=True,
+            )
+
+    def update(self, frame: list[list[int]], diff: int) -> list[dict]:
+        """Re-measure all active hypotheses against the current frame.
+
+        Called after any step where diff > DIFF_THRESHOLD.
+        Returns list of newly confirmed hypotheses (distance just reached 0).
+        """
+        if diff <= self.DIFF_THRESHOLD or not self._hypotheses:
+            return []
+        self._step += 1
+        from object_tracker import detect_objects, extract_subgrid, compare_shapes
+        objs_by_color: dict[int, list] = {}
+        for o in detect_objects(frame):
+            objs_by_color.setdefault(o.color, []).append(o)
+
+        newly_confirmed: list[dict] = []
+        for hyp in self._hypotheses:
+            if hyp["confirmed"]:
+                continue
+            s_objs = objs_by_color.get(hyp["color_small"], [])
+            l_objs = objs_by_color.get(hyp["color_large"], [])
+            if not s_objs or not l_objs:
+                continue
+            # When colors differ: pick largest of each color.
+            # When same color: pick the object closest in position to each seeded centroid
+            # (to avoid mixing up the large reference with the small RC indicator).
+            if hyp["color_small"] != hyp["color_large"]:
+                s_obj = max(s_objs, key=lambda o: o.size)
+                l_obj = max(l_objs, key=lambda o: o.size)
+            else:
+                # Same color — distinguish by proximity to seeded centroids
+                def _closest(objs, target_centroid):
+                    tr, tc = target_centroid
+                    return min(objs, key=lambda o: (o.centroid[0]-tr)**2+(o.centroid[1]-tc)**2)
+                s_obj = _closest(s_objs, hyp["centroid_small"])
+                l_obj = _closest(l_objs, hyp["centroid_large"])
+                if s_obj is l_obj:
+                    continue  # can't distinguish — skip this update
+            mask_s = extract_subgrid(frame, s_obj.bbox, foreground_color=hyp["color_small"])
+            mask_l = extract_subgrid(frame, l_obj.bbox, foreground_color=hyp["color_large"])
+            result = compare_shapes(mask_s, mask_l)
+            prev_dist = hyp["distance_current"]
+            hyp["distance_current"] = result["best_distance"]
+            hyp["best_transform"] = result["best_transform"]
+            hyp["centroid_small"] = s_obj.centroid
+            hyp["centroid_large"] = l_obj.centroid
+            hyp["history"].append((self._step, result["best_distance"]))
+            if len(hyp["history"]) > 20:
+                hyp["history"] = hyp["history"][-20:]
+            print(
+                f"  [CURIOSITY] Hypothesis color{hyp['color_small']}<->color{hyp['color_large']}: "
+                f"dist {prev_dist:.3f} -> {result['best_distance']:.3f} "
+                f"(transform={result['best_transform']})",
+                flush=True,
+            )
+            if result["best_distance"] == 0.0:
+                hyp["confirmed"] = True
+                newly_confirmed.append(hyp)
+                print(
+                    f"  [CURIOSITY] *** CONFIRMED MATCH: "
+                    f"color{hyp['color_small']} matches color{hyp['color_large']} "
+                    f"via {result['best_transform']} — probing blocked positions",
+                    flush=True,
+                )
+        return newly_confirmed
+
+    def active_subgoals(self) -> list[str]:
+        """Return human-readable sub-goal strings for prompt injection.
+
+        Only returns goals for hypotheses that show evidence of convergence
+        (distance decreased from initial, or already confirmed).
+        """
+        goals: list[str] = []
+        for hyp in self._hypotheses:
+            if hyp["confirmed"]:
+                goals.append(
+                    f"CONFIRMED: The small object (color{hyp['color_small']} near "
+                    f"row={hyp['centroid_small'][0]:.0f},col={hyp['centroid_small'][1]:.0f}) "
+                    f"now matches the large reference (color{hyp['color_large']} near "
+                    f"row={hyp['centroid_large'][0]:.0f},col={hyp['centroid_large'][1]:.0f}). "
+                    f"Check whether blocked positions are now accessible."
+                )
+            elif hyp["distance_current"] < hyp["distance_initial"] - 0.05:
+                goals.append(
+                    f"HYPOTHESIS (converging): Visiting the small object "
+                    f"(color{hyp['color_small']} near "
+                    f"row={hyp['centroid_small'][0]:.0f},col={hyp['centroid_small'][1]:.0f}) "
+                    f"is bringing it closer to matching the large reference "
+                    f"(color{hyp['color_large']}). "
+                    f"Current distance={hyp['distance_current']:.3f} "
+                    f"(started at {hyp['distance_initial']:.3f}). "
+                    f"Continue visiting to reach full match."
+                )
+            elif hyp["distance_initial"] <= 0.35:
+                goals.append(
+                    f"HYPOTHESIS (untested): Small object (color{hyp['color_small']} near "
+                    f"row={hyp['centroid_small'][0]:.0f},col={hyp['centroid_small'][1]:.0f}) "
+                    f"resembles large object (color{hyp['color_large']}) — "
+                    f"may be a rotatable/matchable element. "
+                    f"Try visiting it to see if it changes."
+                )
+        return goals
+
+    def has_confirmed(self) -> bool:
+        return any(h["confirmed"] for h in self._hypotheses)
+
+    def all_hypotheses(self) -> list[dict]:
+        return list(self._hypotheses)
+
+
+# ---------------------------------------------------------------------------
 # Data structures
 # ---------------------------------------------------------------------------
 
@@ -57,12 +259,18 @@ class LevelModel:
     ring_positions : unvisited step-counter rings still present in current frame.
     consumed_rings : rings already collected (disappeared from frame).
     win_gate : confirmed win-target position, or None if not yet discovered.
+    ring_refuels : dict mapping ring position -> effective budget (in moves)
+                   remaining AFTER visiting that ring.  Populated by the caller
+                   once step_budget is known; defaults to 0 (unknown).
+                   Different rings may restore different amounts (partial refuels,
+                   multi-tier rings, etc.).
     """
     candidates:     dict  = field(default_factory=dict)
     rc_positions:   list  = field(default_factory=list)
     ring_positions: list  = field(default_factory=list)
     consumed_rings: list  = field(default_factory=list)
     win_gate: Optional[tuple] = None
+    ring_refuels:   dict  = field(default_factory=dict)  # pos -> effective budget after visit
 
     @property
     def has_rc(self) -> bool:
@@ -669,12 +877,17 @@ def build_level_model(
     #
     # Fallback: if player_pos is unknown, use find_border_candidates instead.
     if player_pos is not None:
+        # NOTE: wall_colors intentionally NOT passed here.  find_sprite_cells
+        # already uses max_sprite_pixels=12 to exclude large wall structures.
+        # Passing wall_colors would also exclude tiny 1-pixel PUSH_PAD sprites
+        # whose color (e.g. 1 or 4) happens to match wall border pixels — which
+        # would make them invisible to candidate detection after OBSERVER runs.
         initial_cands = find_sprite_cells(
             initial_frame, walkable_colors, player_colors, step_size, player_pos,
-            wall_colors=_wall_colors, blocked_positions=blocked_positions)
+            wall_colors=None, blocked_positions=blocked_positions)
         current_cands = find_sprite_cells(
             current_frame, walkable_colors, player_colors, step_size, player_pos,
-            wall_colors=_wall_colors, blocked_positions=blocked_positions)
+            wall_colors=None, blocked_positions=blocked_positions)
     else:
         initial_cands = find_border_candidates(
             initial_frame, walkable_colors, player_colors, step_size,
@@ -684,6 +897,12 @@ def build_level_model(
             wall_colors=_wall_colors, blocked_positions=blocked_positions)
 
     model.candidates = dict(initial_cands)
+    # Also merge current-frame candidates so animated sprites (e.g. moving
+    # rotation changers) are targeted at their NOW position, not their stale
+    # initial-frame position.
+    for _cp, _cc in current_cands.items():
+        if _cp not in model.candidates:
+            model.candidates[_cp] = _cc
 
     # Belt-and-suspenders: also remove any blocked positions that slipped through
     if blocked_positions:
@@ -758,6 +977,10 @@ def build_level_model(
     # (where they stood when they triggered the PUSH_PAD), the actual trigger
     # position is always one step back — i.e. prev_pos.
     prev_pos: Optional[tuple] = None
+    # visit_diffs: maximum diff observed when the player was at each position.
+    # Used to distinguish "sprite animated away" (diff~54) from "object consumed"
+    # (diff >= 80 for ring refills, >> 300 for RC triggers).
+    visit_diffs: dict[tuple, int] = {}
     for i, step in enumerate(action_history):
         if i < history_start_idx:
             prev_levels = step.get("levels", 0)
@@ -779,6 +1002,8 @@ def build_level_model(
         if ppos is not None:
             pos = tuple(ppos)
             visited_set.add(pos)
+            if diff > visit_diffs.get(pos, 0):
+                visit_diffs[pos] = diff
 
             # Win gate: level advanced — use prev_pos (the PUSH_PAD trigger
             # position) rather than pos (the teleport landing position).
@@ -798,7 +1023,13 @@ def build_level_model(
             # Ring refills only change the step-counter bar → diff ~ 80-200 (excluded).
             # Upper bound 3000: game-reset restore frames have diff ~4000 and must NOT
             # be classified as RC visits (they are level-reset artifacts, not PUSH_PADs).
-            elif 300 < diff <= 3000 and prev_diff <= 300:
+            # Extra guard: the very first step of a new level (i == history_start_idx
+            # and start_levels > 0) compares a frame from the *previous* level to the
+            # first frame of this level — the resulting diff is a level-transition
+            # artifact (~1462 for ls20), not an RC interaction.  Suppress RC detection
+            # for that single step to avoid a false positive.
+            elif (300 < diff <= 3000 and prev_diff <= 300
+                  and not (i == history_start_idx and start_levels > 0)):
                 trigger = prev_pos if prev_pos is not None else pos
                 if trigger not in model.rc_positions:
                     model.rc_positions.append(trigger)
@@ -818,8 +1049,50 @@ def build_level_model(
             # it disappeared from the current frame — same for win gate.)
             if pos in rc_pos_set or pos == win_pos:
                 continue
+            # Only classify as consumed ring if the visit had a notable diff
+            # (>= 80).  A normal walk (diff~54) does NOT indicate the object was
+            # consumed — animated sprites (e.g. rotation changers) move away on
+            # their own, making their old position look "consumed" without any
+            # player interaction.
+            if visit_diffs.get(pos, 0) < 80:
+                continue
             if pos not in model.consumed_rings:
                 model.consumed_rings.append(pos)
+
+    # --- Low-diff RC detection via initial_cands membership ------------------
+    # Some levels have RCs that only rotate a tiny indicator sprite rather than
+    # the full maze, producing diff ~55-79 (above normal-walk baseline ~54 but
+    # below ring-visit range ~80+).  The standard history-loop RC detection
+    # (300 < diff ≤ 3000) misses these.
+    #
+    # Detection: if a visited position that was a sprite candidate in the
+    # initial frame (initial_cands) shows a slightly-elevated diff (55-79),
+    # it is almost certainly a low-diff RC.  This check uses initial_cands
+    # membership instead of consumed_positions so the result is STABLE across
+    # cycles — the RC is retained in model.rc_positions even when the sprite
+    # has reappeared (after the player left the RC tile).
+    #
+    # Background walk diff ≈ 54.  Ring visits ≥ 80.  Low-diff RC ≈ 55-79.
+    # These ranges are empirically separated with no overlap in ls20 levels.
+    rc_pos_set = set(map(tuple, model.rc_positions))
+    win_pos    = tuple(model.win_gate) if model.win_gate else None
+    _classified = (
+        rc_pos_set
+        | set(map(tuple, model.ring_positions))
+        | set(map(tuple, model.consumed_rings))
+        | ({win_pos} if win_pos else set())
+    )
+    for pos, d in visit_diffs.items():
+        if pos in _classified:
+            continue
+        # Diff slightly above background (55-79): candidate for low-diff RC
+        if 55 <= d < 80:
+            # The position must have been a sprite candidate in the initial
+            # frame — this ensures it is an interactive object, not noise.
+            if pos in initial_cands:
+                if pos not in model.rc_positions:
+                    model.rc_positions.append(pos)
+                _classified.add(pos)
 
     # --- Pre-classify unvisited candidates via concept bindings ------------
     if concept_bindings:
@@ -1045,6 +1318,124 @@ def compute_dynamic_waypoints(
             wp_extra.add((win[0] + dc, win[1] + dr))
 
     return waypoints, wp_extra
+
+
+# ---------------------------------------------------------------------------
+# Optimal BFS planner with refueling state
+# ---------------------------------------------------------------------------
+
+def plan_to_win(
+    current_pos: tuple,
+    current_budget: int,
+    ring_refuels: dict,
+    rc_positions: list,
+    rc_visits_done: int,
+    n_rc_needed: int,
+    win_gate: Optional[tuple],
+    walkable_set: set,
+    step_size: int,
+) -> Optional[list]:
+    """
+    Find the minimum-steps path from current_pos to win_gate that completes
+    all required RC visits, refueling at ring tiles as needed.
+
+    Uses BFS over augmented state (position, budget, rc_visits_done) so the
+    plan is optimal and requires no hardcoded thresholds.
+
+    Parameters
+    ----------
+    current_pos   : player's current grid position (col, row).
+    current_budget: effective moves remaining before step-counter hits 0.
+    ring_refuels  : dict mapping ring position -> new effective budget after
+                    visiting that ring (color/shape agnostic — purely positional).
+                    Different rings may restore different amounts.
+    rc_positions  : list of confirmed RC positions.
+    rc_visits_done: RC visits already confirmed from action history.
+    n_rc_needed   : total RC visits required to unlock win gate.
+    win_gate      : win gate position, or None (returns None immediately).
+    walkable_set  : set of BFS-passable (col, row) positions.
+    step_size     : grid step size in pixels.
+
+    Returns
+    -------
+    List of positions [current_pos, p1, ..., win_gate] or None if unreachable.
+    """
+    if win_gate is None or current_budget <= 0:
+        return None
+
+    from collections import deque
+
+    rc_set   = frozenset(tuple(p) for p in rc_positions)
+    ring_set = frozenset(ring_refuels.keys())
+    win      = tuple(win_gate)
+
+    # Maximum possible budget (cap state budget to keep state space bounded)
+    max_budget = max(ring_refuels.values(), default=current_budget)
+    max_budget = max(max_budget, current_budget)
+
+    # Build passable set: walkable ∪ all special positions ∪ their neighbours
+    special   = rc_set | ring_set | {win}
+    passable  = walkable_set | special
+    dirs      = [(0, step_size), (0, -step_size), (step_size, 0), (-step_size, 0)]
+    for sp in special:
+        for dc, dr in dirs:
+            nb = (sp[0] + dc, sp[1] + dr)
+            if nb in walkable_set:
+                passable.add(nb)
+
+    init_rc    = min(rc_visits_done, n_rc_needed)
+    init_state = (current_pos, min(current_budget, max_budget), init_rc)
+
+    # BFS: state = (position, budget, rc_visits)
+    parent: dict = {init_state: None}   # state -> predecessor state
+    queue  = deque([init_state])
+    goal   = None
+
+    while queue:
+        state = queue.popleft()
+        pos, budget, rc_visits = state
+
+        if pos == win and rc_visits >= n_rc_needed:
+            goal = state
+            break
+
+        if budget <= 0:
+            continue
+
+        for dc, dr in dirs:
+            npos = (pos[0] + dc, pos[1] + dr)
+            if npos not in passable:
+                continue
+
+            nbud = budget - 1
+            if nbud < 0:
+                continue
+
+            # Refuel: update budget to ring's known amount
+            if npos in ring_refuels:
+                nbud = ring_refuels[npos]
+
+            # RC visit: only count entry from a non-RC cell
+            nrc = rc_visits
+            if npos in rc_set and pos not in rc_set:
+                nrc = min(n_rc_needed, rc_visits + 1)
+
+            nstate = (npos, min(nbud, max_budget), nrc)
+            if nstate not in parent:
+                parent[nstate] = state
+                queue.append(nstate)
+
+    if goal is None:
+        return None
+
+    # Reconstruct position list from goal back to start
+    path: list = []
+    state = goal
+    while state is not None:
+        path.append(state[0])
+        state = parent[state]
+    path.reverse()
+    return path
 
 
 # ---------------------------------------------------------------------------

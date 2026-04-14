@@ -2655,6 +2655,77 @@ def compare_shapes(
     }
 
 
+def find_similar_object_pairs(
+    frame: list[list[int]],
+    *,
+    distance_threshold: float = 0.35,
+    same_color_distance_threshold: float = 0.70,
+    size_ratio_min: float = 1.2,
+    min_size: int = 8,
+) -> list[dict]:
+    """Scan a frame for pairs of objects that look similar but differ in size or state.
+
+    Two objects are "curious" when:
+      • Their shapes are similar (best Jaccard distance < distance_threshold)
+      • One is noticeably larger than the other (size ratio >= size_ratio_min)
+      • Both are big enough to be meaningful (size >= min_size)
+
+    This is the seed for the curiosity / hypothesis system: such pairs suggest
+    a "small version" and "large reference version" of the same element, which
+    in many games indicates a match-to-win condition.
+
+    Returns a list of dicts, each with:
+        color_small  : int    — color index of the smaller object
+        color_large  : int    — color index of the larger object
+        size_small   : int
+        size_large   : int
+        centroid_small : tuple[float, float]  — (row, col)
+        centroid_large : tuple[float, float]
+        bbox_small   : dict
+        bbox_large   : dict
+        distance     : float  — Jaccard distance (0.0 = identical shape)
+        best_transform : str  — transform that maps small -> large
+    """
+    objs = detect_objects(frame)
+    objs = [o for o in objs if o.size >= min_size]
+    pairs: list[dict] = []
+    for i, a in enumerate(objs):
+        for b in objs[i + 1:]:
+            small, large = (a, b) if a.size <= b.size else (b, a)
+            if small.size == 0:
+                continue
+            ratio = large.size / small.size
+            if ratio < size_ratio_min:
+                continue
+            # Extract binary masks and compare shapes
+            mask_s = extract_subgrid(frame, small.bbox, foreground_color=small.color)
+            mask_l = extract_subgrid(frame, large.bbox, foreground_color=large.color)
+            result = compare_shapes(mask_s, mask_l)
+            # Same-color pairs with sufficient size ratio are always interesting:
+            # they may be the same element in different rotation/transformation states.
+            # Use a looser threshold for same-color pairs.
+            effective_threshold = (
+                same_color_distance_threshold if a.color == b.color
+                else distance_threshold
+            )
+            if result["best_distance"] <= effective_threshold:
+                pairs.append({
+                    "color_small":    small.color,
+                    "color_large":    large.color,
+                    "size_small":     small.size,
+                    "size_large":     large.size,
+                    "centroid_small": small.centroid,
+                    "centroid_large": large.centroid,
+                    "bbox_small":     small.bbox,
+                    "bbox_large":     large.bbox,
+                    "distance":       result["best_distance"],
+                    "best_transform": result["best_transform"],
+                })
+    # Sort by ascending distance (best matches first)
+    pairs.sort(key=lambda p: p["distance"])
+    return pairs
+
+
 def find_transformation(
     pairs: list[tuple[list[list[int]], list[list[int]]]],
 ) -> dict:

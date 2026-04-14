@@ -145,6 +145,11 @@ def parse_args() -> argparse.Namespace:
                    help="Override LLM model. Examples: claude-sonnet-4-6, "
                         "Qwen/Qwen3.5-9B, meta-llama/Llama-3.3-70B-Instruct-Turbo, "
                         "deepseek-ai/DeepSeek-V3.1, Qwen/Qwen3.5-397B-A17B")
+    p.add_argument("--quick", action="store_true",
+                   help="Quick-test mode: max-cycles=15 (overrides --max-cycles).")
+    p.add_argument("--stop-on-level", dest="stop_on_level", type=int, default=0,
+                   help="Stop all episodes as soon as any episode reaches this level "
+                        "(default: 0 = disabled). Useful for fast targeted testing.")
     return p.parse_args()
 
 
@@ -331,7 +336,7 @@ async def main() -> None:
 
     # Allow ensemble limits to be overridden
     ens.MAX_STEPS  = args.max_steps
-    ens.MAX_CYCLES = args.max_cycles
+    ens.MAX_CYCLES = 15 if args.quick else args.max_cycles
 
     playlog_root = Path(args.playlog) if args.playlog else None
 
@@ -381,6 +386,11 @@ async def main() -> None:
 
         if meta.won:
             console.print(f"[green bold]WIN in episode {ep}![/green bold]")
+            break
+
+        if args.stop_on_level and best_levels >= args.stop_on_level:
+            console.print(f"[yellow]Reached level {best_levels} — stopping early "
+                          f"(--stop-on-level {args.stop_on_level})[/yellow]")
             break
 
     # -----------------------------------------------------------------------

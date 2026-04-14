@@ -62,6 +62,7 @@ from agents import (
 from core.knowledge.co_occurrence import CoOccurrenceRegistry, events_from_step
 from state_store import StateStore
 from distillation_recorder import DistillationRecorder
+from dynamic_discovery import HypothesisStore
 from nav_bfs import (
     compute_navigation_plan,
     find_player_position,
@@ -976,6 +977,7 @@ def _compute_bfs_nav_dynamic(
         GameHypothesis,
         build_level_model,
         compute_dynamic_waypoints,
+        plan_to_win,
         nearest_exploration_waypoint,
         load_discovered_knowledge,
         get_n_rc_visits,
@@ -985,6 +987,7 @@ def _compute_bfs_nav_dynamic(
         infer_action_directions_from_history,
         infer_walkable_from_visits,
         infer_player_colors_from_diff,
+        HypothesisStore,
     )
 
     # ------------------------------------------------------------------
@@ -1371,6 +1374,62 @@ def _compute_bfs_nav_dynamic(
         print(f"  [COUNTER] Ring refill mechanic injected for confirmed {_confirmed_rings_g}",
               flush=True)
 
+    # --- Pre-compute rc_visits_done so both navigable and exploration branches can use it ---
+    _rc_pos_set_pre = {tuple(p) for p in model.rc_positions}
+    # Enrich rc_pos_set with positions that showed low-diff events (55-79) in history.
+    # After a budget exhaustion reset, model.rc_positions may be empty (new life has
+    # no history yet), but the episode history retains previous RC visits.  Positions
+    # with diff in [55,79] are characteristic of the level 2 RC (indicator sprite
+    # rotation); rings always produce diff >= 80 so this range is unambiguous.
+    _ring_pos_set_hist = {tuple(p) for p in (model.ring_positions + model.consumed_rings)}
+    for _sh_rc in action_history[history_start_idx:]:
+        _pp_sh = _sh_rc.get("player_pos")
+        _diff_sh = _sh_rc.get("diff", 0)
+        if _pp_sh is not None and 55 <= _diff_sh < 80:
+            _cand_sh = tuple(_pp_sh)
+            if _cand_sh not in _ring_pos_set_hist:
+                _rc_pos_set_pre.add(_cand_sh)
+    _rc_visits_done_pre = 0
+    _prev_at_rc_pre = False
+    for _idx_pre, _s_pre in enumerate(action_history):
+        if _idx_pre < history_start_idx:
+            continue  # count RC visits across ALL lives in this level (not just latest life)
+        _pp_pre = _s_pre.get("player_pos")
+        _diff_pre = _s_pre.get("diff", 0)
+        _at_rc_pre = _pp_pre is not None and tuple(_pp_pre) in _rc_pos_set_pre
+        # Count as an RC trigger when player enters an RC position with a slightly
+        # elevated diff (> 55, the background walk baseline is ~54).  This covers:
+        #   • Large maze rotations (diff 300-3000, classic RC)
+        #   • Small indicator-sprite rotations (diff ~62, e.g. ls20 level 2 RC)
+        if _at_rc_pre and not _prev_at_rc_pre and _diff_pre > 55:
+            _rc_visits_done_pre += 1
+        elif (not _at_rc_pre and 300 < _diff_pre < 3000 and not _prev_at_rc_pre
+              and not (_idx_pre == history_start_idx and level > 1)):
+            # Large-diff fallback for RCs whose position isn't yet in rc_pos_set
+            # (discovered mid-episode).  Guard: suppress on the first dynamic step
+            # of level 2+ to avoid counting the level-transition frame change.
+            _rc_visits_done_pre += 1
+            _at_rc_pre = True
+        _prev_at_rc_pre = _at_rc_pre
+    _n_rc_needed_pre = get_n_rc_visits(_dk, game_id, level)
+    if _n_rc_needed_pre is None:
+        _n_rc_needed_pre = 1  # conservative default
+    print(f"  [DYN] rc_visits_done={_rc_visits_done_pre} n_rc_needed={_n_rc_needed_pre}",
+          flush=True)
+
+    # When all required RC visits are complete, unblock ALL previously-blocked positions
+    # (excluding known RC positions themselves) so the agent can re-try them.
+    # Notably, the win gate is blocked early (impassable before triggers) but
+    # must become accessible after all RC triggers.  It may not be in model.candidates
+    # any more, so we must NOT restrict to candidates only.
+    if _rc_visits_done_pre >= _n_rc_needed_pre and _rc_pos_set_pre:
+        _unblocked = _blocked - _rc_pos_set_pre
+        if _unblocked:
+            _blocked -= _unblocked
+            wset |= _unblocked  # allow BFS to route through formerly-blocked positions
+            print(f"  [DYN] All RC visits done — unblocked {len(_unblocked)} position(s): "
+                  f"{_unblocked}", flush=True)
+
     # If model is incomplete, explore nearest unclassified candidate.
     # Special case: if we have RCs but no win_gate, and blocked positions
     # overlap with win_gate-color candidates, the player needs to visit
@@ -1385,6 +1444,7 @@ def _compute_bfs_nav_dynamic(
         # (25% of effective budget), so we always have enough to navigate back to a ring.
         _unvisited_rings_g = [r for r in _ring_pos_set_g if r not in _sc_resets_g]
         _ring_detour = False
+        _rc_done_mode = False  # set inside ring-detour block when rings exist
         if _unvisited_rings_g:
             _steps_remaining_g = max(0, _step_budget_g - _steps_since_reset_g)
             _trigger_ring_detour = False
@@ -1405,38 +1465,127 @@ def _compute_bfs_nav_dynamic(
                         flush=True,
                     )
             else:
-                # Win gate unknown — detour based on reachability:
-                # Use BFS to check if the nearest ring is reachable AND the
-                # remaining budget is too tight to afford exploration first.
-                # Safe reserve = 50% of effective budget so we always have
-                # enough moves to reach and confirm a ring before exhaustion.
-                _safe_reserve = max(5, _step_budget_g // 2)
-                # Priority: confirm rings before exploration.
-                # If no ring has been empirically confirmed yet, always route to
-                # the nearest provisional ring candidate (as long as we have budget).
-                # Once a ring is confirmed we switch to path-cost-based gating.
-                _no_confirmed_rings = not bool(
-                    (concept_bindings or {}).get("confirmed_ring_positions")
-                )
-                if _steps_remaining_g < _safe_reserve:
+                # Win gate unknown — check BFS feasibility for safe exploration.
+                _can_explore_safely = False
+                _rc_done_mode = _rc_visits_done_pre >= _n_rc_needed_pre
+                # In rc_done_mode: include ALL model candidates (even visited) —
+                # the win gate may have been visited before the RC requirement was met.
+                # In pre-rc_done: only unvisited candidates (dying from budget
+                # exhaustion is OK — cross-life counting preserves RC visit progress).
+                if _rc_done_mode:
+                    _cands_to_check = sorted(
+                        [p for p in model.candidates.keys()
+                         if p not in _ring_pos_set_g],
+                        key=lambda p: abs(p[0]-player_pos[0])+abs(p[1]-player_pos[1])
+                    )
+                else:
+                    _unvis_cands_expl = model.unvisited_candidates(visited)
+                    _unvis_cands_expl.sort(
+                        key=lambda p: abs(p[0]-player_pos[0])+abs(p[1]-player_pos[1])
+                    )
+                    _cands_to_check = _unvis_cands_expl
+                for _cand_expl in _cands_to_check[:3]:   # check nearest 3
+                    _ce_extra = {_cand_expl}
+                    for _dce, _dre in [(0, step_size), (0, -step_size),
+                                       (step_size, 0), (-step_size, 0)]:
+                        _ce_extra.add((_cand_expl[0] + _dce, _cand_expl[1] + _dre))
+                    _path_to_ce = _bfs_path(player_pos, _cand_expl, wset,
+                                            step_size, _ce_extra)
+                    if _path_to_ce is None:
+                        continue
+                    _dist_to_ce = len(_path_to_ce)
+                    if _rc_done_mode and _unvisited_rings_g:
+                        # rc_done_mode: need ring to refuel for win gate approach.
+                        # Require: dist_to_candidate + cheapest_ring_from_candidate
+                        # < steps_remaining.  Ring detour fires when no candidate
+                        # passes — routing to ring first, then near candidates.
+                        _best_ring_cost = 9999
+                        for _r_rm in _unvisited_rings_g:
+                            _pr_rm = _bfs_path(_cand_expl, _r_rm, wset, step_size,
+                                               {_r_rm} | _ce_extra)
+                            if _pr_rm is not None:
+                                _best_ring_cost = min(_best_ring_cost, len(_pr_rm))
+                        if (_best_ring_cost < 9999
+                                and _dist_to_ce + _best_ring_cost < _steps_remaining_g):
+                            _can_explore_safely = True
+                            break
+                    else:
+                        # Pre-rc_done OR no unvisited rings: dying is acceptable.
+                        if _dist_to_ce < _steps_remaining_g:
+                            _can_explore_safely = True
+                            break
+                if not _can_explore_safely:
                     _trigger_ring_detour = True
                     print(
-                        f"  [RING] Exploration reserve low ({_steps_remaining_g} < "
-                        f"{_safe_reserve}) — detour to ring",
+                        f"  [RING] Cannot safely explore and reach ring "
+                        f"({_steps_remaining_g} steps remain) — detour to ring",
                         flush=True,
                     )
-                elif _no_confirmed_rings and _steps_remaining_g > 3:
-                    _trigger_ring_detour = True
-                    print(
-                        f"  [RING] No confirmed rings yet — prioritising ring visit "
-                        f"({_steps_remaining_g} steps remaining)",
-                        flush=True,
-                    )
+            # Suppress ring detour when RC visits still pending AND the RC is
+            # directly reachable within remaining budget.  Keeping rings unvisited
+            # preserves them for the post-RC win-gate approach (e.g. (14,15) must
+            # be unused so we can refuel there to reach (14,40) after rc_visits=3).
+            if _trigger_ring_detour and not _rc_done_mode and model.has_rc:
+                for _rcp in {tuple(p) for p in model.rc_positions}:
+                    _path_to_rcp = _bfs_path(player_pos, _rcp, wset, step_size, {_rcp})
+                    if _path_to_rcp is not None and len(_path_to_rcp) < _steps_remaining_g:
+                        _trigger_ring_detour = False
+                        print(f"  [RING] RC at {_rcp} reachable in {len(_path_to_rcp)} steps "
+                              f"(<{_steps_remaining_g} budget) — skipping ring detour to "
+                              f"preserve rings for post-RC win approach", flush=True)
+                        break
             if _trigger_ring_detour:
-                _ring_cands_g = sorted(
-                    _unvisited_rings_g,
-                    key=lambda r: abs(r[0] - player_pos[0]) + abs(r[1] - player_pos[1])
-                )
+                # After RC visits done, prefer ring closest to the target (win gate or
+                # nearest unvisited candidate) so agent can refuel and still reach target.
+                if _rc_visits_done_pre >= _n_rc_needed_pre:
+                    if model.win_gate is not None:
+                        _rg_sort_tgt = tuple(model.win_gate)
+                        _ring_cands_g = sorted(
+                            _unvisited_rings_g,
+                            key=lambda r: abs(r[0]-_rg_sort_tgt[0])+abs(r[1]-_rg_sort_tgt[1])
+                        )
+                        print(f"  [RING] RC done — win gate known {_rg_sort_tgt},"
+                              f" sorting rings by dist to it", flush=True)
+                    else:
+                        # Pick ring that maximizes the number of non-ring candidates
+                        # reachable within the full step budget after refueling.
+                        # This ensures we choose the ring from which the win gate
+                        # candidate is accessible (e.g. (14,15) reaches (14,40) in
+                        # 5 steps, while (39,50) needs 23 steps which exceeds budget).
+                        # Use ALL model candidates (including visited) — the win gate
+                        # may have been visited before RC requirement was met.
+                        _all_non_ring_cands = [
+                            p for p in model.candidates.keys()
+                            if p not in _ring_pos_set_g
+                        ]
+                        def _ring_coverage(ring_pos):
+                            # Sort candidates by distance from this ring; check nearest 8.
+                            _by_ring = sorted(
+                                _all_non_ring_cands,
+                                key=lambda c: abs(c[0]-ring_pos[0])+abs(c[1]-ring_pos[1])
+                            )[:8]
+                            cnt = 0
+                            for _cw in _by_ring:
+                                _pw = _bfs_path(ring_pos, _cw, wset, step_size, {_cw})
+                                if _pw is not None and len(_pw) <= _step_budget_g:
+                                    cnt += 1
+                            return cnt
+                        _ring_cands_g = sorted(
+                            _unvisited_rings_g,
+                            key=lambda r: -_ring_coverage(r)  # descending: most coverage first
+                        )
+                        _best_r = _ring_cands_g[0] if _ring_cands_g else None
+                        _best_cov = _ring_coverage(_best_r) if _best_r else 0
+                        print(f"  [RING] RC done — ring by coverage: "
+                              f"best={_best_r} covers "
+                              f"{_best_cov}/{min(8,len(_all_non_ring_cands))} "
+                              f"all-model candidates within {_step_budget_g} steps",
+                              flush=True)
+                else:
+                    _ring_cands_g = sorted(
+                        _unvisited_rings_g,
+                        key=lambda r: abs(r[0] - player_pos[0]) + abs(r[1] - player_pos[1])
+                    )
                 for _rc_g in _ring_cands_g:
                     _rg_extra = {_rc_g}
                     for _dc_g, _dr_g in [(0, step_size), (0, -step_size),
@@ -1451,7 +1600,8 @@ def _compute_bfs_nav_dynamic(
                               f"({_steps_remaining_g} steps remaining)", flush=True)
                         break
         if not _ring_detour:
-            if model.has_rc and not model.has_win_gate:
+            if (model.has_rc and not model.has_win_gate
+                    and _rc_visits_done_pre < _n_rc_needed_pre):
                 # RC found but no win gate yet — visit untriggered RCs to rotate
                 # maze further.  "Triggered" means a diff>300 step already occurred
                 # at that position (maze rotated).  Spawning at the RC (diff~4)
@@ -1463,11 +1613,11 @@ def _compute_bfs_nav_dynamic(
                         _prev_pos_trig = None
                         continue
                     _pp_rc = _s_rc.get("player_pos")
-                    if 300 < _s_rc.get("diff", 0) < 3000:
-                        # Add both the landing position AND the trigger position
-                        # (prev_pos = the PUSH_PAD cell the player stood on before
-                        # the push fired).  RC positions are recorded at prev_pos,
-                        # so we must check prev_pos here to correctly mark them triggered.
+                    if 55 <= _s_rc.get("diff", 0) < 3000:
+                        # Add both the landing position AND the trigger position.
+                        # Threshold 55 covers both classic maze-rotation RCs (diff 300-3000)
+                        # and low-diff RCs like ls20 level 2 (diff ~62, indicator sprite).
+                        # Normal walk baseline = 54; ring visits = 80+; game reset = 4000+.
                         if _pp_rc is not None:
                             _triggered_rc_positions.add(tuple(_pp_rc))
                         if _prev_pos_trig is not None:
@@ -1486,6 +1636,16 @@ def _compute_bfs_nav_dynamic(
                     _explore_rc = True
                     _rc_target = _untriggered_rcs[0]
                     print(f"  [DYN] RC found, no win gate — routing to untriggered RC {_rc_target}",
+                          flush=True)
+                elif _rc_visits_done_pre < _n_rc_needed_pre and model.has_rc:
+                    # All discovered RC positions have already been triggered once,
+                    # but we still need more visits (animated changer loops back to
+                    # the same position every ~8 steps).  Navigate back to the last
+                    # known RC position and bounce there until the changer returns.
+                    _explore_rc = True
+                    _rc_target = tuple(model.rc_positions[-1])
+                    print(f"  [DYN] Need {_n_rc_needed_pre - _rc_visits_done_pre} more RC visits "
+                          f"— returning to RC {_rc_target} to intercept animated changer",
                           flush=True)
             if not _explore_rc and _blocked:
                 # Fallback: check if any blocked cell has win_gate color (original logic)
@@ -1530,6 +1690,25 @@ def _compute_bfs_nav_dynamic(
                 step_size=step_size,
                 extra_passable=set(),
             )
+            # rc_done_mode + no win gate: re-explore ALL model candidates (including
+            # previously visited ones) so the agent can find the win gate that became
+            # active after the RC requirement was met.
+            if (not _ring_detour and not _explore_rc
+                    and _rc_done_mode and model.win_gate is None):
+                _reexplore_cands = sorted(
+                    [p for p in model.candidates.keys() if p not in _ring_pos_set_g],
+                    key=lambda p: abs(p[0]-player_pos[0])+abs(p[1]-player_pos[1])
+                )
+                if _reexplore_cands:
+                    _re_tgt = _reexplore_cands[0]
+                    _re_extra = {_re_tgt}
+                    for _dc, _dr in [(0, step_size), (0, -step_size),
+                                     (step_size, 0), (-step_size, 0)]:
+                        _re_extra.add((_re_tgt[0]+_dc, _re_tgt[1]+_dr))
+                    waypoints = [player_pos, _re_tgt]
+                    extra_passable = _re_extra
+                    print(f"  [DYN] RC done, no win gate — re-exploring {_re_tgt} "
+                          f"(incl. visited cands)", flush=True)
             # Override exploration target with unvisited RC if applicable
             if _explore_rc:
                 _rc_extra = set()
@@ -1699,28 +1878,78 @@ def _compute_bfs_nav_dynamic(
 
     # (Ring mechanic already injected in the global pre-navigability block above.)
 
-    # Inject provisional ring candidates into model.ring_positions so that
-    # compute_dynamic_waypoints can plan budget-aware ring detours even before
-    # empirical confirmation.  model is ephemeral (created fresh each cycle).
-    _plan_ring_set = {tuple(p) for p in model.ring_positions}
-    for _pr_g in _prov_set_dyn:
-        if _pr_g not in _plan_ring_set:
-            model.ring_positions.append(list(_pr_g))
-            _plan_ring_set.add(_pr_g)
+    # --- Populate ring_refuels for the BFS planner ----------------------------
+    # ring_refuels maps each known ring position to the effective budget the
+    # player will have AFTER visiting it.  We default to full refuel (_step_budget)
+    # for all confirmed and provisional rings; this is correct for games where every
+    # ring resets the counter to its maximum (e.g. ls20).  Games with partial refuels
+    # or variable ring powers can override individual entries once empirically observed.
+    _all_ring_positions: set[tuple] = set()
+    for _rp_fn in (*model.ring_positions, *model.consumed_rings):
+        _all_ring_positions.add(tuple(_rp_fn))
+    for _prov_r in _prov_set_dyn:
+        _all_ring_positions.add(_prov_r)
+    for _rpos in _all_ring_positions:
+        if _rpos not in model.ring_refuels:
+            model.ring_refuels[_rpos] = _step_budget  # default: full refuel
 
-    # Compute dynamic ordered waypoints (budget-aware: inserts ring if needed)
-    waypoints, extra_passable = compute_dynamic_waypoints(
-        model=model,
-        player_pos=player_pos,
+    # --- plan_to_win: BFS over (position, budget, rc_visits) ------------------
+    # Replaces compute_dynamic_waypoints + greedy ring-detour insertion.
+    # The planner is general: handles any ring color/shape (purely positional),
+    # different refuel amounts per ring, and arbitrary RC visit counts.
+    _current_bud = max(0, _step_budget - _steps_since_reset)
+    _ptw_positions = plan_to_win(
+        current_pos=player_pos,
+        current_budget=_current_bud,
+        ring_refuels=model.ring_refuels,
+        rc_positions=[tuple(p) for p in model.rc_positions],
         rc_visits_done=rc_visits_done,
-        n_rc_visits_needed=n_rc_needed,
-        sc_resets_done=sc_resets_done,
+        n_rc_needed=n_rc_needed,
+        win_gate=tuple(model.win_gate) if model.win_gate else None,
         walkable_set=wset,
         step_size=step_size,
-        step_budget=_step_budget,
-        steps_since_reset=_steps_since_reset,
-        extra_passable=set(),
     )
+
+    if _ptw_positions is not None:
+        # Convert position list to waypoints + extra_passable for compute_navigation_plan
+        waypoints = _ptw_positions
+        extra_passable: set[tuple] = set()
+        for _wp in waypoints:
+            extra_passable.add(_wp)
+            for _dc_w, _dr_w in [(0, step_size), (0, -step_size),
+                                  (step_size, 0), (-step_size, 0)]:
+                extra_passable.add((_wp[0] + _dc_w, _wp[1] + _dr_w))
+        # Log the key waypoints (rings + RC visits + win gate)
+        _special_wps = [p for p in waypoints
+                        if p in model.ring_refuels
+                        or p in {tuple(r) for r in model.rc_positions}
+                        or p == tuple(model.win_gate)]
+        print(f"  [PLAN] plan_to_win: {len(waypoints)-1} steps, "
+              f"key stops={_special_wps}", flush=True)
+    else:
+        # plan_to_win returned None (budget too tight or graph disconnected).
+        # Fall back to the greedy waypoint planner.
+        print(f"  [PLAN] plan_to_win infeasible (budget={_current_bud}) "
+              f"— falling back to greedy planner", flush=True)
+        # Inject provisional ring candidates into model.ring_positions so the
+        # greedy planner can route through them.
+        _plan_ring_set = {tuple(p) for p in model.ring_positions}
+        for _pr_g in _prov_set_dyn:
+            if _pr_g not in _plan_ring_set:
+                model.ring_positions.append(list(_pr_g))
+                _plan_ring_set.add(_pr_g)
+        waypoints, extra_passable = compute_dynamic_waypoints(
+            model=model,
+            player_pos=player_pos,
+            rc_visits_done=rc_visits_done,
+            n_rc_visits_needed=n_rc_needed,
+            sc_resets_done=sc_resets_done,
+            walkable_set=wset,
+            step_size=step_size,
+            step_budget=_step_budget,
+            steps_since_reset=_steps_since_reset,
+            extra_passable=set(),
+        )
 
     # Run BFS
     actions = compute_navigation_plan(
@@ -2405,6 +2634,11 @@ async def run_episode(
     _level_initial_frame: list = [row[:] for row in obs_frame(obs)]
     # Index in action_history where the current level started.
     _level_history_start: int = 0
+    # Curiosity / hypothesis system — seeded from initial frame, updated on
+    # any step with diff > baseline.  Tracks similar-object pairs to detect
+    # match-to-win sub-goals without hardcoded game knowledge.
+    _hypothesis_store: HypothesisStore = HypothesisStore()
+    _hypothesis_store.seed(_level_initial_frame)
     # Index of the last maze-rotation event (diff 300-3000) that caused
     # _level_initial_frame to be refreshed.  Starts at -1 (no rotation yet).
     _level_initial_frame_rotation_idx: int = -1
@@ -2548,6 +2782,9 @@ async def run_episode(
                     _level_initial_frame = [row[:] for row in obs_frame(obs)]
                     _level_history_start = len(action_history)
                     _level_initial_frame_rotation_idx = -1  # no rotations yet
+                    # Reset curiosity hypotheses for the new level and re-seed.
+                    _hypothesis_store.reset()
+                    _hypothesis_store.seed(_level_initial_frame)
                     # Reset adaptive player color tracking for the new level —
                     # the player state (color, rotation) resets on level advance.
                     # P1: use game_knowledge prior, no hardcoded color fallback.
@@ -2730,6 +2967,19 @@ async def run_episode(
                         _frame_diff += 1
         else:
             _frame_diff = 999  # first cycle — always observe
+
+        # Update curiosity hypotheses on any significant frame change.
+        # (Re-seeding only happens on level transitions, handled elsewhere.)
+        if _frame_diff > HypothesisStore.DIFF_THRESHOLD:
+            _newly_confirmed = _hypothesis_store.update(_curr_frame, _frame_diff)
+            # On confirmation: probe blocked positions (game may now allow entry).
+            # This replaces the hardcoded rc_visits_done >= n_rc_needed unblock.
+            if _newly_confirmed:
+                print(
+                    f"  [CURIOSITY] {len(_newly_confirmed)} hypothesis(es) confirmed — "
+                    f"will probe blocked positions next cycle",
+                    flush=True,
+                )
 
         # ------------------------------------------------------------------
         # BFS-DIRECT mode (COMPETITION_MODE only)
@@ -3081,6 +3331,15 @@ async def run_episode(
                   (_game_knowledge_str + "\n" if _game_knowledge_str else "")
                   + _bfs_nav_str
               )
+
+          # Inject curiosity sub-goals into rules_section so MEDIATOR is aware.
+          _hyp_goals = _hypothesis_store.active_subgoals()
+          if _hyp_goals:
+              _hyp_section = (
+                  "\n\n## Curiosity hypotheses (auto-detected visual similarities)\n\n"
+                  + "\n".join(f"- {g}" for g in _hyp_goals)
+              )
+              rules_section = (rules_section or "") + _hyp_section
 
           action_plan, med_text, _med_ms = await run_mediator(
               obs_text,
