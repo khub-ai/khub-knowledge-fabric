@@ -47,8 +47,6 @@ session in a real deployment.
 | Sonnet PUPIL accuracy after DD (Opus TUTOR) | **95.8%** (+29 pp) |
 | Sonnet PUPIL accuracy after DD (NWCG human rules) | **95.8%** (+29 pp) |
 | PatchBench verdict | **GO** |
-| Haiku PUPIL recall before DD | 0% |
-| Haiku PUPIL recall after DD | 10% (+10 pp, zero false alarms) |
 
 ---
 
