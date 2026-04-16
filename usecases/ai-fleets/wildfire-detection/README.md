@@ -22,14 +22,35 @@
 
 ---
 
-## The One-Line Summary
+## Summary
 
-A commander aircraft's MWIR sensor confirmed a real ignition at coordinates
-where 160 optical scouts and ground sentinels had logged "heat_shimmer, 0.94
-confidence" for 18 minutes; a Cal Fire lookout explained that early chaparral
-smoke is blue, drifts with the wind, and always has a point source — DD turned
-that into a tier-differentiated rule in 38 seconds, and the fleet
-retroactively identified the ignition at the moment it started.
+**What this is**: a simulated experiment on the
+[FIgLib](https://github.com/brain-facens/FIgLib) public dataset of real HPWREN
+mountaintop camera ignition sequences. We simulate a 164-agent wildfire
+detection fleet — 120 ground sentinel cameras, 40 scout drones, and 4 commander
+aircraft — and ask whether a single natural-language rule, derived from one
+expert explanation, can improve early smoke detection fleet-wide without
+retraining. The MWIR commander confirmation that triggers the DD session is
+provided by FIgLib's ground-truth ignition timestamps, not a physical sensor.
+
+**Key results** (full details in [§10](#10-measured-results)):
+
+| What was measured | Result |
+|---|---|
+| Haiku PUPIL, early smoke recall before DD | 0% (20/20 frames missed) |
+| Haiku PUPIL, early smoke recall after one DD rule | **10%** (+10 pp, zero false alarms) |
+| Sonnet PUPIL accuracy before DD rule injection | 66.7% |
+| Sonnet PUPIL accuracy after DD rule injection | **95.8%** (+29 pp) |
+| PatchBench verdict for Sonnet PUPIL | **GO** |
+| Same result using published NWCG fire lookout guidelines as rules | **Yes** — identical lift, no AI TUTOR required |
+
+**The scenario**: a commander aircraft's MWIR sensor confirms an ignition at
+coordinates where 160 optical agents had been logging "heat_shimmer, 0.94
+confidence" for 18 minutes. A Cal Fire lookout explains that early chaparral
+smoke is blue, drifts with the wind, and always has a point source. DD turns
+that into a tier-differentiated rule; the fleet retroactively re-examines
+archived footage. The numbers above measure whether that mechanism actually
+works on real HPWREN imagery.
 
 ---
 

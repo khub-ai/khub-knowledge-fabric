@@ -21,13 +21,32 @@
 
 ---
 
-## The One-Line Summary
+## Summary
 
-A coast guard commander drone found what 38 optical scouts confidently missed;
-a rescue swimmer explained why in plain language; DD turned that explanation
-into a patch and instantly updated every drone in the fleet — including
-retroactively reclassifying 45 minutes of already-captured sea-surface footage
-— without retraining a single model.
+**What this is**: a simulated experiment on the
+[SeaDronesSee](https://github.com/Ben93kie/SeaDronesSee) public maritime
+drone dataset. We simulate a 40-drone SAR fleet (38 optical scout drones +
+2 commander drones with thermal FLIR) and ask whether a single expert
+explanation can fix a fleet-wide misclassification without retraining. The
+thermal confirmation that triggers the DD session is provided by
+SeaDronesSee's ground-truth labels, not a physical sensor.
+
+**Key results**:
+
+| What was measured | Result |
+|---|---|
+| Qwen3-VL-8B PUPIL recall on 25 hardest person-in-water frames (baseline) | **8%** |
+| Qwen3-VL-8B PUPIL recall after one DD session | **52%** (+44 pp) |
+| False alarms introduced | **0** |
+| Retraining required | **None** |
+| Time from failure identification to fleet-wide rule broadcast | **52 seconds** |
+
+**The scenario**: a commander drone's thermal FLIR confirms a person in the
+water at coordinates where 38 optical scouts classified "whitecap, 0.91
+confidence" 18 minutes earlier. A rescue swimmer explains what the optical
+scouts should have seen. DD turns that into a rule; the entire fleet is
+updated and archived footage retroactively reclassified. The numbers above
+measure whether that mechanism works on real SeaDronesSee imagery.
 
 ---
 
