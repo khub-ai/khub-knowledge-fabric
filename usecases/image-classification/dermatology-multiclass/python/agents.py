@@ -299,6 +299,59 @@ Output ONLY a JSON object:
 }
 """
 
+# Visual reference injected into the Observer user message so the VLM knows
+# exactly what each special structure looks like before filling in the form.
+# This is pure perceptual grounding — no diagnostic steering.
+_OBSERVER_VISUAL_REFERENCE = """\
+## Visual feature reference — what to actively look for
+
+KERATOSIS markers (milia-like cysts / comedo-like openings):
+  • Milia-like cysts: bright white or yellowish, sharply defined round structures 0.2–1 mm,
+    scattered within the lesion — like tiny trapped pearls under the skin surface.
+  • Comedo-like openings: dark brown-black circular or irregular plugged pore-like depressions,
+    resembling blackheads embedded in the lesion.
+  • Cerebriform/fingerprint pattern: convoluted ridge-and-furrow surface texture.
+  • Stuck-on / verrucous appearance: rough or warty surface, well-demarcated border.
+
+ACTINIC KERATOSIS markers (strawberry pattern):
+  • Strawberry pattern: diffuse pinkish-red background ("pseudonetwork") with white halos
+    surrounding follicular openings — looks like a dotted red lattice on a pink ground.
+  • Surface scale: white or yellowish flaky or rough surface overlying the lesion.
+  • Erythematous background: clearly pink or red lesion colour distinct from surrounding skin.
+
+BASAL CELL CARCINOMA markers:
+  • Arborizing vessels: bright red tree-like branching vessels in sharp focus on a
+    pearly white/translucent background — like a river delta in red.
+  • Blue-gray ovoid nests: structureless rounded or oval blue-gray to gray-white blobs
+    within the lesion, larger than globules.
+  • Leaf-like areas: bulbous brown-gray projections at the lesion periphery, like maple leaves.
+  • Spoke-wheel structures: pigmented spokes radiating from a central hub.
+
+DERMATOFIBROMA markers:
+  • Central white scar-like patch: central stellate or irregular white/shiny fibrous zone,
+    often depressed, surrounded by pigmentation — like a scar in the lesion centre.
+  • Peripheral delicate pigment network: fine, light-brown regular network ring at the
+    outer edge framing the central white area.
+
+VASCULAR LESION markers (haemangioma / angiokeratoma):
+  • Lacunae: sharply defined round or oval spaces filled with red, dark-red, purple, or
+    near-black colour — like blood-filled compartments or bubbles.
+  • No pigment network elsewhere: the lesion lacks any brown pigment meshwork.
+
+MELANOMA / HIGH-RISK markers:
+  • Blue-white veil: confluent, hazy blue-white zone over a raised area — like frosted glass.
+  • Regression structures: white scar-like structureless zones (depigmented) OR
+    blue-gray peppering (fine slate-gray granules or dots).
+  • Atypical pigment network: thickened, branched, or irregularly distributed meshwork
+    with abrupt endings at the periphery.
+  • Irregular streaks / pseudopods: radial projections at the border.
+
+MELANOCYTIC NEVUS markers:
+  • Regular/typical pigment network: uniform meshwork with smooth peripheral fade.
+  • Symmetric structure: even colour and shape distribution around the centre.
+  • Regular globules: uniform dots/globules evenly distributed or forming a cobblestone pattern.
+"""
+
 
 async def run_observer(
     task: dict,
@@ -318,8 +371,10 @@ async def run_observer(
             "type": "text",
             "text": (
                 f"Candidate classes: {cats_str}\n\n"
+                f"{_OBSERVER_VISUAL_REFERENCE}\n\n"
                 f"Feature observation form:\n{schema_text}\n\n"
-                "Fill in every field based on what you can see in this dermoscopic image. "
+                "Carefully examine the image. Use the visual reference above to actively "
+                "search for each special structure before filling in the form. "
                 "Return a JSON object with the structure shown in the system prompt."
             ),
         },

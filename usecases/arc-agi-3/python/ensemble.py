@@ -64,6 +64,33 @@ from state_store import StateStore
 from distillation_recorder import DistillationRecorder
 from dynamic_discovery import HypothesisStore
 from behavioral_patterns import BehavioralPatternRegistry
+from core.cognitive_os import (
+    HypothesisRegistry,
+    StreamRecorder,
+    FutilePatternMiner,
+    SurpriseMiner,
+    TemporalInstabilityMiner,
+    DistalEffectMiner,
+    PROVISIONAL, CONFIRMED,
+    ActionProposal,
+    SafetyEnsemble,
+    LethalPosChecker,
+    CausalAttributor,
+    Surprise,
+    CauseCandidate,
+    resource_exhaustion_hook,
+    seed_resource_decay_hypothesis,
+    ResourceTracker,
+    Resource,
+    BudgetStatus,
+    RegionDescriptor,
+    SimilarityOracle,
+    PixelSimilarityOracle,
+    VLMSimilarityOracle,
+    CascadingOracle,
+    SimilarityMiner,
+)
+from arc_stream_adapter import rebuild_stream, LIFE_LOSS_DIFF as LIFE_LOSS_DIFF_LETHAL
 from nav_bfs import (
     compute_navigation_plan,
     find_player_position,
@@ -129,6 +156,17 @@ COMPETITION_MODE = True
 # COMPETITION_MODE, skipping levels the solver can already handle.
 # Saves ~$0.33/run by not using LLM on L1.  Set False before real benchmarks.
 DEV_FAST_SKIP = True
+
+# EXPERIMENT_FORCE_CONTINUOUS_RC: when True, suppress all refill-ring
+# detours while RC visits remain pending and an RC location is known.
+# This tests the hypothesis that the level-2 win condition requires
+# RC visits to be CONSECUTIVE (within one budget cycle, no off-RC
+# excursions in between) rather than merely accumulating to N total.
+# Read from env so a single-run experiment doesn't need a code edit.
+# Diagnostic-only — disable before normal runs.
+EXPERIMENT_FORCE_CONTINUOUS_RC = (
+    os.environ.get("ARC_EXPERIMENT_CONTINUOUS_RC", "0") == "1"
+)
 
 # In competition mode, execute at most this many actions per MEDIATOR plan
 # before breaking and letting the MEDIATOR re-evaluate with fresh observations.
@@ -740,8 +778,136 @@ def _load_default_gk_registry() -> Optional[GameKnowledgeRegistry]:
 
 
 # ---------------------------------------------------------------------------
+# Cognitive-OS safety governance.
+#
+# The ``SafetyEnsemble`` is the hook for the (eventual) Safety Agent /
+# Ensemble: a supervisor responsible for vetting every proposed action
+# before it reaches the environment.  Today it holds a single
+# ``LethalPosChecker``; tomorrow it can grow to include collision
+# prediction, resource guards, invariant monitors, or LLM-backed
+# checkers — all behind the same ``evaluate(ActionProposal) ->
+# SafetyVerdict`` contract.  See ``core/cognitive_os/safety.py``.
+#
+# Two pieces live here at module scope:
+#   * ``_COG_SAFETY`` — the ensemble itself, shared across episodes.
+#     One ``LethalPosChecker`` is pre-registered and has its lethal
+#     set refreshed each planning cycle by _compute_bfs_nav_dynamic.
+#   * ``_COG_VETO_CTX`` — the ambient context the actor loop needs to
+#     turn an action name into an ``ActionProposal.predicted_effect``
+#     (inverse action→delta map, last known player_pos).  The planner
+#     refreshes this each cycle; the actor reads it each step.
+#
+# The caller policy on block (break plan chunk, re-plan next cycle) is
+# intentionally kept OUTSIDE the safety layer — safety decides, caller
+# acts.  That separation is what lets this scale later into an
+# autonomous Safety Agent without reshuffling every call site.
+# ---------------------------------------------------------------------------
+_COG_SAFETY = SafetyEnsemble(name="cognitive_os.safety")
+_COG_LETHAL_CHECKER = LethalPosChecker()
+_COG_SAFETY.register(_COG_LETHAL_CHECKER)
+_COG_VETO_CTX: dict = {"inv_action_map": {}, "last_player_pos": None}
+
+
+# ---------------------------------------------------------------------------
 # Dynamic BFS navigation helper (observation-based, no hardcoded positions)
 # ---------------------------------------------------------------------------
+
+def _build_similarity_pair_supplier(frame: list[list[int]]):
+    """Return a ``pair_supplier`` closure for SimilarityMiner (Gap 5).
+
+    The closure inspects the current frame once — the frame is fixed
+    for the cycle — and yields pairs of small sprites as
+    ``(RegionDescriptor, RegionDescriptor)`` tuples.  "Small" here
+    targets the icon / indicator / miniature class (size 1–40 px):
+    these are the pieces whose similarity across positions tends to
+    signal a connection (pair of keys, mini-indicator vs. full-size
+    target, matching icons on opposite sides of the map).
+
+    Robotics analogue: the same supplier shape but sourced from a
+    detected-objects list coming out of the robot's perception stack.
+    ``detect_objects`` is a convenient pixel-grid stand-in; robotics
+    would pass detected clusters from camera+depth.
+
+    The closure caches its result so every tick in the cycle sees the
+    same pair list — cheap for miners (they're dedup'd via the oracle
+    cache) and avoids doing connected-components work every tick.
+    """
+    _cache: dict = {"pairs": None}
+
+    def _supplier(_stream, _tick):
+        if _cache["pairs"] is not None:
+            return _cache["pairs"]
+        pairs: list = []
+        try:
+            objs = detect_objects(frame)
+        except Exception:
+            _cache["pairs"] = pairs
+            return pairs
+        # Pick small sprites — the usual home of icons / indicators.
+        smalls = [
+            o for o in objs
+            if 1 <= getattr(o, "size", 0) <= 40
+        ]
+        # Cap the pool size to keep pair count manageable.
+        smalls = smalls[:12]
+        # Build RegionDescriptors once per object: use a hashable
+        # signature (color + bounding-box) + a crop of the sprite
+        # cells for the oracle.  Metadata is what the VLM sees.
+        descs = []
+        for o in smalls:
+            color = getattr(o, "color", None)
+            bbox = (
+                int(getattr(o, "r_min", 0)),
+                int(getattr(o, "c_min", 0)),
+                int(getattr(o, "r_max", 0)),
+                int(getattr(o, "c_max", 0)),
+            )
+            crop = _extract_crop(frame, bbox)
+            sig = (color, bbox, getattr(o, "size", 0))
+            descs.append(RegionDescriptor(
+                signature=sig,
+                crop=crop,
+                metadata={
+                    "color": color,
+                    "bbox": list(bbox),
+                    "size": int(getattr(o, "size", 0)),
+                    "width": int(getattr(o, "width", 0) or 0),
+                    "height": int(getattr(o, "height", 0) or 0),
+                    "label": (f"color{color} size={o.size} "
+                              f"{getattr(o, 'width', '?')}w x "
+                              f"{getattr(o, 'height', '?')}h"),
+                },
+            ))
+        # Cross pair — skip same-signature (identical sprite in same
+        # place) and prefer cross-color so we don't waste oracle calls
+        # on the player-sprite vs. itself class.
+        for i in range(len(descs)):
+            for j in range(i + 1, len(descs)):
+                a, b = descs[i], descs[j]
+                if a.signature == b.signature:
+                    continue
+                pairs.append((a, b))
+        # Hard cap to keep miner cost bounded.
+        _cache["pairs"] = pairs[:24]
+        return _cache["pairs"]
+
+    return _supplier
+
+
+def _extract_crop(frame: list[list[int]], bbox: tuple) -> list[list[int]]:
+    """Return the sub-grid of ``frame`` inside ``bbox`` = (r0, c0, r1, c1)."""
+    r0, c0, r1, c1 = bbox
+    if not frame:
+        return []
+    rows = len(frame)
+    r0 = max(0, r0); r1 = min(rows - 1, r1)
+    if r1 < r0:
+        return []
+    return [
+        list(frame[r][c0:c1 + 1])
+        for r in range(r0, r1 + 1)
+    ]
+
 
 def _compute_bfs_nav_dynamic(
     frame: list[list[int]],
@@ -926,6 +1092,188 @@ def _compute_bfs_nav_dynamic(
         action_history,
         last_maze_mutation_idx=_last_rc_visit_idx,
     )
+    # For the "just-unblocked" candidate filter (_still_futile), use a
+    # FRESH registry built only from the current life's steps.
+    #
+    # Why: In games where RC visits produce diff<300 (e.g. ls20 L2 with
+    # diff≈62), _last_rc_visit_idx stays -1 permanently.  The main
+    # _behavior_registry then covers ALL history and marks cells like
+    # (14,40) as futile from pre-RC failures — even though they become
+    # passable once the RC gate opens.  Using max(_last_rc_visit_idx,
+    # _last_reset_idx) scopes the futility check to the current life,
+    # so stale pre-gate failures don't ghost the win gate out of
+    # _just_unblocked_positions.
+    _fresh_behavior_registry = BehavioralPatternRegistry()
+    _fresh_behavior_registry.rebuild_from_history(
+        action_history,
+        last_maze_mutation_idx=max(_last_rc_visit_idx, _last_reset_idx),
+    )
+
+    # --- Cross-domain cognitive-OS layer ------------------------------------
+    # The registry/recorder/miners are rebuilt from scratch each planning
+    # cycle: miners are idempotent on (step_idx) and replaying is cheap.
+    # This keeps the derived claims in lock-step with action_history even
+    # as life-loss resets mutate it.  Claims of interest this session:
+    #   - ``blocked_action_at_pos`` : wall / futile-action knowledge
+    #   - ``refill_at_pos``         : provisional budget-refill hypotheses
+    #                                  seeded by counter_jump notable events
+    _cog_hypotheses    = HypothesisRegistry()
+    _cog_stream        = StreamRecorder(max_len=0)   # unbounded for one cycle
+    _cog_stream.register_miner(FutilePatternMiner(_cog_hypotheses))
+    _cog_stream.register_miner(SurpriseMiner(_cog_hypotheses))
+    _cog_stream.register_miner(
+        TemporalInstabilityMiner(_cog_hypotheses,
+                                 life_loss_diff=LIFE_LOSS_DIFF_LETHAL))
+    # DistalEffectMiner (Gap 3): the adapter populates
+    # ``tick.outcome["distal_changes"]`` when a step's diff lives in the
+    # anomalous / counter_jump band and cells outside the player's
+    # local radius changed.  Corroboration threshold = 2 means the
+    # miner only registers a ``distal_effect`` hypothesis after the
+    # same (source_cell, action, affected_cell) triple fires twice —
+    # keeps noise out while still catching RC-changer-like devices
+    # after two interactions.  Robotics analogue: a button whose
+    # press consistently unlatches a drawer across the room.
+    _cog_stream.register_miner(
+        DistalEffectMiner(_cog_hypotheses, min_count=2))
+
+    # SimilarityMiner (Gap 5): register ``possible_connection_between``
+    # hypotheses for region pairs flagged by a similarity oracle.  The
+    # pixel oracle is a zero-cost baseline for same-shape / same-color
+    # matches.  VLM escalation (CascadingOracle with VLMSimilarityOracle)
+    # is wired below when an OBSERVER-routed callable is available —
+    # the VLM sees scale/rotation/colour-invariant matches that pixel
+    # overlap misses (small-L vs. large-L indicator on ls20 L2).
+    _sim_pixel_oracle = PixelSimilarityOracle()
+    _sim_oracle: SimilarityOracle = _sim_pixel_oracle
+    _vlm_sim_fn = globals().get("_vlm_similarity_fn")
+    if callable(_vlm_sim_fn):
+        _sim_vlm_oracle = VLMSimilarityOracle(
+            vlm_fn=_vlm_sim_fn,
+            budget_per_cycle=2,   # keep VLM cost bounded per cycle
+        )
+        _sim_oracle = CascadingOracle(
+            cheap=_sim_pixel_oracle,
+            expensive=_sim_vlm_oracle,
+        )
+    try:
+        _sim_pair_supplier = _build_similarity_pair_supplier(frame)
+    except Exception:
+        _sim_pair_supplier = None
+    _cog_stream.register_miner(
+        SimilarityMiner(
+            _cog_hypotheses,
+            oracle=_sim_oracle,
+            min_score=0.6,
+            pair_supplier=_sim_pair_supplier,
+        ))
+
+    # Seed a resource_decay hypothesis for step_counter once the OBSERVER
+    # (or auto-detector) has labelled its color.  Critical_threshold of 4
+    # picks up deaths attributable to exhaustion — the HUD bar shrinks by
+    # ~2 pixels per action, so a value ≤ 4 means 2 or fewer actions remain
+    # before reset.  Generic: any later resource (battery, gripper wear)
+    # seeds the same way and is picked up automatically by the attributor
+    # and the ResourceTracker.
+    # Read concept_bindings from the function-scope dicts available here.
+    # Must NOT use ``state_manager`` — that name is closed over the outer
+    # run_episode coroutine and is not in scope inside _compute_bfs_nav_dynamic.
+    # ``_cb_enriched`` is the merge of caller-supplied bindings + persisted
+    # discovered_knowledge roles built at the top of this function, so it is
+    # the most authoritative dict the seed can see at this point.
+    _sc_role_color_seed: Optional[int] = None
+    try:
+        for _k_seed, _v_seed in (_cb_enriched or {}).items():
+            if not isinstance(_v_seed, dict):
+                continue
+            if _v_seed.get("role") != "step_counter":
+                continue
+            # Auto-detect path stores int keys; JSON round-trips give strings.
+            # Accept both so persisted state doesn't silently disable the seed.
+            if isinstance(_k_seed, int):
+                _sc_role_color_seed = _k_seed
+                break
+            if isinstance(_k_seed, str) and _k_seed.isdigit():
+                _sc_role_color_seed = int(_k_seed)
+                break
+    except Exception:
+        _sc_role_color_seed = None
+    if _sc_role_color_seed is not None:
+        # Decay is bar_height(2 px) × steps_dec(2 units) = 4 px per action,
+        # not 2.  The seed previously under-counted decay by 2× and the
+        # exhaustion hook then missed every one-action-out-of-budget death,
+        # silently poisoning lethal_at_pos with the cell the agent happened
+        # to be entering when the counter hit zero.  With decay_per_action=4
+        # the hook's look-ahead (v - decay ≤ threshold) fires for pre-fatal
+        # bar values of 8 — i.e. the very value observed on the deaths in
+        # run9d/9e at (14,25), (44,50), (29,10), (49,30).
+        seed_resource_decay_hypothesis(
+            _cog_hypotheses,
+            resource_name="step_counter",
+            observation_key="step_counter_value",
+            critical_threshold=4.0,       # pixels ≤ 4 => imminent exhaustion
+            decay_per_action=4.0,         # bar_height(2) × steps_dec(2) px/action
+            step_seen=0,
+            label=f"step_counter (color{_sc_role_color_seed}) "
+                  f"depletes; failure at bar ≤ 4px",
+        )
+        print(f"  [COG] seeded resource_decay: step_counter color"
+              f"{_sc_role_color_seed} (observation_key=step_counter_value, "
+              f"critical_threshold=4.0, decay_per_action=4.0)",
+              flush=True)
+
+    rebuild_stream(action_history, _cog_stream, history_start_idx=history_start_idx)
+
+    # Surface miner output: count hypotheses by predicate so we can verify
+    # DistalEffectMiner / SimilarityMiner are firing.  Without this print
+    # the miners look silent in the cycle log even when they are working.
+    try:
+        _miner_counts: dict[str, int] = {}
+        for _h_pred in ("distal_effect", "possible_connection_between"):
+            _hs = _cog_hypotheses.query(predicate=_h_pred)
+            if _hs:
+                _miner_counts[_h_pred] = len(_hs)
+        if _miner_counts:
+            _bits = ", ".join(
+                f"{_k}={_v}" for _k, _v in sorted(_miner_counts.items())
+            )
+            print(f"  [COG] miner hypotheses: {_bits}", flush=True)
+    except Exception:
+        pass
+
+    # Causal attributor + resource tracker built from the registry state.
+    # These two consult the same resource_decay hypothesis; updating one
+    # declaration updates both subsystems.
+    _cog_attributor = CausalAttributor(_cog_hypotheses)
+    _cog_attributor.register_hook(resource_exhaustion_hook)
+    _cog_resources = ResourceTracker(_cog_hypotheses, autoseed_from_registry=True)
+    # Feed the tracker the most recent observation so ``can_afford`` and
+    # ``remaining_actions`` are callable from the planner this cycle.
+    # Robotics analogue: battery % / gripper-cycle counter pulled from
+    # the robot observation dict.
+    _latest_sc_val: Optional[int] = None
+    _rem_acts: Optional[float] = None      # surfaced to the budget planner below
+    for _back_ent in reversed(action_history):
+        _raw_sc = _back_ent.get("step_counter_value")
+        if isinstance(_raw_sc, (int, float)):
+            _latest_sc_val = int(_raw_sc)
+            break
+    if _latest_sc_val is not None:
+        _cog_resources.update_from_observation(
+            {"step_counter_value": _latest_sc_val})
+        _rem_acts = _cog_resources.remaining_actions("step_counter")
+        if _rem_acts is not None:
+            print(f"  [COG] resource step_counter bar={_latest_sc_val} "
+                  f"~{_rem_acts:.1f} actions left before critical",
+                  flush=True)
+    # One-line visibility into what the miners found this cycle.
+    _prov_refills = _cog_hypotheses.query(
+        predicate="refill_at_pos", status_in=(PROVISIONAL, CONFIRMED))
+    _conf_refills = _cog_hypotheses.query(
+        predicate="refill_at_pos", status_in=(CONFIRMED,))
+    if _prov_refills or _conf_refills:
+        print(f"  [COG] refill_at_pos — provisional={len(_prov_refills) - len(_conf_refills)} "
+              f"confirmed={len(_conf_refills)} "
+              f"subjects={[tuple(h.subject) for h in _prov_refills]}", flush=True)
 
     # Build the level model.
     # start_levels = level-1 so that prev_levels is correctly initialised even
@@ -949,10 +1297,220 @@ def _compute_bfs_nav_dynamic(
     print(f"  [DYN] {model}  blocked={len(_blocked)}"
           + (f" {_blocked}" if _blocked else ""), flush=True)
 
+    # Lethal-tile learning (generic cognitive-OS pattern):
+    #   Whenever a ``life_loss_reset`` event fires (diff >= 3000), the agent
+    #   just stepped onto a tile that killed it.  The tile "looks walkable"
+    #   in the frame (so the normal wset cannot filter it out) but the game
+    #   treats entry as fatal — e.g. an animated-changer landing spot that
+    #   shifted after a maze rotation.  We reconstruct the lethal position
+    #   from prev_entry.player_pos + action_delta and exclude it from wset
+    #   for the remainder of the episode.
+    #   Robotics analogue: if a motion command tripped an e-stop / collision,
+    #   the (pose, command) combo lands in a "do-not-retry" set.
+    _inv_action_map: dict[str, tuple[int, int]] = {}
+    # action_map is {DIR_NAME: ACTION_NAME}; invert and map DIR_NAME to (dc, dr).
+    _dir_to_delta = {
+        "UP":    (0, -step_size),
+        "DOWN":  (0,  step_size),
+        "LEFT":  (-step_size, 0),
+        "RIGHT": ( step_size, 0),
+    }
+    for _dname, _aname in (action_map or {}).items():
+        _delta = _dir_to_delta.get(_dname)
+        if _delta is not None and _aname:
+            _inv_action_map[_aname] = _delta
+    # *** Causal attribution — Gap 1 fix ***
+    # Before a death is blindly attributed to the cell the agent stepped
+    # onto, the CausalAttributor consults competing hypotheses in the
+    # registry (today: resource_exhaustion via resource_decay).  If the
+    # step counter was at its critical threshold on the fatal tick, the
+    # cell is NOT added — the death is attributed to exhaustion instead.
+    # This stops the lethal-set from poisoning itself with false
+    # positives that force longer detours that exhaust the counter
+    # further (the feedback loop that sank runs 8a–8f).
+    _lethal_positions: set[tuple] = set()
+    _cause_skipped_cells: list[tuple] = []   # audit: deaths we chose NOT to blame on cell
+    _prev_pos_lethal: tuple | None = None
+    _prev_sc_val: Optional[int] = None
+    for _ei, _ent in enumerate(action_history):
+        _diff_e  = int(_ent.get("diff") or 0)
+        _act_e   = _ent.get("action")
+        _ppos_e  = _ent.get("player_pos")
+        if _diff_e >= LIFE_LOSS_DIFF_LETHAL and _prev_pos_lethal is not None \
+                and _act_e in _inv_action_map:
+            _dc_l, _dr_l = _inv_action_map[_act_e]
+            _target = (_prev_pos_lethal[0] + _dc_l, _prev_pos_lethal[1] + _dr_l)
+
+            # Ask the attributor.  The observation snapshot carries the
+            # step counter value from the PRE-fatal tick (_prev_sc_val
+            # tracked below) — that's the value in effect at the moment
+            # the fatal action was selected.
+            _snap = {}
+            if _prev_sc_val is not None:
+                _snap["step_counter_value"] = _prev_sc_val
+            _candidates = _cog_attributor.attribute(Surprise(
+                kind="life_loss",
+                subject=_target,
+                tick_idx=_ei,
+                observation_snapshot=_snap,
+            ))
+            _top = _candidates[0] if _candidates else None
+            if _top is not None and _top.cause == "resource_exhaustion":
+                _cause_skipped_cells.append(_target)
+                # NOTE: deliberately NOT adding _target to _lethal_positions.
+                # The cell is innocent; the resource was exhausted.
+            else:
+                _lethal_positions.add(_target)
+        # Track prev pos + prev step counter value for the NEXT iteration.
+        # After a life-loss the entry has pos=None or a respawn pos; either
+        # way we skip deriving a target from the respawn by resetting.
+        if _diff_e >= LIFE_LOSS_DIFF_LETHAL:
+            _prev_pos_lethal = None
+            _prev_sc_val = None
+        else:
+            if _ppos_e is not None:
+                _prev_pos_lethal = tuple(_ppos_e)
+            _ent_sc = _ent.get("step_counter_value")
+            if isinstance(_ent_sc, (int, float)):
+                _prev_sc_val = int(_ent_sc)
+    if _cause_skipped_cells:
+        print(f"  [COG] causal_attribution: {len(_cause_skipped_cells)} "
+              f"death(s) attributed to resource_exhaustion; cells NOT "
+              f"added to lethal set: {sorted(set(_cause_skipped_cells))}",
+              flush=True)
+    if _lethal_positions:
+        print(f"  [COG] lethal_at_pos learned from life_loss_reset: "
+              f"{sorted(_lethal_positions)} — excluded from BFS walkable",
+              flush=True)
+
+    # Cross-episode persistence of lethal_at_pos.  The cognitive-OS thesis
+    # is that "kept generalized knowledge + replay = better play".  A
+    # deterministic environment (e.g. ls20 changer timing, robot workspace
+    # geometry) means positions that killed the agent in a prior run will
+    # very likely kill it again.  We persist the set to a JSON file keyed
+    # by ``(game_id, level)`` and union it with the within-episode set at
+    # every planning cycle.  On the first run the file doesn't exist and
+    # we learn from deaths; on subsequent runs we start already protected.
+    #
+    # Robotics analogue: a persistent "collision-risk cells" map carried
+    # across deployments, keyed by (workspace_id, task_id).
+    _lethal_persist_path = (_HERE_DYN / ".tmp"
+                            / f"lethal_at_pos_{game_id}_L{level}.json")
+    _lethal_persist_path.parent.mkdir(parents=True, exist_ok=True)
+    _persisted_lethal: set[tuple] = set()
+    if _lethal_persist_path.exists():
+        try:
+            with open(_lethal_persist_path, "r", encoding="utf-8") as _f:
+                _pl_raw = json.load(_f)
+            for _p in _pl_raw.get("positions", []):
+                if isinstance(_p, (list, tuple)) and len(_p) == 2:
+                    _persisted_lethal.add((int(_p[0]), int(_p[1])))
+        except Exception as _e:
+            print(f"  [COG] lethal_at_pos persist: load failed ({_e})",
+                  flush=True)
+    if _persisted_lethal:
+        # Retroactive forgiveness: if a death at a persisted position was just
+        # attributed to resource_exhaustion in this episode, the cell is innocent
+        # — remove it from the persisted set rather than carrying the false lethal
+        # forward indefinitely.  This corrects stale entries written before the
+        # causal-attribution fix was in place.
+        _cause_skipped_now = set(_cause_skipped_cells)
+        if _cause_skipped_now:
+            _forgiven_persist = _persisted_lethal & _cause_skipped_now
+            if _forgiven_persist:
+                _persisted_lethal -= _forgiven_persist
+                print(f"  [COG] lethal_at_pos: retroactively forgiven "
+                      f"{sorted(_forgiven_persist)} "
+                      f"(attributed to resource_exhaustion)", flush=True)
+        _new_from_persist = _persisted_lethal - _lethal_positions
+        _lethal_positions |= _persisted_lethal
+        if _new_from_persist:
+            print(f"  [COG] lethal_at_pos loaded from prior episode(s): "
+                  f"{sorted(_new_from_persist)} — preloaded lethal set",
+                  flush=True)
+    # Write back ONLY confirmed lethal positions — never persist cells that were
+    # attributed to resource_exhaustion (those are innocent; the resource ran out).
+    _positions_to_persist = _lethal_positions - set(_cause_skipped_cells)
+    if _positions_to_persist and _positions_to_persist != _persisted_lethal:
+        try:
+            with open(_lethal_persist_path, "w", encoding="utf-8") as _f:
+                json.dump({
+                    "game_id":   game_id,
+                    "level":     level,
+                    "positions": sorted(_positions_to_persist),
+                }, _f)
+        except Exception as _e:
+            print(f"  [COG] lethal_at_pos persist: save failed ({_e})",
+                  flush=True)
+    elif not _positions_to_persist and _lethal_persist_path.exists():
+        # All previously-persisted positions have been forgiven — clear the file.
+        try:
+            _lethal_persist_path.unlink()
+            print(f"  [COG] lethal_at_pos persist: cleared (all positions forgiven)",
+                  flush=True)
+        except Exception:
+            pass
+
+    # TemporalInstabilityMiner-derived danger: (pre, action) pairs whose
+    # outcome has been observed as both safe and fatal.  These are the
+    # signature of a moving hazard (e.g. a changer sprite that coincides
+    # with the target cell intermittently).  Convert each (pre, action)
+    # to the target cell (pre + action_delta) and exclude it from wset.
+    #
+    # Robotics analogue: (pose, skill) pairs whose executions sometimes
+    # collide (moving peer robot in workspace) — avoid unless the planner
+    # has tracked the peer's schedule.
+    _unstable_hypotheses = _cog_hypotheses.query(
+        predicate="unstable_at_pos_action",
+        status_in=(PROVISIONAL, CONFIRMED),
+    )
+    _unstable_targets: set[tuple] = set()
+    for _uh in _unstable_hypotheses:
+        _subj = _uh.subject
+        if not isinstance(_subj, (list, tuple)) or len(_subj) != 2:
+            continue
+        _pre_subj, _act_subj = _subj
+        if not isinstance(_pre_subj, (list, tuple)) or len(_pre_subj) != 2:
+            continue
+        _delta_u = _inv_action_map.get(_act_subj)
+        if _delta_u is None:
+            continue
+        _target_u = (int(_pre_subj[0]) + _delta_u[0],
+                     int(_pre_subj[1]) + _delta_u[1])
+        _unstable_targets.add(_target_u)
+    # Filter: cells already skipped by causal attribution (resource
+    # exhaustion) must NOT be re-added via the instability miner — the
+    # miner saw a death there but we've decided the cell is innocent.
+    _cause_skipped_set = set(_cause_skipped_cells)
+    if _cause_skipped_set:
+        _unstable_targets -= _cause_skipped_set
+    if _unstable_targets:
+        _new_from_inst = _unstable_targets - _lethal_positions
+        _lethal_positions |= _unstable_targets
+        print(f"  [COG] unstable_at_pos_action — {len(_unstable_hypotheses)} "
+              f"hypothesis(es); target cells {sorted(_unstable_targets)} "
+              f"treated as lethal"
+              + (f" (+{len(_new_from_inst)} new)" if _new_from_inst else "")
+              + (f"; {len(_cause_skipped_set)} filtered as resource_exhaustion"
+                 if _cause_skipped_set else ""),
+              flush=True)
+
+    # Refresh the Cognitive-OS safety layer with the current lethal set
+    # and the context the actor loop needs to build ActionProposals
+    # (inverse action→delta map + current player_pos).  Any checker
+    # registered on _COG_SAFETY — today just LethalPosChecker, tomorrow
+    # more — will see this fresh state on every evaluate() call.
+    _COG_LETHAL_CHECKER.update_lethal(_lethal_positions)
+    _COG_VETO_CTX["inv_action_map"] = dict(_inv_action_map)
+    _COG_VETO_CTX["last_player_pos"] = (
+        tuple(player_pos) if player_pos is not None else None
+    )
+
     # Walkable grid for BFS — exclude cells the player couldn't enter even
     # though they look walkable in the frame.  This prevents BFS from routing
     # through game-level walls that happen to share a walkable color.
-    wset = extract_walkable_grid(frame, walkable_colors, step_size) - _blocked
+    wset = (extract_walkable_grid(frame, walkable_colors, step_size)
+            - _blocked - _lethal_positions)
 
     # Visited set (after last reset)
     visited: set[tuple] = set()
@@ -991,7 +1549,8 @@ def _compute_bfs_nav_dynamic(
             walkable_colors = hypothesis.effective_walkable_colors
             # Also strip any colors confirmed as walls by wall contact detection.
             walkable_colors = walkable_colors - _known_walls
-            wset = extract_walkable_grid(frame, walkable_colors, step_size) - _blocked
+            wset = (extract_walkable_grid(frame, walkable_colors, step_size)
+                    - _blocked - _lethal_positions)
             print(f"  [HYP] inferred walkable_colors={_obs_wc} "
                   f"(effective={walkable_colors})", flush=True)
 
@@ -1196,22 +1755,43 @@ def _compute_bfs_nav_dynamic(
     # with diff in [55,79] are characteristic of the level 2 RC (indicator sprite
     # rotation); rings always produce diff >= 80 so this range is unambiguous.
     _ring_pos_set_hist = {tuple(p) for p in (model.ring_positions + model.consumed_rings)}
+    # Bug-A fix: track the previous player position so we can require an actual
+    # movement before crediting a diff∈[55,80) event as an RC visit.  If the
+    # player is blocked (hits a wall), position stays the same but background
+    # animation can still produce a diff in the [55,80) range — that must NOT
+    # create a phantom RC candidate at the player's current cell.
+    _prev_pp_sh_enrich: tuple | None = None
     for _sh_rc in action_history[history_start_idx:]:
         _pp_sh = _sh_rc.get("player_pos")
         _diff_sh = _sh_rc.get("diff", 0)
         if _pp_sh is not None and 55 <= _diff_sh < 80:
             _cand_sh = tuple(_pp_sh)
-            if _cand_sh not in _ring_pos_set_hist:
+            _moved_sh = (_prev_pp_sh_enrich is None or _cand_sh != _prev_pp_sh_enrich)
+            if _cand_sh not in _ring_pos_set_hist and _moved_sh:
                 _rc_pos_set_pre.add(_cand_sh)
+        if _pp_sh is not None:
+            _prev_pp_sh_enrich = tuple(_pp_sh)
     _rc_visits_done_pre = 0
     _prev_at_rc_pre = False
     _rc_confirmed_positions: set[tuple] = set()  # positions that triggered an RC visit count
     for _idx_pre, _s_pre in enumerate(action_history):
-        if _idx_pre < history_start_idx or _idx_pre <= _last_reset_idx:
-            # Skip pre-reset visits: a budget-exhaustion game reset (diff>=3000,
-            # pos=None, same level) fully reinitialises the level — RC progress
-            # must be re-earned in the new life.  Must match the main rc_visits
-            # computation below (line ~1668) so pre-compute and main compute agree.
+        if _idx_pre < history_start_idx:
+            continue
+        # Small-indicator RC visits (diff in 55–80) reflect a PERMANENT state
+        # change in the indicator sprite (e.g. a small "L" that rotates 90° each
+        # visit).  The indicator does NOT reset on budget-exhaustion life-loss —
+        # only a level-advance or full-game-reset resets it.  Therefore we count
+        # these visits across ALL lives within the current level so the agent
+        # doesn't redundantly re-earn progress it already accumulated.
+        #
+        # Large-maze RC visits (diff 300–3000) correspond to actual maze-layout
+        # mutations.  Whether those persist across life-loss is game-specific and
+        # not yet empirically verified, so we keep the conservative per-life
+        # counting for that range (filter by _last_reset_idx as before).
+        _diff_sh_pre = _s_pre.get("diff", 0)
+        _is_small_indicator_pre = 55 <= _diff_sh_pre < 80
+        if not _is_small_indicator_pre and _idx_pre <= _last_reset_idx:
+            # Large-RC / unknown: skip pre-reset steps (old behaviour).
             continue
         _pp_pre = _s_pre.get("player_pos")
         _diff_pre = _s_pre.get("diff", 0)
@@ -1261,7 +1841,7 @@ def _compute_bfs_nav_dynamic(
                 if _delta_action == (0, 0):
                     continue
                 _from_pos = (_ubp[0] - _delta_action[0], _ubp[1] - _delta_action[1])
-                if _behavior_registry.is_futile(_from_pos, _aname, min_count=2):
+                if _fresh_behavior_registry.is_futile(_from_pos, _aname, min_count=2):
                     _still_futile.add(_ubp)
                     break
         _unblocked = _unblocked_candidates - _still_futile
@@ -1296,11 +1876,50 @@ def _compute_bfs_nav_dynamic(
         # When win gate is known: detour if BFS distance to win > steps remaining.
         # When win gate unknown: detour if remaining budget < safe exploration reserve
         # (25% of effective budget), so we always have enough to navigate back to a ring.
-        _unvisited_rings_g = [r for r in _ring_pos_set_g if r not in _sc_resets_g]
+        # Ring-detour targets.
+        # Unvisited rings are always candidates (gather first evidence).
+        # Rings that have produced a ``refill_at_pos`` hypothesis in the
+        # cognitive-OS registry are treated as *reusable* waypoints:
+        #   - PROVISIONAL: visited once, counter jumped — re-route here
+        #     so a second corroborating visit can promote to CONFIRMED.
+        #   - CONFIRMED: corroborated — free to use repeatedly.
+        # This is how level 2 becomes solvable without hard-coding ring
+        # reusability: the mechanism is entirely observation-driven.
+        _reusable_refill_subjects = {
+            tuple(h.subject)
+            for h in _cog_hypotheses.query(
+                predicate="refill_at_pos", status_in=(PROVISIONAL, CONFIRMED))
+        }
+        _unvisited_rings_g = [
+            r for r in _ring_pos_set_g
+            if r not in _sc_resets_g or r in _reusable_refill_subjects
+        ]
+        _reusing = _reusable_refill_subjects & _sc_resets_g
+        if _reusing:
+            print(f"  [COG] Treating {len(_reusing)} prior-visited ring(s) as reusable "
+                  f"(refill_at_pos hypothesis): {sorted(_reusing)}", flush=True)
         _ring_detour = False
         _rc_done_mode = False  # set inside ring-detour block when rings exist
         if _unvisited_rings_g:
-            _steps_remaining_g = max(0, _step_budget_g - _steps_since_reset_g)
+            # Two budget readings collide here.  The planner's historical
+            # arithmetic ``_step_budget_g - _steps_since_reset_g`` assumes
+            #   (a) every refill restores the counter to FULL and
+            #   (b) each step decrements by exactly ``steps_dec``.
+            # Both assumptions break empirically on ls20 L2: refills are
+            # PARTIAL (bar grows by ~+30 px, not back to ~84) and the
+            # planner under-counts depletion since the last "true" reset.
+            # The result is a 5x over-estimate just before death — the
+            # planner schedules a "9-step refill detour" with bar=8 px and
+            # dies after one action.  The cognitive substrate's
+            # ResourceTracker reads the *actual* bar pixels each cycle and
+            # converts via the seeded decay_per_action; trust it when
+            # available, fall back to the historical arithmetic only when
+            # the COG reading is missing (e.g. step_counter_value not
+            # surfaced from observation).
+            if _rem_acts is not None:
+                _steps_remaining_g = max(0, int(_rem_acts))
+            else:
+                _steps_remaining_g = max(0, _step_budget_g - _steps_since_reset_g)
 
             # Direct win-gate approach: if RC visits are done and a just-unblocked
             # candidate (i.e., a formerly-blocked tile that the RC unblock logic
@@ -1309,7 +1928,54 @@ def _compute_bfs_nav_dynamic(
             # positions are the strongest win-gate candidates (they were walls
             # that became walkable exactly when the RC requirement was met).
             if _just_unblocked_positions:
-                for _jup in _just_unblocked_positions:
+                # Rank candidates by prior test outcomes so the agent tries
+                # every hypothesis at least once instead of repeatedly picking
+                # the cheapest-BFS option.  Ties within a priority class are
+                # broken by BFS distance (cheapest first) inside the loop.
+                #
+                # Scoring:
+                #   3 = reached AND level advanced → win gate confirmed (highest)
+                #   2 = never reached (untested)   → try first, may be win gate
+                #   1 = reached but no advance     → likely wrong tile, try last
+                _cand_reached_adv: set[tuple] = set()
+                _cand_reached_noadv: set[tuple] = set()
+                for _ci_rank, _cs_rank in enumerate(action_history):
+                    if _ci_rank < history_start_idx:
+                        continue
+                    _pp_rank = _cs_rank.get("player_pos")
+                    if _pp_rank is None:
+                        continue
+                    _ppt_rank = tuple(_pp_rank)
+                    if _ppt_rank not in _just_unblocked_positions:
+                        continue
+                    _lvl_before_rank = (action_history[_ci_rank - 1].get("levels", 0)
+                                        if _ci_rank > 0 else 0)
+                    _lvl_after_rank = _cs_rank.get("levels", _lvl_before_rank)
+                    if _lvl_after_rank > _lvl_before_rank:
+                        _cand_reached_adv.add(_ppt_rank)
+                    else:
+                        _cand_reached_noadv.add(_ppt_rank)
+
+                def _cand_rank_score(c: tuple) -> int:
+                    if c in _cand_reached_adv:
+                        return 3
+                    if c in _cand_reached_noadv:
+                        return 1
+                    return 2  # untested — highest priority
+
+                _sorted_unblocked = sorted(
+                    _just_unblocked_positions,
+                    key=_cand_rank_score,
+                    reverse=True,
+                )
+                _untested = [c for c in _sorted_unblocked if _cand_rank_score(c) == 2]
+                _tested_noadv = [c for c in _sorted_unblocked if _cand_rank_score(c) == 1]
+                if _untested or _tested_noadv:
+                    print(f"  [DYN] Candidate ranking: untested={_untested} "
+                          f"tested-no-advance={_tested_noadv}", flush=True)
+
+                # Pass 1: direct path within remaining budget.
+                for _jup in _sorted_unblocked:
                     _jup_extra = {_jup}
                     for _dc_j, _dr_j in [(0, step_size), (0, -step_size),
                                           (step_size, 0), (-step_size, 0)]:
@@ -1329,12 +1995,98 @@ def _compute_bfs_nav_dynamic(
                             step_size=step_size,
                             action_map=action_map,
                             extra_passable=extra_passable,
-                            blocked_positions=_blocked,
+                            blocked_positions=_blocked | _lethal_positions,
                         )
                         if actions is not None:
                             formatted = format_nav_plan(actions)
                             print(f"  [DYN-EXPLORE] {player_pos} -> {_jup}: {formatted} "
                                   f"({len(actions)} steps)", flush=True)
+                            return (
+                                f"## Computed navigation path\n"
+                                f"  EXECUTE THIS PATH EXACTLY — take the first 3 actions, "
+                                f"then re-read.\n"
+                                f"  Full path: {formatted} ({len(actions)} total steps)"
+                            )
+                # Pass 2: via a reusable refill ring.  When direct exceeds
+                # remaining budget, route (player_pos → refill → jup) as long as
+                # (player_pos → refill) fits in current budget AND
+                # (refill → jup) fits in the full step budget (refill resets the
+                # step counter).  This preserves the win-gate intent across
+                # cycles and prevents the ring-coverage detour branch below
+                # from preempting it.
+                # Only use CONFIRMED refill positions (or those empirically
+                # observed to have caused a step-counter reset) as detour
+                # waypoints.  Provisional hypotheses can be false positives
+                # from concurrent indicator rotations.
+                _confirmed_refills_jup = {
+                    tuple(h.subject)
+                    for h in _cog_hypotheses.query(
+                        predicate="refill_at_pos", status_in=(CONFIRMED,))
+                } | (_reusable_refill_subjects & _sc_resets_g)
+                if _confirmed_refills_jup:
+                    # Evaluate candidates in priority order (untested first).
+                    # For each priority tier, find the min-cost refill route.
+                    # Commit to the best route found for the HIGHEST-PRIORITY
+                    # tier that has any valid route — don't let a cheap route
+                    # to a low-priority (previously-tested) candidate beat an
+                    # expensive route to an untested one.
+                    _best_via = None   # (total_cost, jup, refill, p1, p2, jup_extra)
+                    _best_via_score = -99
+                    for _jup in _sorted_unblocked:
+                        _jup_score = _cand_rank_score(_jup)
+                        # Only search for a better solution within the same or
+                        # higher priority tier; stop looking once we found a
+                        # valid route for the top tier and would need to drop.
+                        if _best_via is not None and _jup_score < _best_via_score:
+                            break
+                        _jup_extra = {_jup}
+                        for _dc_j, _dr_j in [(0, step_size), (0, -step_size),
+                                              (step_size, 0), (-step_size, 0)]:
+                            _jup_extra.add((_jup[0] + _dc_j, _jup[1] + _dr_j))
+                        for _refill in _confirmed_refills_jup:
+                            _refill_extra = {_refill}
+                            for _dcf, _drf in [(0, step_size), (0, -step_size),
+                                                (step_size, 0), (-step_size, 0)]:
+                                _refill_extra.add((_refill[0]+_dcf, _refill[1]+_drf))
+                            _p1 = _bfs_path(player_pos, _refill, wset, step_size,
+                                            _refill_extra)
+                            if _p1 is None or len(_p1) > _steps_remaining_g:
+                                continue
+                            _p2 = _bfs_path(_refill, _jup, wset, step_size,
+                                            _refill_extra | _jup_extra)
+                            if _p2 is None or len(_p2) > _step_budget_g:
+                                continue
+                            _tot = len(_p1) + len(_p2)
+                            # Prefer higher-priority candidate; tie-break by cost.
+                            if (_best_via is None
+                                    or _jup_score > _best_via_score
+                                    or (_jup_score == _best_via_score
+                                        and _tot < _best_via[0])):
+                                _best_via = (_tot, _jup, _refill, _p1, _p2,
+                                             _jup_extra, _refill_extra)
+                                _best_via_score = _jup_score
+                    if _best_via is not None:
+                        _tot, _jup, _refill, _p1, _p2, _jup_extra, _refill_extra = _best_via
+                        print(f"  [COG] Just-unblocked via refill: "
+                              f"{player_pos} → {_refill} → {_jup} "
+                              f"(cost={len(_p1)}+{len(_p2)}, budget_now={_steps_remaining_g}, "
+                              f"full_budget={_step_budget_g}) — skipping ring detour",
+                              flush=True)
+                        waypoints = [player_pos, _refill, _jup]
+                        extra_passable = _refill_extra | _jup_extra
+                        actions = compute_navigation_plan(
+                            frame=frame,
+                            waypoints=waypoints,
+                            walkable_colors=walkable_colors,
+                            step_size=step_size,
+                            action_map=action_map,
+                            extra_passable=extra_passable,
+                            blocked_positions=_blocked | _lethal_positions,
+                        )
+                        if actions is not None:
+                            formatted = format_nav_plan(actions)
+                            print(f"  [DYN-EXPLORE] {player_pos} -> {_refill} -> {_jup}: "
+                                  f"{formatted} ({len(actions)} steps)", flush=True)
                             return (
                                 f"## Computed navigation path\n"
                                 f"  EXECUTE THIS PATH EXACTLY — take the first 3 actions, "
@@ -1425,18 +2177,63 @@ def _compute_bfs_nav_dynamic(
             # after that final visit we still need budget to reach the win gate,
             # so a ring detour before the last RC visit is the right move.
             # (Based on observed rc_visits_done vs n_rc_needed — not a fixed threshold.)
+            #
+            # Exception EXTENDED: also suppress for the FINAL visit (visits_remaining==1)
+            # when there are blocked positions (potential win gates).  Rationale:
+            # Going ring→RC costs ~15 budget steps and leaves only ~6 at the RC,
+            # which is insufficient for the RC→ring→win path (~15+5=20 steps needed).
+            # Going RC first (spawn→RC ≈ 5 steps) leaves ~16 budget at the RC, which
+            # IS sufficient for RC→ring→win (15≤16 for ring leg, 5≤21 for win leg).
             _visits_remaining = _n_rc_needed_pre - _rc_visits_done_pre
+            _final_visit_with_blocked = (_visits_remaining == 1 and bool(_blocked))
             if (_trigger_ring_detour and not _rc_done_mode and model.has_rc
-                    and _visits_remaining > 1):
+                    and (_visits_remaining > 1 or _final_visit_with_blocked)):
                 for _rcp in {tuple(p) for p in model.rc_positions}:
                     _path_to_rcp = _bfs_path(player_pos, _rcp, wset, step_size, {_rcp})
                     if _path_to_rcp is not None and len(_path_to_rcp) < _steps_remaining_g:
                         _trigger_ring_detour = False
                         print(f"  [RING] RC at {_rcp} reachable in {len(_path_to_rcp)} steps "
-                              f"(<{_steps_remaining_g} budget, {_visits_remaining} visits left) "
+                              f"(<{_steps_remaining_g} budget, {_visits_remaining} visits left"
+                              f"{', final-visit+blocked' if _final_visit_with_blocked else ''}) "
                               f"— skipping ring detour to preserve rings for post-RC win approach",
                               flush=True)
                         break
+            # EXPERIMENT_FORCE_CONTINUOUS_RC override.  Tests the hypothesis
+            # that RC visits must be CONSECUTIVE (no off-RC steps between
+            # them) within a single life.  Fires ONLY after the first RC
+            # visit of the current life — the run9h regression showed that
+            # blocking ring detours pre-first-visit starves the agent of
+            # budget to even reach the RC from spawn.  After the first
+            # visit, suppress all refill detours so visits 2..N must be
+            # back-to-back; if the bar runs out mid-bounce we accept the
+            # life-loss and retry from spawn (where the gate is reset).
+            # Crucially this includes the case `_visits_remaining == 1`,
+            # which the block above intentionally does NOT cover.
+            if (EXPERIMENT_FORCE_CONTINUOUS_RC
+                    and _trigger_ring_detour
+                    and not _rc_done_mode
+                    and _rc_visits_done_pre >= 1
+                    and _visits_remaining > 0):
+                _trigger_ring_detour = False
+                print(f"  [EXP-CRC] suppressing ring detour "
+                      f"(rc_visits_done={_rc_visits_done_pre}, "
+                      f"{_visits_remaining} remaining) — "
+                      f"forcing continuous-bounce hypothesis test",
+                      flush=True)
+            # When RC visits are done AND we have just-unblocked win-gate
+            # candidates, suppress ring-by-coverage entirely.  Coverage routing
+            # picks a ring for broad exploration; here we know the win gate is
+            # one of the _just_unblocked_positions — wasting budget on a coverage
+            # ring risks GAME_OVER before we ever reach it.  The just-unblocked
+            # logic (Pass 1 / Pass 2) above already handles ring-via-refill if
+            # needed; if both passes fail (budget too low), it's better to die
+            # cleanly (life-loss) than to thrash toward an irrelevant ring.
+            if (_trigger_ring_detour and _rc_done_mode
+                    and _just_unblocked_positions):
+                _trigger_ring_detour = False
+                print(f"  [RING] Suppressing ring-by-coverage — RC done, "
+                      f"win-gate candidates exist: {_just_unblocked_positions}",
+                      flush=True)
             if _trigger_ring_detour:
                 # After RC visits done, prefer ring closest to the target (win gate or
                 # nearest unvisited candidate) so agent can refuel and still reach target.
@@ -1518,9 +2315,17 @@ def _compute_bfs_nav_dynamic(
                 _triggered_rc_positions: set[tuple] = set()
                 _prev_pos_trig: tuple | None = None
                 for _si_rc, _s_rc in enumerate(action_history):
+                    _diff_trig_rc = _s_rc.get("diff", 0)
+                    _is_small_ind_trig = 55 <= _diff_trig_rc < 80
                     if _si_rc <= _last_reset_idx:
-                        _prev_pos_trig = None
-                        continue
+                        if not _is_small_ind_trig:
+                            # Large-RC / unknown: skip pre-reset steps (conservative).
+                            _prev_pos_trig = None
+                            continue
+                        # Bug-B fix: small-indicator diffs (55-80) are a permanent
+                        # indicator state — count them even from prior lives so a
+                        # cross-life visit to (49,45) is correctly marked "triggered"
+                        # and the agent doesn't redundantly re-route to it.
                     _pp_rc = _s_rc.get("player_pos")
                     if 55 <= _s_rc.get("diff", 0) < 3000:
                         # Add both the landing position AND the trigger position.
@@ -1564,14 +2369,33 @@ def _compute_bfs_nav_dynamic(
                 # E.g., ring(39,50) is 3 steps from RC(49,45) vs 17 steps from spawn —
                 # visiting ring first gives 21 fresh steps at ring, leaving 18 at RC
                 # instead of 4, enabling the RC visit + win-gate approach in one segment.
-                if _explore_rc and _unvisited_rings_g:
+                #
+                # EXPERIMENT_FORCE_CONTINUOUS_RC blocks this branch ONLY after the
+                # first RC visit — pre-first-visit we still need rings to top up the
+                # bar so the agent can reach the RC at all.  Post-first-visit, any
+                # ring detour breaks the consecutive-visit hypothesis test.
+                #
+                # Include REUSABLE rings (confirmed refills already visited) in the
+                # ring-first candidate pool.  A consumed ring that has been empirically
+                # confirmed as a refill tile is just as useful as an unvisited one —
+                # stepping on it again will reset the counter, giving the agent a full
+                # budget before each RC visit.  Without this, once the first ring is
+                # consumed it disappears from _unvisited_rings_g and the ring-first
+                # detour never fires, leaving the agent budget-starved at the 3rd visit.
+                _rvr_pool = list(_unvisited_rings_g)
+                for _rrs_rvr in (_reusable_refill_subjects or []):
+                    if _rrs_rvr not in set(_rvr_pool):
+                        _rvr_pool.append(_rrs_rvr)
+                if (_explore_rc and _rvr_pool
+                        and not (EXPERIMENT_FORCE_CONTINUOUS_RC
+                                 and _rc_visits_done_pre >= 1)):
                     _rcvr_direct = _bfs_path(player_pos, _rc_target, wset,
                                              step_size, {_rc_target})
                     _rcvr_direct_dist = (len(_rcvr_direct) - 1
                                          if _rcvr_direct else 9999)
                     _best_rvr = None
                     _best_rvr_to_rc = 9999
-                    for _rvr in _unvisited_rings_g:
+                    for _rvr in _rvr_pool:
                         _rvr_to_rc = _bfs_path(_rvr, _rc_target, wset,
                                                step_size, {_rc_target})
                         if _rvr_to_rc is None:
@@ -1639,22 +2463,98 @@ def _compute_bfs_nav_dynamic(
             # rc_done_mode + no win gate: re-explore ALL model candidates (including
             # previously visited ones) so the agent can find the win gate that became
             # active after the RC requirement was met.
+            #
+            # Priority order:
+            #   1. Just-unblocked positions (cells that were blocked walls before
+            #      the RC-unblock fired — these are the strongest win-gate
+            #      candidates; they became walkable exactly when the RC gate
+            #      opened).
+            #   2. Other model candidates, excluding rings and the RC (the RC
+            #      is the player's current position and would yield a
+            #      zero-move plan).
             if (not _ring_detour and not _explore_rc
                     and _rc_done_mode and model.win_gate is None):
-                _reexplore_cands = sorted(
-                    [p for p in model.candidates.keys() if p not in _ring_pos_set_g],
-                    key=lambda p: abs(p[0]-player_pos[0])+abs(p[1]-player_pos[1])
-                )
-                if _reexplore_cands:
-                    _re_tgt = _reexplore_cands[0]
+                _re_tgt = None
+                if _just_unblocked_positions:
+                    _re_tgt = min(
+                        _just_unblocked_positions,
+                        key=lambda p: abs(p[0]-player_pos[0])+abs(p[1]-player_pos[1]),
+                    )
+                    print(f"  [DYN] RC done, no win gate — routing to just-unblocked "
+                          f"{_re_tgt}", flush=True)
+                else:
+                    _rc_set_exclude = {tuple(p) for p in model.rc_positions}
+                    _reexplore_cands = sorted(
+                        [p for p in model.candidates.keys()
+                         if p not in _ring_pos_set_g
+                         and p not in _rc_set_exclude
+                         and p != player_pos],
+                        key=lambda p: abs(p[0]-player_pos[0])+abs(p[1]-player_pos[1])
+                    )
+                    if _reexplore_cands:
+                        _re_tgt = _reexplore_cands[0]
+                        print(f"  [DYN] RC done, no win gate — re-exploring {_re_tgt} "
+                              f"(incl. visited cands)", flush=True)
+                if _re_tgt is not None:
                     _re_extra = {_re_tgt}
                     for _dc, _dr in [(0, step_size), (0, -step_size),
                                      (step_size, 0), (-step_size, 0)]:
                         _re_extra.add((_re_tgt[0]+_dc, _re_tgt[1]+_dr))
-                    waypoints = [player_pos, _re_tgt]
-                    extra_passable = _re_extra
-                    print(f"  [DYN] RC done, no win gate — re-exploring {_re_tgt} "
-                          f"(incl. visited cands)", flush=True)
+                    # Budget-aware refill detour.  If the direct path exceeds
+                    # remaining budget AND a reusable refill ring (from the
+                    # cognitive-OS hypothesis registry) can be reached and, in
+                    # turn, reach the target within a fresh budget, route via
+                    # the ring.  Without this detour the agent walks toward the
+                    # win-gate, runs out of counter, dies, and repeats forever.
+                    _budget_remaining = max(0, _step_budget_g - _steps_since_reset_g)
+                    _direct_path = _bfs_path(player_pos, _re_tgt, wset, step_size, _re_extra)
+                    _direct_len  = len(_direct_path) if _direct_path is not None else 10**9
+                    # Only use CONFIRMED refill positions (or those empirically
+                    # observed to have caused a step-counter reset in _sc_resets_g)
+                    # as detour waypoints.  PROVISIONAL positions can be false
+                    # positives from concurrent indicator rotations (e.g. diff=130
+                    # when the indicator fires while the player walks past a plain
+                    # corridor tile).  Using a false ring burns budget and kills the
+                    # agent one tile short of the win gate.
+                    _confirmed_refills = {
+                        tuple(h.subject)
+                        for h in _cog_hypotheses.query(
+                            predicate="refill_at_pos", status_in=(CONFIRMED,))
+                    } | (_reusable_refill_subjects & _sc_resets_g)
+                    if _direct_len > _budget_remaining and _confirmed_refills:
+                        _best_via = None
+                        for _refill in _confirmed_refills:
+                            _refill_extra = {_refill}
+                            for _dc, _dr in [(0, step_size), (0, -step_size),
+                                             (step_size, 0), (-step_size, 0)]:
+                                _refill_extra.add((_refill[0]+_dc, _refill[1]+_dr))
+                            _p1 = _bfs_path(player_pos, _refill, wset, step_size, _refill_extra)
+                            if _p1 is None or len(_p1) > _budget_remaining:
+                                continue  # can't even reach the ring
+                            _p2 = _bfs_path(_refill, _re_tgt, wset, step_size,
+                                            _refill_extra | _re_extra)
+                            if _p2 is None or len(_p2) > _step_budget_g:
+                                continue  # can't reach target from ring on fresh budget
+                            _cost = len(_p1) + len(_p2)
+                            if _best_via is None or _cost < _best_via[0]:
+                                _best_via = (_cost, _refill, _p1, _p2)
+                        if _best_via is not None:
+                            _cost, _refill, _p1, _p2 = _best_via
+                            waypoints = [player_pos, _refill, _re_tgt]
+                            extra_passable = _re_extra | {_refill}
+                            for _dc, _dr in [(0, step_size), (0, -step_size),
+                                             (step_size, 0), (-step_size, 0)]:
+                                extra_passable.add((_refill[0]+_dc, _refill[1]+_dr))
+                            print(f"  [COG] Win-gate via refill: direct={_direct_len} "
+                                  f"> budget={_budget_remaining}; routing "
+                                  f"{player_pos} → {_refill} → {_re_tgt} "
+                                  f"(cost={len(_p1)}+{len(_p2)})", flush=True)
+                        else:
+                            waypoints = [player_pos, _re_tgt]
+                            extra_passable = _re_extra
+                    else:
+                        waypoints = [player_pos, _re_tgt]
+                        extra_passable = _re_extra
             # Override exploration target with unvisited RC if applicable
             if _explore_rc:
                 _rc_extra = set()
@@ -1719,7 +2619,7 @@ def _compute_bfs_nav_dynamic(
             step_size=step_size,
             action_map=action_map,
             extra_passable=extra_passable,
-            blocked_positions=_blocked,
+            blocked_positions=_blocked | _lethal_positions,
         )
         if actions is None:
             print(f"  [DYN] BFS: no path to explore candidate {goal}", flush=True)
@@ -1905,7 +2805,7 @@ def _compute_bfs_nav_dynamic(
         step_size=step_size,
         action_map=action_map,
         extra_passable=extra_passable,
-        blocked_positions=_blocked,
+        blocked_positions=_blocked | _lethal_positions,
     )
     if actions is None:
         goal = waypoints[-1] if len(waypoints) > 1 else None
@@ -3210,7 +4110,7 @@ async def run_episode(
                     total_obs  = prev.get("total_obs", 1)
                     # Weighted running average on total observations —
                     # more observations → slower drift, i.e. harder to un-bind
-                    blended = (prev["confidence"] * total_obs + new_conf) / (total_obs + 1)
+                    blended = (prev.get("confidence", new_conf) * total_obs + new_conf) / (total_obs + 1)
                     updated = {
                         "role":       new_role,
                         "confidence": round(min(blended, 1.0), 3),
@@ -3448,6 +4348,31 @@ async def run_episode(
                 log(f"    Unknown action '{action_name}', skipping")
                 continue
 
+            # Cognitive-OS safety governance.  Build an ActionProposal,
+            # ask the SafetyEnsemble for a verdict, and honour a block
+            # by breaking the plan chunk so the next cycle re-plans.
+            # The caller's policy (break vs. substitute vs. skip) stays
+            # here in the actor loop; the safety layer is policy-free.
+            _veto_pos  = _COG_VETO_CTX.get("last_player_pos") or _last_player_pos
+            _veto_imap = _COG_VETO_CTX.get("inv_action_map") or {}
+            _pred_effect: dict = {}
+            if _veto_pos is not None and action_name in _veto_imap:
+                _vdc, _vdr = _veto_imap[action_name]
+                _pred_effect["target_pos"] = (int(_veto_pos[0]) + int(_vdc),
+                                              int(_veto_pos[1]) + int(_vdr))
+            _proposal = ActionProposal(
+                agent_id="actor",
+                action=action_name,
+                predicted_effect=_pred_effect,
+                context={"source": "mediator_or_bfs",
+                         "pre_pos": _veto_pos},
+            )
+            _verdict = _COG_SAFETY.evaluate(_proposal)
+            if not _verdict.allow:
+                log(f"  [SAFETY] {_verdict.severity} by {_verdict.checker}: "
+                    f"{_verdict.reason} — breaking plan chunk for re-plan")
+                break
+
             frame_before  = obs_frame(obs)
             levels_before = obs_levels_completed(obs)
             obs = env.step(action_obj, data=data)
@@ -3498,6 +4423,40 @@ async def run_episode(
                                   f"{_tracked_player_colors}", flush=True)
             except Exception:
                 _ppos2 = None
+            # Compute step_counter bar size at the POST frame.  This is
+            # the generic resource-value observation the CausalAttributor
+            # reads to distinguish position-caused death from
+            # resource-exhaustion death.  The role is already labelled in
+            # concept_bindings; if no label yet we write None and the
+            # attributor abstains (surface attribution wins).
+            _sc_role_color: Optional[int] = None
+            try:
+                _cb_for_sc = state_manager._data.get("concept_bindings") or {}
+                for _k_sc, _v_sc in _cb_for_sc.items():
+                    if not isinstance(_v_sc, dict):
+                        continue
+                    if _v_sc.get("role") != "step_counter":
+                        continue
+                    if isinstance(_k_sc, int):
+                        _sc_role_color = _k_sc
+                        break
+                    if isinstance(_k_sc, str) and _k_sc.isdigit():
+                        _sc_role_color = int(_k_sc)
+                        break
+            except Exception:
+                _sc_role_color = None
+            _sc_bar_size: Optional[int] = None
+            if _sc_role_color is not None:
+                try:
+                    _fr_post_sc = obs_frame(obs)
+                    _sc_bar_size = sum(
+                        1
+                        for _row in _fr_post_sc
+                        for _px in _row
+                        if _px == _sc_role_color
+                    )
+                except Exception:
+                    _sc_bar_size = None
             action_history.append({
                 "action":      action_name,
                 "data":        data,
@@ -3506,6 +4465,7 @@ async def run_episode(
                 "diff":        _step_diff,
                 "player_pos":  _ppos2,
                 "frame_before": frame_before,
+                "step_counter_value": _sc_bar_size,
             })
 
             # -- Stuck detection: track consecutive low-diff steps --

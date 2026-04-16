@@ -105,7 +105,7 @@ without domain-specific engineering.
 
 ### 1. SeaPatch — Maritime SAR Drone Fleet
 
-**[drone-swarm/README.md](drone-swarm/README.md)**
+**[seapatch/README.md](seapatch/README.md)**
 
 A 40-drone maritime search-and-rescue fleet (38 scouts + 2 commanders). A
 commander drone's FLIR thermal camera confirms a person in the water at the

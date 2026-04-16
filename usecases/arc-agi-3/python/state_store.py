@@ -1,4 +1,19 @@
 """
+state_store.py — ARC-AGI-3 StateStore (extends the core COS version).
+
+The canonical, domain-agnostic StateStore lives in:
+    core/cognitive_os/state_store.py
+
+This file is the ARC-AGI-3-specific copy, extended with:
+  - import_game_hypothesis()  — maps a GameHypothesis (dynamic_discovery.py)
+                                 into store facts
+  - import_concept_bindings() — legacy ARC concept_bindings dict importer
+  - import_action_effects()   — legacy ARC action_effects dict importer
+
+When making changes to the core fact store logic, update BOTH files.
+TODO: refactor so this module imports from core.cognitive_os.state_store
+      and adds only the ARC-specific extensions.
+
 state_store.py — StateStore for the ARC-AGI-3 solver (and beyond).
 
 A schemaless, evidence-tracked, scope-managed, change-emitting fact store.

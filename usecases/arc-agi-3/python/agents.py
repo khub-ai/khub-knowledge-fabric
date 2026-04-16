@@ -44,7 +44,14 @@ from object_tracker import (
 # Prompt files
 # ---------------------------------------------------------------------------
 
-PROMPTS_DIR = Path(__file__).parent.parent / "prompts"
+import os as _os
+# KF_PROMPTS_DIR env var allows a different prompt directory to be injected
+# (e.g. for the COS/robotics adapter which has its own prompt set).
+# Defaults to the arc-agi-3 prompts directory.
+# Note: Path("") is truthy (equals Path(".")) — explicit non-empty check required.
+_kf_prompts_override = _os.environ.get("KF_PROMPTS_DIR", "").strip()
+PROMPTS_DIR = (Path(_kf_prompts_override) if _kf_prompts_override
+               else Path(__file__).parent.parent / "prompts")
 
 PROMPT_FILES = {
     "OBSERVER": PROMPTS_DIR / "observer.md",

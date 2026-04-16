@@ -363,6 +363,11 @@ utterance → parse → scope → dry-run → advisory → (optional) promotion 
 
 This is the part of the use case that is most convincing to a robotics audience, because correction-governance is a real, underserved problem in the embodied-agent industry — and it can be demonstrated end-to-end without a physical robot.
 
+> **Where corrections meet execution.** A promoted correction does not enforce itself —
+> it compiles into a `SafetyChecker` that the cognitive-OS **Safety Ensemble** runs against
+> every action proposal. See §18 for the action-vetting interface (`ActionProposal` →
+> `SafetyVerdict`) that the governance layer plugs into.
+
 ---
 
 ## 11. Scope Boundary
@@ -856,3 +861,288 @@ The broader thesis this use case supports:
 That is the gap KF targets. RoboMemory and MemoryOS are beginning to address persistence. EMOS is beginning to address cross-platform task allocation. No published system addresses the full combination — and correction governance in particular is completely open territory.
 
 If this works, KF has a credible path from a simulator benchmark to a cognitive OS substrate that any robot team deploying above the skill layer would want to adopt.
+
+---
+
+## 18. Safety Governance Layer — Cognitive-OS Safety Ensemble
+
+The cognitive OS includes a dedicated **safety governance layer** (`core/cognitive_os/safety.py`)
+that vets every action the rest of the system wants to execute. It is a small, deliberately-shaped
+component today, but the interface is the seed of a future **Safety Agent / Safety Ensemble** —
+a supervisor that can grow from rule-based checkers into LLM-backed, simulator-backed, or
+learned-classifier checkers without breaking callers.
+
+The motivating event was an ARC-AGI-3 episode in which a BFS planner correctly avoided a
+learned lethal cell, but its **LLM-mediator fallback** (used when BFS reports "no path")
+walked into the same cell and lost a life. The lesson is general: any layer that can override
+the planner — fallbacks, recovery routines, operator macros — needs a uniform veto path that
+sees the same risk knowledge the planner does.
+
+### 18.1 Interface contract
+
+Four small types do all the work:
+
+| Type | Role |
+|---|---|
+| `ActionProposal(agent_id, action, predicted_effect, context)` | What the caller wants to do, plus what it expects to happen if it executes. |
+| `SafetyChecker` (Protocol) | A single rule. Has a `name: str` and `check(proposal) -> SafetyVerdict`. |
+| `SafetyVerdict(allow, severity, checker, reason, alternatives)` | The outcome. `allow` is the only boolean callers must branch on; the rest is for logs, audit, and optional planner consultation. |
+| `SafetyEnsemble(checkers, aggregator)` | Composable container. `register(c)` to add. `evaluate(proposal)` runs every checker and aggregates. Itself satisfies the `SafetyChecker` Protocol so ensembles are nestable. |
+
+The shapes are intentionally small: a caller that has never seen the safety layer can wire it
+in with three lines (build a proposal, call `evaluate`, branch on `verdict.allow`).
+
+### 18.2 Key design decisions
+
+These choices were made now, before the second checker exists, because changing them later
+would force every caller and every checker to be rewritten.
+
+1. **`predicted_effect` is a soft-key dict, not a typed struct.**
+   Keys (`target_pos`, `ee_pose`, `token_output`, `resource_cost`, …) are a *convention*
+   shared between callers and checkers. A checker that needs a new key can be added without
+   modifying the dataclass; callers that don't emit it simply get `allow=True` (the checker
+   abstains). This keeps the shape stable across ARC, robotics, and LLM-action domains
+   that have very different "effect" vocabularies.
+
+2. **Safety decides; planning replaces.**
+   The ensemble never picks a substitute action. A checker MAY populate
+   `SafetyVerdict.alternatives` as advice, but the planner — which knows about cost,
+   goals, and counterfactuals — owns the choice. Conflating the two would mean the
+   safety layer has to understand task semantics, which is the whole reason the cognitive
+   OS exists separately.
+
+3. **Caller policy stays outside the safety layer.**
+   What to do on a block — break the plan chunk, substitute a wait, abort the skill,
+   prompt the operator — is the caller's policy. The safety layer only answers
+   "is this OK?". Otherwise every new policy would force a safety-layer change.
+
+4. **Graceful degradation.** A checker that raises is logged as `severity="warn",
+   allow=True`, not propagated. A bug in a safety rule must not brick the agent. Strict
+   wrappers can be layered on top by callers that prefer fail-closed behavior.
+
+5. **Ensemble is nestable.** `SafetyEnsemble` itself implements `SafetyChecker`, so a
+   high-priority "kernel" ensemble can be registered inside an outer ensemble that holds
+   advisory checkers — priority tiers via composition, not via a new abstraction.
+
+6. **Aggregator is pluggable.** The default `strict_block_aggregator` vetoes on any
+   `allow=False` and concatenates reasons by severity. The signature
+   `Callable[[List[SafetyVerdict]], SafetyVerdict]` is wide enough to support a
+   future learned arbiter that weighs checkers by track record, or a quorum-based
+   policy, without changing the ensemble class.
+
+7. **Domain-agnostic action handle.** `ActionProposal.action` is `Any`. ARC passes an
+   action-name string; robotics passes a skill name or trajectory handle; an LLM-action
+   layer passes the candidate token sequence. Checkers care about `predicted_effect`,
+   not the raw action, so the layer transfers across domains untouched.
+
+### 18.3 Reference checker — `LethalPosChecker`
+
+The first concrete checker, used in the ARC validation episode, blocks any proposal whose
+`predicted_effect["target_pos"]` falls in a learned-lethal cell set. The set is updated by
+calling `update_lethal(new_set)` — typically once per planning cycle, fed from the
+HypothesisRegistry's confirmed `lethal_at_pos` claims. The checker is stateless about
+*how* the set was assembled; it just enforces it.
+
+The robotics analogues already on the roadmap:
+
+| Checker (planned) | Reads | Vetoes when |
+|---|---|---|
+| `CollisionRiskChecker` | `target_pos` (pose cell) | cell appears in persisted high-risk collision map |
+| `JointLimitChecker` | `ee_pose` | predicted joint solution exceeds calibrated limits |
+| `ResourceGuard` | `resource_cost` | predicted spend would push battery / time-budget below floor |
+| `WorkspaceBoundChecker` | `target_pos` | predicted move would leave the operator-defined work envelope |
+
+All plug into the **same** `SafetyEnsemble.register()` call. The ARC validation episode
+exercises the same machinery a real robot run would.
+
+### 18.4 Relationship to the correction governance layer (§10, §15)
+
+The two layers are complementary, not redundant:
+
+- **Correction governance** (§10) takes natural-language operator corrections, scopes them,
+  expires them, and resolves their conflicts. Its outputs are *rules* — high-level policies
+  the agent must respect.
+- **Safety governance** (this section) takes a candidate action, checks it against
+  rules + learned hazards, and returns a verdict. Its output is *per-action allow/block*.
+
+A correction like "don't enter the kitchen between 9pm and 7am" (a §10 rule) compiles into a
+checker that the §18 ensemble runs on every motion proposal whose `target_pos` falls in the
+kitchen polygon during the relevant window. The governance layer is *where the rule comes
+from*; the safety ensemble is *where the rule fires*.
+
+### 18.5 Scale-up path
+
+Each scale-up step lands as a new checker or aggregator — no caller changes:
+
+1. **Today.** Hand-coded checkers (`LethalPosChecker`), strict-block aggregator.
+2. **Near-term.** Simulator-backed checker: roll out the proposed action in a fast
+   physics sim, block on collision/instability. Same `check()` signature.
+3. **Mid-term.** LLM-backed checker for high-level plausibility ("does this action
+   match the operator's stated intent?"). Same `check()` signature; latency budget
+   handled by parallel evaluation inside the ensemble.
+4. **Long-term.** Learned arbiter as the aggregator, trained on which historical
+   vetoes were correct vs. overzealous. Checkers stay individually auditable; the
+   weighting is what adapts.
+5. **Eventually.** The ensemble itself becomes the public interface of a **Safety
+   Agent** that owns memory, talks to the correction-governance layer directly, and
+   surfaces its veto rationale to operators. The wire-format (`ActionProposal` →
+   `SafetyVerdict`) does not change.
+
+The point of locking in the interface now is that the migration above is additive at
+every step.
+
+
+## 19. Learning-Gap Closures — Causal, Resource, Distal, Precondition, Similarity
+
+Five substrate additions land in `core/cognitive_os/` during the same iteration as
+the safety ensemble (§18). They exist because an ARC-AGI-3 level-2 post-mortem on
+an 8-run failure chain surfaced five generic reasoning gaps that any agent operating
+under a depleting resource and device-shaped mechanics will hit — and which no
+domain-specific patching would fix without re-breaking robotics.
+
+The gaps and the modules that close them:
+
+### 19.1 Causal attribution — `causal.py`
+
+**Gap.** A single-cause post-mortem ("I just died at cell X therefore X is lethal")
+is wrong whenever a slow-burning background cause was the real culprit. In the ARC
+run, deaths caused by step-counter exhaustion were blamed on whatever cell the
+agent happened to be standing on. Each such misattribution added a cell to the
+lethal set, which forced longer detours, which depleted the counter faster — a
+feedback loop that sank runs 8a–8f.
+
+**Module.** `CausalAttributor` takes a `Surprise` (the event to explain) and an
+`observation_snapshot`, and runs registered `AlternativeCauseHook`s to propose
+competing `CauseCandidate`s. The built-in `resource_exhaustion_hook` queries
+`resource_decay` hypotheses in the registry, reads the snapshot value at the
+resource's `observation_key`, and returns a high-confidence candidate when the
+value is at or below the critical threshold. The top candidate wins; the planner
+branches on `cause == "resource_exhaustion"` vs `"surface"`.
+
+**Robotics analogue.** A peer robot's tool collides with the end-effector mid-grasp.
+Surface attribution: "that object position is lethal". Alternative causes: a
+battery at 5% induces motor slip (`low_battery_hook`); a hand-over schedule
+says the peer was supposed to be elsewhere (`schedule_conflict_hook`). Each
+lands as its own hook; the aggregator stays the same.
+
+**Invariant.** The same `seed_resource_decay_hypothesis` declaration is read by
+both §19.1 (the attributor hook) and §19.2 (the tracker). Changing a resource's
+definition once updates attribution and budgeting in lockstep.
+
+### 19.2 Resource awareness — `resources.py`
+
+**Gap.** A substrate that doesn't model depleting resources cheerfully plans a
+50-step detour when 25 steps remain, then "mysteriously" dies and typically
+misattributes the failure to whatever it was doing at the moment (§19.1).
+
+**Module.** `ResourceTracker` owns a `Resource` per depleting quantity
+(`step_counter`, `battery`, `gripper_cycles`, `tokens_of_llm_budget`,
+`time_on_task`). Each `Resource` carries `current`, `critical_threshold`,
+`decay_per_action`, `observation_key`, and a `refill_predicate` used to query
+refill-location hypotheses. The planner consults:
+
+- `can_afford(name, path_cost) -> BudgetStatus` → `AFFORDABLE / TIGHT / OVERRUN / UNKNOWN`
+- `remaining_actions(name)` → floor on actions until critical
+- `nearest_refill(name, from_pos, distance_fn)` → optional refill subgoal
+
+**Robotics analogue.** Battery on a mobile base is the canonical case; dock
+positions come from `dock_at_pose` hypotheses. Gripper-actuation cycles, tool-wear
+counters, conversational LLM budget, mission-clock seconds — every one of them
+drops into the same `Resource` slot with zero planner-code changes. The tracker's
+rule that an observed value overrides a modelled one means the dock's "battery
+full" reading wins over accumulated decay estimates — identical to how the
+step-counter's HUD reading overrides per-action drain.
+
+**Abstention.** If decay-per-action is unknown and no recent observation exists,
+the tracker returns `UNKNOWN` rather than guessing. A robotics safety reviewer
+reads that directly: the planner knows to ask for more data, not to proceed blind.
+
+### 19.3 Distal effects — `miners.DistalEffectMiner`
+
+**Gap.** Devices — buttons, switches, RC-changers, wall-mounted panels — by
+definition cause non-local state change. A miner that only correlates an action
+with its *local* diff will never discover that hitting cell A consistently
+rotates the indicator at cell B on the other side of the map.
+
+**Module.** `DistalEffectMiner` reads `tick.outcome["distal_changes"]` — a list
+of cells/regions that changed this tick and sit *outside* the agent's local
+radius. After `min_count` corroborations of the same `(source_cell, action,
+affected_cell)` triple, it registers a `distal_effect` hypothesis. A planner that
+reads this hypothesis can use A as a tool: *to change state at B, act at A*.
+
+**Robotics analogue.** A button on cabinet #3 whose press unlatches a drawer on
+shelf #7; a wall switch that toggles a light in another room; a gesture that
+starts a peer robot's hand-over. Each is one `distal_effect` hypothesis; each
+becomes a planning affordance.
+
+**Domain bridge.** The ARC adapter (`arc_stream_adapter._compute_distal_changes`)
+produces the tick's `distal_changes` list by diffing pre- and post-frames and
+quantising to a coarse grid; robotics adapters emit the same list from their
+perception stack (object-pose diffs, detected drawer state, etc.). The miner is
+identical in both cases.
+
+### 19.4 Goal preconditions — `miners.GoalPreconditionMiner`
+
+**Gap.** Two attempts at the same goal — say, stepping on the WIN tile —
+sometimes succeed and sometimes fail. A naive planner treats the goal as
+non-deterministic and keeps retrying. A better substrate *learns which event
+must precede the goal in the successful runs*: the ring indicator must be in a
+matching orientation; the drawer must be open; the robot must be gripping the
+object. That learned precondition becomes a subgoal of the parent goal.
+
+**Module.** `GoalPreconditionMiner` listens for `goal_attempt:<id>`,
+`goal_success:<id>`, `goal_failure:<id>` notable events. For each goal, it
+computes events common to all successes and absent from failures, then
+registers `precondition_of` hypotheses. The planner injects the event as a
+subgoal before the next attempt.
+
+**Robotics analogue.** "Handover succeeds only when the peer is facing the
+operator" (orientation precondition); "drawer-close succeeds only when the
+contents are clear" (state precondition). Exact same miner, different event
+vocabulary sourced from the robot perception stack.
+
+### 19.5 Similarity connections — `similarity.py` (VLM-assisted)
+
+**Gap.** Two objects that *look alike* often matter together — keys and locks,
+identical pill bottles on two shelves, a miniature indicator vs. the full-size
+target it tracks. Pixel-level similarity detects the easy cases (same-colour
+same-scale blobs) but misses anything that requires rotation-, scale-, or
+colour-invariance. Those are exactly the cases where a human would say "those
+two things are connected — investigate".
+
+**Modules.** `SimilarityOracle` is a narrow Protocol (`compare(a, b) -> SimilarityResult`).
+Three implementations ship:
+
+- **`PixelSimilarityOracle`** — cheap baseline; catches same-shape same-scale matches.
+- **`VLMSimilarityOracle`** — wraps an adapter-supplied `VLMCallable`. The adapter
+  routes into whichever VLM stack the use case owns (ARC's OBSERVER/MEDIATOR; a
+  robotics perception VLM). Oracle handles prompt, caching, per-cycle budget.
+- **`CascadingOracle`** — pixel first; escalate to VLM only when the score is
+  ambiguous. Saves expensive calls on obvious matches and obvious non-matches.
+
+`SimilarityMiner` queries the oracle on region pairs (either via
+`tick.outcome["similarity_pairs"]` or via a `pair_supplier` callback) and registers
+`possible_connection_between` hypotheses for pairs the oracle scores above
+`min_score`.
+
+**Why VLM.** The ARC level-2 case requires recognising that a small L-shaped
+sprite near the RC-changer and a large L-shaped indicator on the HUD are
+*instances of the same icon at different scales*. Pixel overlap is near zero.
+An OBSERVER-routed VLM call sees the match directly and returns
+`connection_kind="miniature_indicator"`. That hypothesis lets the planner
+formulate the experiment: "does hitting the RC-changer rotate the small L so
+that it matches the large L?"
+
+**Robotics analogue.** Two identical tools at different shelf positions →
+`instance_of_category`, interchangeable. A pair of arrow-shaped floor markers
+with the same colour and size → `paired`, waypoints on the same route. The
+operator's mug on the desk and the one in the cupboard → `identity`, same
+object category. Each becomes a planning affordance without changing the miner.
+
+### 19.6 Cross-domain integrity check
+
+Every closure above follows the same rule: **the module lives in `core/cognitive_os/`,
+the domain adapter supplies a narrow input, and the robotics analogue is the
+peer use case — not an afterthought**. Shipping the ARC fix lands the robotics
+capability by construction; shipping the robotics fix lands the ARC capability
+by construction. That is the two-usecase test for every substrate commit.

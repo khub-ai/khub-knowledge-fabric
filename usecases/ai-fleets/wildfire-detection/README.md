@@ -17,7 +17,7 @@
 > ignition sequences from ALERTWildfire and HPWREN mountaintop cameras.
 >
 > **Also see**: [AI Fleets Use Case Overview](../README.md) for the broader
-> pattern and the [SeaPatch](../drone-swarm/README.md) maritime SAR use case for
+> pattern and the [SeaPatch](../seapatch/README.md) maritime SAR use case for
 > an implemented and measured reference.
 
 ---

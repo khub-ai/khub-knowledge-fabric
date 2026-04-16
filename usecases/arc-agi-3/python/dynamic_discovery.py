@@ -1002,7 +1002,17 @@ def build_level_model(
         if ppos is not None:
             pos = tuple(ppos)
             visited_set.add(pos)
-            if diff > visit_diffs.get(pos, 0):
+            # Only record visit diffs for *actual movements* (pos != prev_pos).
+            # A blocked action leaves pos==prev_pos and the diff comes from
+            # unrelated background animations (e.g. the ls20 top-right
+            # white/black sprite swap that produces diff≈76 per tick).
+            # Recording blocked-action diffs here causes the small-indicator
+            # RC classifier below to learn phantom RCs at cells the player
+            # never actually entered — the observed bug on ls20 L2 that
+            # spawned a phantom RC at (14, 35) and sent the agent chasing
+            # the wrong target for ~20 cycles.
+            _moved_this_step = (prev_pos is None) or (pos != prev_pos)
+            if _moved_this_step and diff > visit_diffs.get(pos, 0):
                 visit_diffs[pos] = diff
 
             # Win gate: level advanced — use prev_pos (the PUSH_PAD trigger
@@ -1014,24 +1024,53 @@ def build_level_model(
                 if model.win_gate is None:
                     model.win_gate = trigger
 
-            # RC: large diff at ANY visited position, no level advance.
+            # RC: elevated diff at ANY visited position, no level advance.
             # Same reasoning: use prev_pos as the trigger position.
-            # Only classify if the PREVIOUS step's diff was NOT already large —
+            # Only classify if the PREVIOUS step's diff was NOT already elevated —
             # rotation animations span 2 frames, so the step after the trigger
-            # also shows diff>80 (lagging residual). We only want the first step.
-            # Threshold: RC visits cause diff > 300 (full maze rotation = many objects move).
-            # Ring refills only change the step-counter bar → diff ~ 80-200 (excluded).
-            # Upper bound 3000: game-reset restore frames have diff ~4000 and must NOT
-            # be classified as RC visits (they are level-reset artifacts, not PUSH_PADs).
+            # also shows elevated diff (lagging residual). We only want the first step.
+            #
+            # Two RC categories:
+            #   Small-indicator RC (e.g. ls20 level 2): diff in (55, 80).
+            #     Only a tiny sprite changes — the indicator rotates.
+            #     Normal walk baseline ≈ 54; ring refills start at ~80.
+            #   Full-maze RC (classic): diff in (300, 3000].
+            #     Many objects move simultaneously.
+            #
+            # Ring refills (diff ~80-300) are excluded from both categories.
+            # Upper bound 3000: game-reset restore frames have diff ~4000 and
+            # must NOT be classified as RC visits.
             # Extra guard: the very first step of a new level (i == history_start_idx
             # and start_levels > 0) compares a frame from the *previous* level to the
             # first frame of this level — the resulting diff is a level-transition
             # artifact (~1462 for ls20), not an RC interaction.  Suppress RC detection
             # for that single step to avoid a false positive.
-            elif (300 < diff <= 3000 and prev_diff <= 300
-                  and not (i == history_start_idx and start_levels > 0)):
-                trigger = prev_pos if prev_pos is not None else pos
-                if trigger not in model.rc_positions:
+            elif (
+                (
+                    (55 < diff < 80 and prev_diff <= 55)       # small-indicator RC
+                    or (300 < diff <= 3000 and prev_diff <= 300)  # full-maze RC
+                )
+                and not (i == history_start_idx and start_levels > 0)
+            ):
+                # For small-indicator RCs (diff < 80): the player is physically ON
+                # the RC cell when the indicator fires — use pos (current position).
+                # For full-maze RCs (diff 300+): the player steps onto a push-pad
+                # that teleports them; use prev_pos (the pad cell, not the landing).
+                if 55 < diff < 80:
+                    # Require actual movement.  A small-indicator RC only fires
+                    # when the player STEPS ONTO it.  If the action was blocked
+                    # (pos == prev_pos) the agent bounced off a wall — the
+                    # diff in (55, 80) came from unrelated background animation
+                    # (e.g. the ls20 top-right white/black sprite swap produces
+                    # diff≈76 without any player interaction) and must not be
+                    # attributed to the blocked cell as a phantom RC.
+                    if prev_pos is not None and pos == prev_pos:
+                        trigger = None
+                    else:
+                        trigger = pos
+                else:
+                    trigger = prev_pos if prev_pos is not None else pos
+                if trigger is not None and trigger not in model.rc_positions:
                     model.rc_positions.append(trigger)
 
         prev_diff   = diff

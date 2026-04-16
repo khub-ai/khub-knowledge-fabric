@@ -1,0 +1,4466 @@
+{
+  "version": 2,
+  "rules": [
+    {
+      "id": "r_001",
+      "condition": "If peripheral dots and globules are asymmetric or form peripheral clustering with at least three distinct colors...",
+      "action": "Classify as Melanoma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 35,
+          "successes": 12,
+          "failures": 23
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_mel_ISIC_0024315",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 35,
+      "created": "2026-04-16T04:40:03",
+      "last_fired": "2026-04-16T07:50:50",
+      "fired_on": [
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315"
+      ]
+    },
+    {
+      "id": "r_002",
+      "condition": "If the lesion exhibits an irregular border AND an asymmetric distribution of globules and dots without a blue-white veil or other specific features of different lesions...",
+      "action": "Classify as Melanoma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 35,
+          "successes": 12,
+          "failures": 23
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_mel_ISIC_0024315",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 35,
+      "created": "2026-04-16T04:40:03",
+      "last_fired": "2026-04-16T07:50:50",
+      "fired_on": [
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315"
+      ]
+    },
+    {
+      "id": "r_003",
+      "condition": "If blue-gray peppering is observed alongside an irregular border and multiple distinct colors without other specific features (e.g., no blue-white veil, no milia-like cysts)...",
+      "action": "Classify as Melanoma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 35,
+          "successes": 12,
+          "failures": 23
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_mel_ISIC_0024315",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 35,
+      "created": "2026-04-16T04:40:03",
+      "last_fired": "2026-04-16T07:50:50",
+      "fired_on": [
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315"
+      ]
+    },
+    {
+      "id": "r_004",
+      "condition": "If an irregular border and 3 or more distinct colors are observed, with absence of the blue-white veil and vascular structures...",
+      "action": "Classify as Melanoma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 34,
+          "successes": 11,
+          "failures": 23
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_mel_ISIC_0024333",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 34,
+      "created": "2026-04-16T04:40:47",
+      "last_fired": "2026-04-16T07:50:50",
+      "fired_on": [
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333"
+      ]
+    },
+    {
+      "id": "r_005",
+      "condition": "If there is an absence of specific features (globules, regression areas, and vascular patterns) while still presenting an irregular border with multiple colors...",
+      "action": "Consider Melanoma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 34,
+          "successes": 11,
+          "failures": 23
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_mel_ISIC_0024333",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 34,
+      "created": "2026-04-16T04:40:47",
+      "last_fired": "2026-04-16T07:50:50",
+      "fired_on": [
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333"
+      ]
+    },
+    {
+      "id": "r_006",
+      "condition": "If the lesion has an irregular border with a mixture of brown, pink, and light purple colors without exhibiting specific features like vascular structures or globules...",
+      "action": "Suspect Melanoma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 34,
+          "successes": 11,
+          "failures": 23
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_mel_ISIC_0024333",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 34,
+      "created": "2026-04-16T04:40:47",
+      "last_fired": "2026-04-16T07:50:50",
+      "fired_on": [
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333"
+      ]
+    },
+    {
+      "id": "r_007",
+      "condition": "If [asymmetric peripheral dots and globules] and [3 or more distinct colors] and [border notching] are observed...",
+      "action": "Classify as Melanoma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 33,
+          "successes": 10,
+          "failures": 23
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_mel_ISIC_0024400",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 33,
+      "created": "2026-04-16T04:41:41",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400"
+      ]
+    },
+    {
+      "id": "r_008",
+      "condition": "If [absence of blue-white veil] and [absence of specific features of Benign Keratosis, Basal Cell Carcinoma, Actinic Keratosis, Vascular Lesion, and Dermatofibroma] are observed, in conjunction with other Melanoma-specific features...",
+      "action": "Classify as Melanoma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 33,
+          "successes": 10,
+          "failures": 23
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_mel_ISIC_0024400",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 33,
+      "created": "2026-04-16T04:41:41",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400"
+      ]
+    },
+    {
+      "id": "r_009",
+      "condition": "If [3 or more distinct colors] and [asymmetric peripheral dots and globules] are observed with a pigmentation range including brown and darker pigmentation with areas of lighter pigmentation...",
+      "action": "Classify as Melanoma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 33,
+          "successes": 10,
+          "failures": 23
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_mel_ISIC_0024400",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 33,
+      "created": "2026-04-16T04:41:41",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400"
+      ]
+    },
+    {
+      "id": "r_010",
+      "condition": "If a lesion presents with a single uniform brown color and lacks pigment network, regression structures, vascular structures, and other specific dermoscopic features...",
+      "action": "Classify as Melanocytic Nevus",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 32,
+          "successes": 9,
+          "failures": 23
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_nv_ISIC_0024350",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 32,
+      "created": "2026-04-16T04:42:24",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350"
+      ]
+    },
+    {
+      "id": "r_011",
+      "condition": "If the lesion is devoid of blue-white veil, specific features for keratosis, AC, basal cell carcinoma, vascular lesions, and dermatofibroma, and has an uncertain border...",
+      "action": "Consider Melanocytic Nevus as a high probability",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 32,
+          "successes": 9,
+          "failures": 23
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_nv_ISIC_0024350",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 32,
+      "created": "2026-04-16T04:42:24",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350"
+      ]
+    },
+    {
+      "id": "r_012",
+      "condition": "If a lesion shows an absence of globules, dots, regression structures, vascular structures, as well as distinct keratotic, acanthotic, or vascular features...",
+      "action": "Opt for Melanocytic Nevus as a diagnosis",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 32,
+          "successes": 9,
+          "failures": 23
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_nv_ISIC_0024350",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 32,
+      "created": "2026-04-16T04:42:24",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350"
+      ]
+    },
+    {
+      "id": "r_013",
+      "condition": "If the lesion presents a single uniform brown color and lacks distinct pigment network, regression structures, and other specific dermoscopic features...",
+      "action": "Classify as Melanocytic Nevus",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 30,
+          "successes": 7,
+          "failures": 23
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_nv_ISIC_0024385",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 31,
+      "created": "2026-04-16T04:43:10",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385"
+      ]
+    },
+    {
+      "id": "r_014",
+      "condition": "If there is an absence of vascular structures such as arborizing vessels or red-purple lacunae, and the background is not erythematous...",
+      "action": "Classify as Melanocytic Nevus",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 30,
+          "successes": 7,
+          "failures": 23
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_nv_ISIC_0024385",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 31,
+      "created": "2026-04-16T04:43:10",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385"
+      ]
+    },
+    {
+      "id": "r_015",
+      "condition": "If the lesion lacks specific keratosis or dermatofibroma features such as milia-like cysts, comedo-like openings, or central white scar, and presents a uniform pigmentation...",
+      "action": "Classify as Melanocytic Nevus",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 30,
+          "successes": 7,
+          "failures": 23
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_nv_ISIC_0024385",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 31,
+      "created": "2026-04-16T04:43:10",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385"
+      ]
+    },
+    {
+      "id": "r_016",
+      "condition": "If the lesion displays a single uniform brown color with no specific architectural structures and lacks pigment network, regression structures, and vascular structures...",
+      "action": "Classify as Melanocytic Nevus",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 10,
+          "successes": 0,
+          "failures": 10
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_nv_ISIC_0024392",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "deprecated",
+      "source_level": 0,
+      "tasks_seen": 10,
+      "created": "2026-04-16T04:43:59",
+      "last_fired": "2026-04-16T05:07:22",
+      "fired_on": [
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662"
+      ],
+      "flagged_reason": "auto: fired 5x, success rate 0%",
+      "deprecated_reason": "auto: fired 10x, 0 successes"
+    },
+    {
+      "id": "r_017",
+      "condition": "If the lesion has irregular borders but displays no other high-confidence distinguishing features such as globules, dots, blue-white veil, arborizing vessels, or specific features indicating other lesions...",
+      "action": "Consider Melanocytic Nevus while ruling out more distinctive lesions",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 10,
+          "successes": 0,
+          "failures": 10
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_nv_ISIC_0024392",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "deprecated",
+      "source_level": 0,
+      "tasks_seen": 10,
+      "created": "2026-04-16T04:43:59",
+      "last_fired": "2026-04-16T05:07:22",
+      "fired_on": [
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662"
+      ],
+      "flagged_reason": "auto: fired 5x, success rate 0%",
+      "deprecated_reason": "auto: fired 10x, 0 successes"
+    },
+    {
+      "id": "r_018",
+      "condition": "If the lesion is characterized primarily by an amorphous central area with no significant architectural details or patterns, in addition to lack of specific dermoscopic features such as keratosis, AK, etc...",
+      "action": "Shall be highly suggestive of Melanocytic Nevus",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 10,
+          "successes": 0,
+          "failures": 10
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_nv_ISIC_0024392",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "deprecated",
+      "source_level": 0,
+      "tasks_seen": 10,
+      "created": "2026-04-16T04:43:59",
+      "last_fired": "2026-04-16T05:07:22",
+      "fired_on": [
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662"
+      ],
+      "flagged_reason": "auto: fired 5x, success rate 0%",
+      "deprecated_reason": "auto: fired 10x, 0 successes"
+    },
+    {
+      "id": "r_019",
+      "condition": "If a lesion presents a uniformly pigmented appearance with 2 distinct shades of brown and light brown, and lacks specific dermoscopic structures such as globules, regression areas, and vascular structures, with a regular border...",
+      "action": "Consider Benign Keratosis",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 29,
+          "successes": 7,
+          "failures": 22
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bkl_ISIC_0024336",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 29,
+      "created": "2026-04-16T04:44:49",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336"
+      ]
+    },
+    {
+      "id": "r_020",
+      "condition": "If the number of distinct colors is 2 and there is a regular border without any specific features pointing towards Melanoma, Vascular Lesion, or Dermatofibroma...",
+      "action": "Classify as Benign Keratosis",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 29,
+          "successes": 7,
+          "failures": 22
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bkl_ISIC_0024336",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 29,
+      "created": "2026-04-16T04:44:49",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336"
+      ]
+    },
+    {
+      "id": "r_021",
+      "condition": "If a lesion displays no distinct dermoscopic structures such as pigment network, regression structures, globules, vascular structures, and has a regular border with an uncertain presence of dots and globules distribution...",
+      "action": "Consider Benign Keratosis",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 29,
+          "successes": 7,
+          "failures": 22
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bkl_ISIC_0024336",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 29,
+      "created": "2026-04-16T04:44:49",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336"
+      ]
+    },
+    {
+      "id": "r_022",
+      "condition": "If arborizing vessels are not clearly visible and distinct with a reddish-brown background present without specific lesion features like milia-like cysts or comedo-like openings...",
+      "action": "Classify as Benign Keratosis",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 28,
+          "successes": 7,
+          "failures": 21
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bkl_ISIC_0024420",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 28,
+      "created": "2026-04-16T04:46:12",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420"
+      ]
+    },
+    {
+      "id": "r_023",
+      "condition": "If a lesion exhibits arborizing vessels but lacks all other disease-specific dermoscopic features and background color is not reddish-brown...",
+      "action": "Consider alternative diagnoses, as it may not solely favor Basal Cell Carcinoma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 26,
+          "successes": 7,
+          "failures": 19
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bkl_ISIC_0024420",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 28,
+      "created": "2026-04-16T04:46:12",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_024",
+      "condition": "If a lesion has a reddish-brown background with no clearly defined pigment network and lacks all specific dermatologic conditions' features except for subtle or uncertain arborizing vessels...",
+      "action": "Proceed with caution and further evaluation, as Benign Keratosis might be more suitable without specific confirmation of Basal Cell Carcinoma features",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 26,
+          "successes": 7,
+          "failures": 19
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bkl_ISIC_0024420",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 28,
+      "created": "2026-04-16T04:46:12",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_025",
+      "condition": "If a lesion shows a regular border with a single uniform brown color but lacks keratosis-specific features, yet high confidence indicates other benign lesions.",
+      "action": "Classify as Melanocytic Nevus",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 25,
+          "successes": 7,
+          "failures": 18
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bkl_ISIC_0024495",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 27,
+      "created": "2026-04-16T04:47:44",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_026",
+      "condition": "If a lesion displays a regular border, a single uniform brown color, and is faintly pigmented in the absence of all major dermoscopic features including vascular, regression, network, globules, and keratosis-specific features, consider closely for Benign Keratosis due to possible image resolution.",
+      "action": "Rule out Melanocytic Nevus and Investigate Further for Benign Keratosis",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 26,
+          "successes": 7,
+          "failures": 19
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bkl_ISIC_0024495",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 27,
+      "created": "2026-04-16T04:47:44",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_027",
+      "condition": "If a lesion presents with a predominantly pink to erythematous background and thread-like linear vessels, and lacks specific features of other lesions such as a blue-white veil, vascular structures, and other lesion-specific markers...",
+      "action": "Reconsider Basal Cell Carcinoma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 26,
+          "successes": 7,
+          "failures": 19
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bcc_ISIC_0024345",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 26,
+      "created": "2026-04-16T04:48:48",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345"
+      ]
+    },
+    {
+      "id": "r_028",
+      "condition": "If a lesion has an irregular border and the absence of regression structures, blue-white veil, arborizing vessels, and other specific features while showing an erythematous background and thread-like linear vessels...",
+      "action": "Classify as Basal Cell Carcinoma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 26,
+          "successes": 7,
+          "failures": 19
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bcc_ISIC_0024345",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 26,
+      "created": "2026-04-16T04:48:48",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345"
+      ]
+    },
+    {
+      "id": "r_029",
+      "condition": "If a lesion has two distinct colors, predominantly pink/erythematous and light brown, and lacks other lesion-specific features along with the presence of an irregular border and no regression structures...",
+      "action": "Evaluate for Basal Cell Carcinoma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 26,
+          "successes": 7,
+          "failures": 19
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bcc_ISIC_0024345",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 26,
+      "created": "2026-04-16T04:48:48",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345"
+      ]
+    },
+    {
+      "id": "r_030",
+      "condition": "If polymorphous vascular structures are observed in the absence of a pigment network and with an erythematous background...",
+      "action": "Consider Basal Cell Carcinoma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 25,
+          "successes": 7,
+          "failures": 18
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bcc_ISIC_0024452",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 25,
+      "created": "2026-04-16T04:50:59",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452"
+      ]
+    },
+    {
+      "id": "r_031",
+      "condition": "If the lesion has 2 distinct colors (brown and pink) with polymorphous vascular structures and no specific features of other lesions...",
+      "action": "Classify as Basal Cell Carcinoma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 25,
+          "successes": 7,
+          "failures": 18
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bcc_ISIC_0024452",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 25,
+      "created": "2026-04-16T04:50:59",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452"
+      ]
+    },
+    {
+      "id": "r_032",
+      "condition": "If there is an erythematous background with polymorphous vascular structures and no other specific lesion features are present...",
+      "action": "Classify as Basal Cell Carcinoma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 25,
+          "successes": 7,
+          "failures": 18
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bcc_ISIC_0024452",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 25,
+      "created": "2026-04-16T04:50:59",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452"
+      ]
+    },
+    {
+      "id": "r_033",
+      "condition": "If an irregular border, 3_or_more distinct colors, a blue-white veil, and erythematous background are observed, but specific BCC or other lesion features are absent...",
+      "action": "Consider additional tests or expert opinion for Basal Cell Carcinoma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 24,
+          "successes": 7,
+          "failures": 17
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bcc_ISIC_0024457",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 24,
+      "created": "2026-04-16T04:54:41",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457"
+      ]
+    },
+    {
+      "id": "r_034",
+      "condition": "If a lesion shows an erythematous background and lacks specific vascular, keratosis, or other distinctive dermoscopic structures...",
+      "action": "Evaluate for Basal Cell Carcinoma, especially if other overlapping features are present",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 24,
+          "successes": 7,
+          "failures": 17
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bcc_ISIC_0024457",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 24,
+      "created": "2026-04-16T04:54:41",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457"
+      ]
+    },
+    {
+      "id": "r_035",
+      "condition": "If blue-white veil is present with no visible pigmented network, regression structures, or other lesion-specific features...",
+      "action": "Do not immediately classify as Melanoma; consider Basal Cell Carcinoma as a possible diagnosis",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 24,
+          "successes": 7,
+          "failures": 17
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bcc_ISIC_0024457",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 24,
+      "created": "2026-04-16T04:54:41",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457"
+      ]
+    },
+    {
+      "id": "r_036",
+      "condition": "If erythematous background and the absence of specific Krtosis and AK features are observed, yet there is a blue-white veil over a raised area...",
+      "action": "Classify as Actinic Keratosis",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 23,
+          "successes": 7,
+          "failures": 16
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_akiec_ISIC_0024468",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 23,
+      "created": "2026-04-16T04:57:42",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468"
+      ]
+    },
+    {
+      "id": "r_037",
+      "condition": "If a diffuse structureless pattern with shades of pink and red is paired with the absence of regression structures and specific Basal Cell, Vascular, or Dermatofibroma features...",
+      "action": "Consider Actinic Keratosis",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 23,
+          "successes": 7,
+          "failures": 16
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_akiec_ISIC_0024468",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 23,
+      "created": "2026-04-16T04:57:42",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468"
+      ]
+    },
+    {
+      "id": "r_038",
+      "condition": "If the lesion displays a blue-white veil over a raised area and the absence of peripheral dots and globules, as well as the absence of specific features for BCC, keratosis, AK, vascular lesions, and dermatofibroma...",
+      "action": "Reevaluate possibility of Actinic Keratosis",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 23,
+          "successes": 7,
+          "failures": 16
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_akiec_ISIC_0024468",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 23,
+      "created": "2026-04-16T04:57:42",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468"
+      ]
+    },
+    {
+      "id": "r_039",
+      "condition": "If arborizing vessels are observed with an erythematous background andno other specific features are present...",
+      "action": "Ruled out Basal Cell Carcinoma, consider Actinic Keratosis or other keratosis-specific conditions",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 22,
+          "successes": 7,
+          "failures": 15
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_akiec_ISIC_0024470",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 22,
+      "created": "2026-04-16T05:01:06",
+      "last_fired": "2026-04-16T07:50:50",
+      "fired_on": [
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470"
+      ]
+    },
+    {
+      "id": "r_040",
+      "condition": "If the lesion exhibits an erythematous background with minimal color variation (2 distinct colors) and lacks a pigment network or regression structures...",
+      "action": "Consider Actinic Keratosis, rule out Melanoma or Melanocytic Nevus",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 22,
+          "successes": 7,
+          "failures": 15
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_akiec_ISIC_0024470",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 22,
+      "created": "2026-04-16T05:01:06",
+      "last_fired": "2026-04-16T07:50:50",
+      "fired_on": [
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470"
+      ]
+    },
+    {
+      "id": "r_041",
+      "condition": "If arborizing vessels are observed in combination with keratosis-specific features absent, but other malignancy-specific features are ruled out...",
+      "action": "Consider Actinic Keratosis and rule out Basal Cell Carcinoma unless bcc-specific features are strongly indicated",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 22,
+          "successes": 7,
+          "failures": 15
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_akiec_ISIC_0024470",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 22,
+      "created": "2026-04-16T05:01:06",
+      "last_fired": "2026-04-16T07:50:50",
+      "fired_on": [
+        "dermatology_7class_akiec_ISIC_0024646",
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470"
+      ]
+    },
+    {
+      "id": "r_042",
+      "condition": "If an atypical pigment network is observed with 'absent' regression structures and 'absent' vascular structures, and the lesion has 3 or more distinct colors...",
+      "action": "Consider Actinic Keratosis as a potential diagnosis, especially in the absence of other specific melanoma features such as a blue-white veil.",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 21,
+          "successes": 7,
+          "failures": 14
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_akiec_ISIC_0024646",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 21,
+      "created": "2026-04-16T05:02:27",
+      "last_fired": "2026-04-16T07:50:50",
+      "fired_on": [
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_043",
+      "condition": "If a lesion exhibits an irregular border but lacks specific features like leaf-like structures, blue-gray ovoid nests, and arborizing vessels, particularly when vascular structures are absent...",
+      "action": "Prioritize Actinic Keratosis over Melanoma in the differential diagnosis.",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 21,
+          "successes": 7,
+          "failures": 14
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_akiec_ISIC_0024646",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 21,
+      "created": "2026-04-16T05:02:27",
+      "last_fired": "2026-04-16T07:50:50",
+      "fired_on": [
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_044",
+      "condition": "If a lesion shows peripheral dots and globules with asymmetric distribution but no additional specific melanoma features such as blue-white veil or arborizing vessels...",
+      "action": "Do not immediately rule out Actinic Keratosis, even in the presence of other atypical features.",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 21,
+          "successes": 7,
+          "failures": 14
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_akiec_ISIC_0024646",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 21,
+      "created": "2026-04-16T05:02:27",
+      "last_fired": "2026-04-16T07:50:50",
+      "fired_on": [
+        "dermatology_7class_vasc_ISIC_0024662",
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_045",
+      "condition": "If a lesion displays a uniform purplish color with no distinct dermoscopic structures other than a possible subtle variation in shade...",
+      "action": "Classify as Vascular Lesion",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 20,
+          "successes": 7,
+          "failures": 13
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_vasc_ISIC_0024662",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 20,
+      "created": "2026-04-16T05:08:11",
+      "last_fired": "2026-04-16T07:50:50",
+      "fired_on": [
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_046",
+      "condition": "If a lesion has a single distinct color and lacks vascular structures, regression structures, and specific features of other lesions but displays a uniform purplish color...",
+      "action": "Classify as Vascular Lesion",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 20,
+          "successes": 7,
+          "failures": 13
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_vasc_ISIC_0024662",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 20,
+      "created": "2026-04-16T05:08:11",
+      "last_fired": "2026-04-16T07:50:50",
+      "fired_on": [
+        "dermatology_7class_vasc_ISIC_0024669",
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_047",
+      "condition": "If a lesion shows a clearly pink/erythematous background with a central erythematous base and no other specific dermoscopic features...",
+      "action": "Classify as Vascular Lesion",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 19,
+          "successes": 6,
+          "failures": 13
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_vasc_ISIC_0024669",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 19,
+      "created": "2026-04-16T05:11:45",
+      "last_fired": "2026-04-16T07:50:50",
+      "fired_on": [
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_048",
+      "condition": "If a lesion has an erythematous background and no signs of vascular patterns,-containing features, pigmented network or regression structures...",
+      "action": "Classify as Vascular Lesion",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 19,
+          "successes": 6,
+          "failures": 13
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_vasc_ISIC_0024669",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 19,
+      "created": "2026-04-16T05:11:45",
+      "last_fired": "2026-04-16T07:50:50",
+      "fired_on": [
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_049",
+      "condition": "If a lesion is characterized by a strawberry pattern observed in conjunction with a regular border and a single dominant color with no specific features associated with other diagnoses...",
+      "action": "Classify as Vascular Lesion",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 19,
+          "successes": 6,
+          "failures": 13
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_vasc_ISIC_0024669",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 19,
+      "created": "2026-04-16T05:11:45",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_vasc_ISIC_0024867",
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_050",
+      "condition": "If red_purple_lacunae are present and the lesion has a sharply demarcated round/oval shape...",
+      "action": "Classify as Vascular Lesion",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 18,
+          "successes": 5,
+          "failures": 13
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_vasc_ISIC_0024867",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 18,
+      "created": "2026-04-16T05:16:49",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_051",
+      "condition": "If the lesion has a single dominant red/purple color with an erythematous background and no pigment network or vascular structures are observed...",
+      "action": "Classify as Vascular Lesion",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 18,
+          "successes": 5,
+          "failures": 13
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_vasc_ISIC_0024867",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 18,
+      "created": "2026-04-16T05:16:49",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_052",
+      "condition": "If vascular_lesion_specific_features are present and there is an absence of regression structures, blue-white veil, and other lesion-specific features...",
+      "action": "Classify as Vascular Lesion",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 18,
+          "successes": 5,
+          "failures": 13
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_vasc_ISIC_0024867",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 18,
+      "created": "2026-04-16T05:16:49",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_df_ISIC_0024973",
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_053",
+      "condition": "If the lesion has an irregular border and lacks specific dermoscopic features like globules, dots, vascular patterns, and regression structures, but also lacks a blue-white veil and other specific features of different lesions...",
+      "action": "Consider Dermatofibroma as a potential diagnosis",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 17,
+          "successes": 5,
+          "failures": 12
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_df_ISIC_0024973",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 17,
+      "created": "2026-04-16T05:24:07",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_054",
+      "condition": "If the lesion shows a mix of brown and pinkish hues with no distinct dermoscopic structures like globules, dots, or vascular patterns, and the number of distinct colors is only two...",
+      "action": "Consider Dermatofibroma as a potential diagnosis",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 17,
+          "successes": 5,
+          "failures": 12
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_df_ISIC_0024973",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 17,
+      "created": "2026-04-16T05:24:07",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_df_ISIC_0025302",
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_055",
+      "condition": "If a lesion has an irregular border and lacks specific dermoscopic structures, including globules, dots, or vascular patterns, with two distinct colors (brownish-pink)...",
+      "action": "Classify as Dermatofibroma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 16,
+          "successes": 4,
+          "failures": 12
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_df_ISIC_0025302",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 16,
+      "created": "2026-04-16T05:27:16",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_056",
+      "condition": "If a lesion shows an absence of all specific feature markers (like globules, regression structures, and vascular structures) but has an irregular border and two distinct colors...",
+      "action": "Classify as Dermatofibroma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 16,
+          "successes": 4,
+          "failures": 12
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_df_ISIC_0025302",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 16,
+      "created": "2026-04-16T05:27:16",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_df_ISIC_0025373",
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_057",
+      "condition": "If a lesion exhibits a central darker area with notching along the border and a pinkish background, but lacks specific vascular, pigment network, or regression structures...",
+      "action": "Consider Dermatofibroma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 15,
+          "successes": 4,
+          "failures": 11
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_df_ISIC_0025373",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 15,
+      "created": "2026-04-16T05:33:05",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_058",
+      "condition": "If a lesion has a pinkish background and notching along the border, but lacks specific features such as vascular structures, pigment network, or regression structures...",
+      "action": "Classify as Dermatofibroma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 15,
+          "successes": 4,
+          "failures": 11
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_df_ISIC_0025373",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 15,
+      "created": "2026-04-16T05:33:05",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_059",
+      "condition": "If a lesion shows notching along the border and a pinkish background, but lacks specific features for vascular lesions, pigment network, or regression structures...",
+      "action": "Classify as Dermatofibroma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 15,
+          "successes": 4,
+          "failures": 11
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_df_ISIC_0025373",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 15,
+      "created": "2026-04-16T05:33:05",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_mel_ISIC_0024315",
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_060",
+      "condition": "If irregular borders and color variation with two distinct colors are observed, and no specific features for Basal Cell Carcinoma, Actinic Keratosis, Vascular Lesion, or Dermatofibroma are present...",
+      "action": "Classify as Melanoma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 14,
+          "successes": 3,
+          "failures": 11
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_mel_ISIC_0024315",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 14,
+      "created": "2026-04-16T06:44:00",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_061",
+      "condition": "If there is an absence of blue-white veil, vascular structures, and specific features for keratosis, actinic keratosis, vascular lesions, and dermatofibroma, but irregular borders are present...",
+      "action": "Consider Melanoma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 14,
+          "successes": 3,
+          "failures": 11
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_mel_ISIC_0024315",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 14,
+      "created": "2026-04-16T06:44:00",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_062",
+      "condition": "If the lesion shows an irregular border and color variation with two distinct colors, and no peripheral dots or globules are observed...",
+      "action": "Classify as Melanoma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 14,
+          "successes": 3,
+          "failures": 11
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_mel_ISIC_0024315",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 14,
+      "created": "2026-04-16T06:44:00",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_mel_ISIC_0024333",
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_063",
+      "condition": "If an irregular border is observed with a mix of brown and reddish-pink colors and no specific dermoscopic structures like globules, dots, or vascular patterns are visible...",
+      "action": "Consider Melanoma as a high priority",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 13,
+          "successes": 3,
+          "failures": 10
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_mel_ISIC_0024333",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 13,
+      "created": "2026-04-16T06:46:49",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_064",
+      "condition": "If color variation is present with at least two distinct colors and there is an absence of regression structures, blue-white veil, and specific vascular structures...",
+      "action": "Classify as Melanoma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 13,
+          "successes": 3,
+          "failures": 10
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_mel_ISIC_0024333",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 13,
+      "created": "2026-04-16T06:46:49",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_065",
+      "condition": "If the lesion exhibits an irregular border and lacks specific features such as globules, dots, vascular patterns, and regression structures, but has a mix of brown and reddish-pink colors...",
+      "action": "Re-evaluate for Melanoma, especially if other high-confidence features are absent",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 13,
+          "successes": 3,
+          "failures": 10
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_mel_ISIC_0024333",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 13,
+      "created": "2026-04-16T06:46:49",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_mel_ISIC_0024400",
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_066",
+      "condition": "If color variation with 3 or more distinct colors is observed and no specific dermoscopic structures such as pigment network, globules, vascular patterns, regression structures, or lesion-specific features are present...",
+      "action": "Consider Melanoma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 12,
+          "successes": 2,
+          "failures": 10
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_mel_ISIC_0024400",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "flagged",
+      "source_level": 0,
+      "tasks_seen": 12,
+      "created": "2026-04-16T06:49:11",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ],
+      "flagged_reason": "auto: fired 11x, success rate 18%"
+    },
+    {
+      "id": "r_067",
+      "condition": "If the lesion shows a mix of brown, tan, and reddish hues with scattered darker areas and no blue-white veil or vascular structures are observed...",
+      "action": "Consider Melanoma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 12,
+          "successes": 2,
+          "failures": 10
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_mel_ISIC_0024400",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "flagged",
+      "source_level": 0,
+      "tasks_seen": 12,
+      "created": "2026-04-16T06:49:11",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_nv_ISIC_0024350",
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ],
+      "flagged_reason": "auto: fired 11x, success rate 18%"
+    },
+    {
+      "id": "r_068",
+      "condition": "If a lesion has a regular border, a single uniform color, and lacks any specific dermoscopic features (pigment network, regression structures, vascular structures, etc.)...",
+      "action": "Classify as Melanocytic Nevus",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 11,
+          "successes": 1,
+          "failures": 10
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_nv_ISIC_0024350",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "flagged",
+      "source_level": 0,
+      "tasks_seen": 11,
+      "created": "2026-04-16T06:52:11",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ],
+      "flagged_reason": "auto: fired 6x, success rate 17%"
+    },
+    {
+      "id": "r_069",
+      "condition": "If a lesion is characterized by an absence of regression structures, vascular structures, and all other lesion-specific features with no significant variation in coloration...",
+      "action": "Classify as Melanocytic Nevus",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 11,
+          "successes": 1,
+          "failures": 10
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_nv_ISIC_0024350",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "flagged",
+      "source_level": 0,
+      "tasks_seen": 11,
+      "created": "2026-04-16T06:52:11",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ],
+      "flagged_reason": "auto: fired 6x, success rate 17%"
+    },
+    {
+      "id": "r_070",
+      "condition": "If a lesion exhibits a homogenous brown area without any significant pigmentation patterns, globules, or vascular indicators and a highly regular border...",
+      "action": "Classify as Melanocytic Nevus",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 11,
+          "successes": 1,
+          "failures": 10
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_nv_ISIC_0024350",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "flagged",
+      "source_level": 0,
+      "tasks_seen": 11,
+      "created": "2026-04-16T06:52:11",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_nv_ISIC_0024385",
+        "dermatology_7class_nv_ISIC_0024392",
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ],
+      "flagged_reason": "auto: fired 6x, success rate 17%"
+    },
+    {
+      "id": "r_071",
+      "condition": "If a lesion exhibits a single color with high confidence and lacks visible specific dermoscopic structures such as globules, dots, vascular patterns, and regression structures...",
+      "action": "Consider Melanocytic Nevus",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 8,
+          "successes": 0,
+          "failures": 8
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_nv_ISIC_0024392",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "flagged",
+      "source_level": 0,
+      "tasks_seen": 9,
+      "created": "2026-04-16T07:00:47",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ],
+      "flagged_reason": "auto: fired 5x, success rate 0%"
+    },
+    {
+      "id": "r_072",
+      "condition": "If a lesion has an irregular border but lacks other specific dermoscopic features and shows no blue-white veil, vascular structures, and specific features for keratosis, actinic keratosis, vascular lesions, and dermatofibroma...",
+      "action": "Classify as Melanocytic Nevus",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 8,
+          "successes": 0,
+          "failures": 8
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_nv_ISIC_0024392",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "flagged",
+      "source_level": 0,
+      "tasks_seen": 9,
+      "created": "2026-04-16T07:00:47",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ],
+      "flagged_reason": "auto: fired 5x, success rate 0%"
+    },
+    {
+      "id": "r_073",
+      "condition": "If a lesion lacks specific features like milia-like cysts, comedo-like openings, strawberry pattern, erythematous background, central white scar, red-purple lacunae, and other lesion-specific patterns...",
+      "action": "Consider Melanocytic Nevus instead of other specific lesions",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 9,
+          "successes": 0,
+          "failures": 9
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_nv_ISIC_0024392",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "flagged",
+      "source_level": 0,
+      "tasks_seen": 9,
+      "created": "2026-04-16T07:00:47",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_bkl_ISIC_0024336",
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ],
+      "flagged_reason": "auto: fired 5x, success rate 0%"
+    },
+    {
+      "id": "r_074",
+      "condition": "If the lesion appears structureless with uniform brown/grey coloration and no clear dermoscopic features...",
+      "action": "Consider Benign Keratosis",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 6,
+          "successes": 0,
+          "failures": 6
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bkl_ISIC_0024336",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "flagged",
+      "source_level": 0,
+      "tasks_seen": 8,
+      "created": "2026-04-16T07:03:59",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ],
+      "flagged_reason": "auto: fired 5x, success rate 0%"
+    },
+    {
+      "id": "r_075",
+      "condition": "If there is a single color variation (brown/grey) with no regression structures, blue-white veil, vascular structures, or specific features of other lesions...",
+      "action": "Classify as Benign Keratosis",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 6,
+          "successes": 0,
+          "failures": 6
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bkl_ISIC_0024336",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "flagged",
+      "source_level": 0,
+      "tasks_seen": 8,
+      "created": "2026-04-16T07:03:59",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ],
+      "flagged_reason": "auto: fired 5x, success rate 0%"
+    },
+    {
+      "id": "r_076",
+      "condition": "If the lesion lacks specific dermoscopic features such as globules, dots, vascular patterns, or symmetry variations, and has a uniform coloration...",
+      "action": "Classify as Benign Keratosis",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 6,
+          "successes": 0,
+          "failures": 6
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bkl_ISIC_0024336",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "flagged",
+      "source_level": 0,
+      "tasks_seen": 8,
+      "created": "2026-04-16T07:03:59",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_bkl_ISIC_0024420",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ],
+      "flagged_reason": "auto: fired 5x, success rate 0%"
+    },
+    {
+      "id": "r_077",
+      "condition": "If arborizing vessels are absent and the lesion lacks specific features of Basal Cell Carcinoma, Benign Keratosis, Actinic Keratosis, Vascular Lesion, and Dermatofibroma...",
+      "action": "Consider Melanocytic Nevus or Melanoma as potential classifications",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 6,
+          "successes": 0,
+          "failures": 6
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bkl_ISIC_0024420",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "flagged",
+      "source_level": 0,
+      "tasks_seen": 7,
+      "created": "2026-04-16T07:11:45",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ],
+      "flagged_reason": "auto: fired 5x, success rate 0%"
+    },
+    {
+      "id": "r_078",
+      "condition": "If the lesion displays a hypo-pigmented or depigmented area with no specific vascular, keratotic, or pigmented network structures...",
+      "action": "Classify as Benign Keratosis if other specific features of Basal Cell Carcinoma, Actinic Keratosis, Vascular Lesion, and Dermatofibroma are absent",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 6,
+          "successes": 0,
+          "failures": 6
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bkl_ISIC_0024420",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "flagged",
+      "source_level": 0,
+      "tasks_seen": 7,
+      "created": "2026-04-16T07:11:46",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_bkl_ISIC_0024495",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ],
+      "flagged_reason": "auto: fired 5x, success rate 0%"
+    },
+    {
+      "id": "r_079",
+      "condition": "If a lesion has a regular border, a single uniform brown color, and lacks distinct dermoscopic features such as pigment network, regression structures, vascular structures, and specific features of other lesions...",
+      "action": "Consider Benign Keratosis as a potential diagnosis",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 6,
+          "successes": 0,
+          "failures": 6
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bkl_ISIC_0024495",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "flagged",
+      "source_level": 0,
+      "tasks_seen": 6,
+      "created": "2026-04-16T07:15:58",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ],
+      "flagged_reason": "auto: fired 5x, success rate 0%"
+    },
+    {
+      "id": "r_080",
+      "condition": "If a lesion appears as a small, uniform brown spot with no distinct dermoscopic features visible and lacks specific features of other lesions...",
+      "action": "Classify as Benign Keratosis",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 6,
+          "successes": 0,
+          "failures": 6
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bkl_ISIC_0024495",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "flagged",
+      "source_level": 0,
+      "tasks_seen": 6,
+      "created": "2026-04-16T07:15:58",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_bcc_ISIC_0024345",
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ],
+      "flagged_reason": "auto: fired 5x, success rate 0%"
+    },
+    {
+      "id": "r_081",
+      "condition": "If the lesion shows an irregular border, dotted vascular structures, and an erythematous background with unstructured brown pigmentation...",
+      "action": "Consider Basal Cell Carcinoma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 5,
+          "successes": 0,
+          "failures": 5
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bcc_ISIC_0024345",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 5,
+      "created": "2026-04-16T07:17:35",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_082",
+      "condition": "If dotted vascular structures are present along with color variation involving two colors and an irregular border...",
+      "action": "Consider Basal Cell Carcinoma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 5,
+          "successes": 0,
+          "failures": 5
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bcc_ISIC_0024345",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 5,
+      "created": "2026-04-16T07:17:35",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_083",
+      "condition": "If there are no specific features indicating Melanoma, Vascular Lesion, Actinic Keratosis, or Benign Keratosis, but an irregular border with two color variations and dotted vascular structures are observed...",
+      "action": "Consider Basal Cell Carcinoma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 5,
+          "successes": 0,
+          "failures": 5
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bcc_ISIC_0024345",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 5,
+      "created": "2026-04-16T07:17:35",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_bcc_ISIC_0024452",
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_084",
+      "condition": "If polymorphous vascular structures and an irregular border are observed with no specific features for Basal Cell Carcinoma (such as arborizing vessels or milia-like cysts)...",
+      "action": "Reconsider other diagnoses even if Melanoma features like color variation are present",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 4,
+          "successes": 0,
+          "failures": 4
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bcc_ISIC_0024452",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 4,
+      "created": "2026-04-16T07:22:07",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_085",
+      "condition": "If an erythematous background is clearly observed with polymorphous vascular structures...",
+      "action": "Classify as Benign Keratosis or Actinic Keratosis",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 4,
+          "successes": 0,
+          "failures": 4
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bcc_ISIC_0024452",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 4,
+      "created": "2026-04-16T07:22:07",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_086",
+      "condition": "If no specific features for Basal Cell Carcinoma, Actinic Keratosis, or other lesions are observed but polymorphous vascular structures are present...",
+      "action": "Do not classify as Melanoma without additional supporting features such as asymmetric pigment network or other structural asymmetry.",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 4,
+          "successes": 0,
+          "failures": 4
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bcc_ISIC_0024452",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 4,
+      "created": "2026-04-16T07:22:07",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_bcc_ISIC_0024457",
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_087",
+      "condition": "If the lesion shows an erythematous background with irregular borders, and no specific dermoscopic structures like pigment network, globules, or vascular patterns are clearly visible...",
+      "action": "Consider Basal Cell Carcinoma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 3,
+          "successes": 0,
+          "failures": 3
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bcc_ISIC_0024457",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 3,
+      "created": "2026-04-16T07:29:47",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_088",
+      "condition": "If the lesion presents irregular borders and 3 or more colors but lacks specific features of other lesion types (keratosis, actinic keratosis, etc.), and has an erythematous background...",
+      "action": "Rethink the diagnosis and prioritize Basal Cell Carcinoma over Melanoma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 3,
+          "successes": 0,
+          "failures": 3
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bcc_ISIC_0024457",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 3,
+      "created": "2026-04-16T07:29:47",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_089",
+      "condition": "If the lesion displays multiple colors without distinct dermoscopic features such as pigment network, globules, or vascular patterns, consider the presence of an erythematous background as a potential indicator of Basal Cell Carcinoma...",
+      "action": "Classify as Basal Cell Carcinoma",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 3,
+          "successes": 0,
+          "failures": 3
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_bcc_ISIC_0024457",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 3,
+      "created": "2026-04-16T07:29:47",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_akiec_ISIC_0024468",
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_090",
+      "condition": "If a lesion exhibits a clearly pink/erythematous background without other dermoscopic features and has an absence of Actinic Keratosis-specific features (keratosis-specific features are none or uncertain_not_visible) observed...",
+      "action": "Classify as Vascular Lesion",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 2,
+          "successes": 0,
+          "failures": 2
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_akiec_ISIC_0024468",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 2,
+      "created": "2026-04-16T07:36:27",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_091",
+      "condition": "If a lesion has a clearly pink/erythematous background but no other specific dermoscopic features, except that it either has Actinic Keratosis-specific features (non-absent) observed...",
+      "action": "Classify as Actinic Keratosis",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 2,
+          "successes": 0,
+          "failures": 2
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_akiec_ISIC_0024468",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 2,
+      "created": "2026-04-16T07:36:27",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_092",
+      "condition": "If a lesion has an absence of keratosis-specific features but exhibits additional dermoscopic features such as globules_and_dots_distribution, vascular_structures (non-absent, non-uncertain_not_visible) in the presence of erythematous_background...",
+      "action": "Do not classify as Actinic Keratosis or Vascular Lesion without further evidence",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 2,
+          "successes": 0,
+          "failures": 2
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_akiec_ISIC_0024468",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 2,
+      "created": "2026-04-16T07:36:27",
+      "last_fired": "2026-04-16T07:50:51",
+      "fired_on": [
+        "dermatology_7class_akiec_ISIC_0024470",
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_093",
+      "condition": "If [polymorphous vascular structures] are observed in conjunction with a [clearly pink/erythematous background]...",
+      "action": "Re-evaluate for [Actinic Keratosis features] before classifying as Vascular Lesion",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 1,
+          "successes": 0,
+          "failures": 1
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_akiec_ISIC_0024470",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 1,
+      "created": "2026-04-16T07:47:06",
+      "last_fired": "2026-04-16T07:50:50",
+      "fired_on": [
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_094",
+      "condition": "If [Actinic Keratosis-specific features] are uncertain or not visible but the lesion has a [faint cobblestone-like pattern]...",
+      "action": "Consider [Actinic Keratosis] as a likely candidate over Vascular Lesion",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 1,
+          "successes": 0,
+          "failures": 1
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_akiec_ISIC_0024470",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 1,
+      "created": "2026-04-16T07:47:06",
+      "last_fired": "2026-04-16T07:50:50",
+      "fired_on": [
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    },
+    {
+      "id": "r_095",
+      "condition": "If [high-confidence] polymorphous vascular structures are present but other [Actinic Keratosis-specific features] are absent...",
+      "action": "Look for subtle dermoscopic hints like a faint cobblestone-like pattern to reinforce Actinic Keratosis suspicion",
+      "rule_type": "task",
+      "scope": "dataset",
+      "stats_by_ns": {
+        "derm-ham10000": {
+          "fires": 1,
+          "successes": 0,
+          "failures": 1
+        }
+      },
+      "source": "mediator",
+      "source_task": "dermatology_7class_akiec_ISIC_0024470",
+      "tags": [
+        "derm-ham10000",
+        "dermatology_7class"
+      ],
+      "lineage": {
+        "type": "new",
+        "parent_ids": [],
+        "reason": ""
+      },
+      "status": "active",
+      "source_level": 0,
+      "tasks_seen": 1,
+      "created": "2026-04-16T07:47:06",
+      "last_fired": "2026-04-16T07:50:50",
+      "fired_on": [
+        "dermatology_7class_akiec_ISIC_0024646"
+      ]
+    }
+  ]
+}
