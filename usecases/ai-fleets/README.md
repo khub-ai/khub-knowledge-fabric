@@ -148,6 +148,17 @@ pass that confirmed it.
 
 **Implementation complete (Phase 1). Measured results available** — see [§10](wildfire-detection/README.md#10-measured-results). Python in `wildfire-detection/python/`.
 
+**Model selection via [PatchBench](https://github.com/khub-ai/patchbench)**:
+PatchBench is a companion benchmark that answers the question *"which VLMs can
+actually be improved by DD rule injection on this domain?"* — it runs a model
+on a fixed 24-frame probe set (baseline accuracy, then rule-aided accuracy) and
+returns a GO / PARTIAL / NO-GO verdict. The wildfire probe
+(`benchmarks/wildfire/early_smoke_vs_terrain/`) is available for anyone to test
+their own model. Current results: `claude-sonnet-4-6` with Opus-authored rules
+achieves **GO** (66.7% → 95.8% accuracy, +29 pp); the same lift is achieved
+by injecting published NWCG fire lookout guidelines directly, with no TUTOR
+model required.
+
 **Distinctive elements**: three-tier fleet (sentinels + scout drones +
 commander aircraft), environmental context injection (RAWS meteorological
 preconditions evaluated at inference time without retraining), temporal feature
