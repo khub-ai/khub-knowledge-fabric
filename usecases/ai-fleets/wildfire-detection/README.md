@@ -41,12 +41,10 @@ session in a real deployment.
 
 **Key results** (full details in [§10](#10-measured-results)):
 
-| What was measured | Result |
-|---|---|
-| Sonnet PUPIL accuracy before DD | 66.7% |
-| Sonnet PUPIL accuracy after DD (Opus TUTOR) | **95.8%** (+29 pp) |
-| Sonnet PUPIL accuracy after DD (NWCG human rules) | **95.8%** (+29 pp) |
-| PatchBench verdict | **GO** |
+| PUPIL | TUTOR | Accuracy before DD | Accuracy after DD | Verdict |
+|---|---|---|---|---|
+| `claude-sonnet-4-6` | `claude-opus-4-6` | 66.7% | **95.8%** (+29 pp) | **GO** |
+| `claude-sonnet-4-6` | NWCG human rules (no model) | 66.7% | **95.8%** (+29 pp) | **GO** |
 
 ---
 
@@ -578,7 +576,7 @@ Two measurement phases are reported here.
 
 ---
 
-### Phase 1 — DD mechanism validation (Haiku PUPIL)
+### Phase 1 — DD mechanism validation (`claude-haiku-4-5-20251001` PUPIL)
 
 **Eval set**: 40 frames from 4 held-out sequences — 20 positives (offset 0–+600 s,
 early smoke window) + 20 negatives (offset < −600 s, clean terrain).
@@ -649,8 +647,9 @@ sufficient — the TUTOR model is not required when authoritative guidelines exi
 
 ### What this shows
 
-**DD mechanism validated.** Phase 1 (Haiku tier): 0% → 10% recall from one
-expert explanation, zero false alarms. Phase 2 (Sonnet tier, PatchBench):
+**DD mechanism validated.** Phase 1 (`claude-haiku-4-5-20251001` PUPIL):
+0% → 10% recall from one expert explanation, zero false alarms. Phase 2
+(`claude-sonnet-4-6` PUPIL, `claude-opus-4-6` TUTOR, PatchBench):
 66.7% → 95.8% accuracy after rule injection, GO verdict, perfect consistency.
 
 **TUTOR ≥ PUPIL is a hard requirement.** Opus-as-TUTOR for a Sonnet-PUPIL
