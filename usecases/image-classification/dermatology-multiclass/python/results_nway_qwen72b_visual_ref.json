@@ -1,20 +1,20 @@
 {
   "summary": {
-    "correct": 4,
-    "total": 14,
-    "accuracy": 0.2857142857142857,
-    "avg_ms": 275778.78571428574,
-    "total_cost_usd": 0.11002,
-    "avg_cost_usd": 0.007859,
-    "total_input_tokens": 268074,
-    "total_output_tokens": 37539,
+    "correct": 8,
+    "total": 21,
+    "accuracy": 0.38095238095238093,
+    "avg_ms": 200633.90476190476,
+    "total_cost_usd": 0.143447,
+    "avg_cost_usd": 0.006831,
+    "total_input_tokens": 352785,
+    "total_output_tokens": 45683,
     "total_cache_creation": 0,
     "total_cache_read": 0,
-    "total_api_calls": 75,
+    "total_api_calls": 97,
     "model": "qwen/qwen2.5-vl-72b-instruct",
     "dataset": "derm-ham10000",
     "category_set_id": "dermatology_7class",
-    "timestamp": "2026-04-16T07:47:06Z",
+    "timestamp": "2026-04-16T08:38:30Z",
     "rules": {
       "total": 95,
       "active": 77,
@@ -22,7 +22,7 @@
       "flagged": 15,
       "deprecated": 3,
       "archived": 0,
-      "total_fired": 1444,
+      "total_fired": 1521,
       "total_succeeded": 424
     }
   },
@@ -49,8 +49,18 @@
     },
     "Actinic Keratosis": {
       "correct": 0,
-      "total": 2,
+      "total": 3,
       "accuracy": 0.0
+    },
+    "Vascular Lesion": {
+      "correct": 3,
+      "total": 3,
+      "accuracy": 1.0
+    },
+    "Dermatofibroma": {
+      "correct": 1,
+      "total": 3,
+      "accuracy": 0.3333333333333333
     }
   },
   "confusion": {
@@ -71,7 +81,16 @@
       "Melanoma": 2
     },
     "Actinic Keratosis": {
-      "Vascular Lesion": 2
+      "Vascular Lesion": 2,
+      "Dermatofibroma": 1
+    },
+    "Vascular Lesion": {
+      "Vascular Lesion": 3
+    },
+    "Dermatofibroma": {
+      "Dermatofibroma": 1,
+      "Melanoma": 1,
+      "Melanocytic Nevus": 1
     }
   },
   "tasks": [
@@ -3279,6 +3298,1581 @@
         "confidence": 0.0,
         "revision_signal": "",
         "notes": "The test image displays a polymorphous vascular pattern with a clear erythematous background, which aligns with the classification of a Vascular Lesion. There are no unmistakable pathognomonic features of a different class present."
+      }
+    },
+    {
+      "task_id": "dermatology_7class_akiec_ISIC_0024646",
+      "category_set_id": "dermatology_7class",
+      "predicted_label": "Dermatofibroma",
+      "correct_label": "Actinic Keratosis",
+      "correct": false,
+      "confidence": 0.75,
+      "eliminated_classes": [
+        "Melanoma",
+        "Benign Keratosis",
+        "Basal Cell Carcinoma",
+        "Actinic Keratosis",
+        "Vascular Lesion",
+        "Melanocytic Nevus"
+      ],
+      "rounds_completed": 4,
+      "revisions": 0,
+      "duration_ms": 79607,
+      "cost_usd": 0.00724,
+      "input_tokens": 17959,
+      "cache_creation_tokens": 0,
+      "cache_read_tokens": 0,
+      "output_tokens": 2152,
+      "api_calls": 4,
+      "model": "qwen/qwen2.5-vl-72b-instruct",
+      "dataset": "derm-ham10000",
+      "rule_ids_fired": [
+        "r_045",
+        "r_046",
+        "r_001",
+        "r_002",
+        "r_003",
+        "r_042",
+        "r_043",
+        "r_044",
+        "r_004",
+        "r_005",
+        "r_006",
+        "r_039",
+        "r_040",
+        "r_041",
+        "r_047",
+        "r_048",
+        "r_049",
+        "r_036",
+        "r_037",
+        "r_038",
+        "r_007",
+        "r_008",
+        "r_009",
+        "r_053",
+        "r_054",
+        "r_033",
+        "r_034",
+        "r_035",
+        "r_010",
+        "r_011",
+        "r_012",
+        "r_025",
+        "r_030",
+        "r_031",
+        "r_032",
+        "r_050",
+        "r_051",
+        "r_052",
+        "r_023",
+        "r_024",
+        "r_026",
+        "r_027",
+        "r_028",
+        "r_029",
+        "r_057",
+        "r_058",
+        "r_059",
+        "r_022",
+        "r_055",
+        "r_056",
+        "r_019",
+        "r_020",
+        "r_021",
+        "r_013",
+        "r_014",
+        "r_015",
+        "r_063",
+        "r_064",
+        "r_065",
+        "r_060",
+        "r_061",
+        "r_062",
+        "r_066",
+        "r_067"
+      ],
+      "feature_record": {
+        "features": {
+          "pigment_network": {
+            "value": "uncertain_not_visible",
+            "confidence": 0.2
+          },
+          "border_characteristics": {
+            "value": "uncertain_not_visible",
+            "confidence": 0.2
+          },
+          "color_variation": {
+            "value": "2",
+            "confidence": 0.7
+          },
+          "globules_and_dots_distribution": {
+            "value": "uncertain_not_visible",
+            "confidence": 0.2
+          },
+          "regression_structures": {
+            "value": "none",
+            "confidence": 0.8
+          },
+          "blue_white_veil": {
+            "value": "no",
+            "confidence": 0.9
+          },
+          "vascular_structures": {
+            "value": "none",
+            "confidence": 0.9
+          },
+          "bcc_specific_features": {
+            "value": "none",
+            "confidence": 0.9
+          },
+          "keratosis_specific_features": {
+            "value": "none",
+            "confidence": 0.9
+          },
+          "ak_specific_features": {
+            "value": "none",
+            "confidence": 0.9
+          },
+          "vascular_lesion_specific_features": {
+            "value": "none",
+            "confidence": 0.9
+          },
+          "dermatofibroma_specific_features": {
+            "value": "none",
+            "confidence": 0.9
+          },
+          "pigment_network_character": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "peripheral_dots_globules": {
+            "value": "no \u2014 absent or symmetrically distributed",
+            "confidence": 0.8
+          },
+          "arborizing_vessels": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "blue_gray_ovoid_nests": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "leaf_like_spoke_wheel": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "milia_like_cysts": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "comedo_like_openings": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "strawberry_pattern": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "erythematous_background": {
+            "value": "no \u2014 tan, brown, gray, or skin-toned",
+            "confidence": 0.8
+          },
+          "red_purple_lacunae": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "central_white_scar": {
+            "value": "absent",
+            "confidence": 0.9
+          }
+        },
+        "notes": "The lesion appears to have a central area with a mix of brown and pinkish hues, but no distinct dermoscopic structures such as pigment network, globules, or vascular patterns are clearly visible."
+      },
+      "decision": {
+        "label": "Dermatofibroma",
+        "confidence": 0.75,
+        "reasoning": "Upon review of the high-confidence features: The lesion displays color variation with two distinct colors (brown and pinkish) but lacks pigmented network, globules, vascular structures, regression structures, and other distinctive lesion-specific features. The central white scar, specific features for keratosis, AK, BCC, and vascular lesions are absent \u2014 aligning with Dermatofibroma. Rule r_054 FAVORS Dermatofibroma given the pinkish hues and the absence of keratosis features or vascular patterns. Other classes such as Melanoma, Benign Keratosis, etc., were CONTRA-INDICATED by the absence of features that typically support them, such as asymmetric features or specific keratosis structures.",
+        "applied_rules": [
+          "r_054"
+        ],
+        "eliminated_classes": [
+          "Melanoma",
+          "Benign Keratosis",
+          "Basal Cell Carcinoma",
+          "Actinic Keratosis",
+          "Vascular Lesion",
+          "Melanocytic Nevus"
+        ],
+        "features_used": [
+          "color_variation",
+          "regression_structures",
+          "vascular_structures",
+          "blue_white_veil",
+          "keratosis_specific_features",
+          "ak_specific_features",
+          "bcc_specific_features",
+          "vascular_lesion_specific_features",
+          "peripheral_dots_globules",
+          "erythematous_background"
+        ]
+      },
+      "verification": {
+        "consistent": true,
+        "confidence": 0.0,
+        "revision_signal": "",
+        "notes": "The test image lacks pathognomonic features of other classes and aligns with the proposed label of Dermatofibroma based on the absence of specific features for other classes."
+      }
+    },
+    {
+      "task_id": "dermatology_7class_vasc_ISIC_0024662",
+      "category_set_id": "dermatology_7class",
+      "predicted_label": "Vascular Lesion",
+      "correct_label": "Vascular Lesion",
+      "correct": true,
+      "confidence": 0.95,
+      "eliminated_classes": [
+        "Melanoma",
+        "Melanocytic Nevus",
+        "Benign Keratosis",
+        "Basal Cell Carcinoma",
+        "Actinic Keratosis",
+        "Dermatofibroma"
+      ],
+      "rounds_completed": 4,
+      "revisions": 0,
+      "duration_ms": 49686,
+      "cost_usd": 0.004366,
+      "input_tokens": 11101,
+      "cache_creation_tokens": 0,
+      "cache_read_tokens": 0,
+      "output_tokens": 1028,
+      "api_calls": 3,
+      "model": "qwen/qwen2.5-vl-72b-instruct",
+      "dataset": "derm-ham10000",
+      "rule_ids_fired": [
+        "r_045",
+        "r_046",
+        "r_001",
+        "r_002",
+        "r_003",
+        "r_042",
+        "r_043",
+        "r_044",
+        "r_004",
+        "r_005",
+        "r_006",
+        "r_039",
+        "r_040",
+        "r_041",
+        "r_047",
+        "r_048",
+        "r_049",
+        "r_036",
+        "r_037",
+        "r_038",
+        "r_007",
+        "r_008",
+        "r_009",
+        "r_053",
+        "r_054",
+        "r_033",
+        "r_034",
+        "r_035",
+        "r_010",
+        "r_011",
+        "r_012",
+        "r_025",
+        "r_030",
+        "r_031",
+        "r_032",
+        "r_050",
+        "r_051",
+        "r_052",
+        "r_023",
+        "r_024",
+        "r_026",
+        "r_027",
+        "r_028",
+        "r_029",
+        "r_057",
+        "r_058",
+        "r_059",
+        "r_022",
+        "r_055",
+        "r_056",
+        "r_019",
+        "r_020",
+        "r_021",
+        "r_013",
+        "r_014",
+        "r_015",
+        "r_063",
+        "r_064",
+        "r_065",
+        "r_060",
+        "r_061",
+        "r_062",
+        "r_066",
+        "r_067"
+      ],
+      "feature_record": {
+        "features": {
+          "pigment_network": {
+            "value": "uncertain_not_visible",
+            "confidence": 0.1
+          },
+          "border_characteristics": {
+            "value": "uncertain_not_visible",
+            "confidence": 0.2
+          },
+          "color_variation": {
+            "value": "1",
+            "confidence": 0.8
+          },
+          "globules_and_dots_distribution": {
+            "value": "uncertain_not_visible",
+            "confidence": 0.1
+          },
+          "regression_structures": {
+            "value": "none",
+            "confidence": 0.9
+          },
+          "blue_white_veil": {
+            "value": "no",
+            "confidence": 0.9
+          },
+          "vascular_structures": {
+            "value": "none",
+            "confidence": 0.9
+          },
+          "bcc_specific_features": {
+            "value": "none",
+            "confidence": 0.9
+          },
+          "keratosis_specific_features": {
+            "value": "none",
+            "confidence": 0.9
+          },
+          "ak_specific_features": {
+            "value": "none",
+            "confidence": 0.9
+          },
+          "vascular_lesion_specific_features": {
+            "value": "none",
+            "confidence": 0.9
+          },
+          "dermatofibroma_specific_features": {
+            "value": "none",
+            "confidence": 0.9
+          },
+          "pigment_network_character": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "peripheral_dots_globules": {
+            "value": "no \u2014 absent or symmetrically distributed",
+            "confidence": 0.9
+          },
+          "arborizing_vessels": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "blue_gray_ovoid_nests": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "leaf_like_spoke_wheel": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "milia_like_cysts": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "comedo_like_openings": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "strawberry_pattern": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "erythematous_background": {
+            "value": "no \u2014 tan, brown, gray, or skin-toned",
+            "confidence": 0.9
+          },
+          "red_purple_lacunae": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "central_white_scar": {
+            "value": "absent",
+            "confidence": 0.9
+          }
+        },
+        "notes": "The lesion appears to be a homogenous dark red/purple color with no distinct dermoscopic structures visible. The surface appears smooth, and no specific features of the listed conditions are observed."
+      },
+      "decision": {
+        "label": "Vascular Lesion",
+        "confidence": 0.95,
+        "reasoning": "The lesion is described as having a homogenous dark red/purple color with no distinct dermoscopic structures visible. The high-confidence features such as color_variation (1), regression_structures (none), blue_white_veil (no), vascular_structures (none), and others confirm the absence of specific features for other lesions. Rule r_046 directly applies here, indicating a high confidence classification as Vascular Lesion due to the uniform purplish color and lack of other specific features. No other rules or features suggest a different classification.",
+        "applied_rules": [
+          "r_046"
+        ],
+        "eliminated_classes": [
+          "Melanoma",
+          "Melanocytic Nevus",
+          "Benign Keratosis",
+          "Basal Cell Carcinoma",
+          "Actinic Keratosis",
+          "Dermatofibroma"
+        ],
+        "features_used": [
+          "color_variation",
+          "regression_structures",
+          "blue_white_veil",
+          "vascular_structures",
+          "bcc_specific_features",
+          "keratosis_specific_features",
+          "ak_specific_features",
+          "vascular_lesion_specific_features",
+          "dermatofibroma_specific_features",
+          "pigment_network_character",
+          "peripheral_dots_globules",
+          "arborizing_vessels",
+          "blue_gray_ovoid_nests",
+          "leaf_like_spoke_wheel",
+          "milia_like_cysts",
+          "comedo_like_openings",
+          "strawberry_pattern",
+          "erythematous_background",
+          "red_purple_lacunae",
+          "central_white_scar"
+        ]
+      },
+      "verification": {
+        "consistent": true,
+        "confidence": 0.0,
+        "revision_signal": "",
+        "notes": "The test image shows a homogenous dark red/purple color with no distinct dermoscopic structures, which aligns with the proposed label of Vascular Lesion. There are no unmistakable pathognomonic features of a different class present."
+      }
+    },
+    {
+      "task_id": "dermatology_7class_vasc_ISIC_0024669",
+      "category_set_id": "dermatology_7class",
+      "predicted_label": "Vascular Lesion",
+      "correct_label": "Vascular Lesion",
+      "correct": true,
+      "confidence": 0.95,
+      "eliminated_classes": [
+        "Melanoma",
+        "Melanocytic Nevus",
+        "Benign Keratosis",
+        "Basal Cell Carcinoma",
+        "Actinic Keratosis",
+        "Dermatofibroma"
+      ],
+      "rounds_completed": 4,
+      "revisions": 0,
+      "duration_ms": 30107,
+      "cost_usd": 0.004358,
+      "input_tokens": 11112,
+      "cache_creation_tokens": 0,
+      "cache_read_tokens": 0,
+      "output_tokens": 994,
+      "api_calls": 3,
+      "model": "qwen/qwen2.5-vl-72b-instruct",
+      "dataset": "derm-ham10000",
+      "rule_ids_fired": [
+        "r_045",
+        "r_046",
+        "r_001",
+        "r_002",
+        "r_003",
+        "r_042",
+        "r_043",
+        "r_044",
+        "r_004",
+        "r_005",
+        "r_006",
+        "r_039",
+        "r_040",
+        "r_041",
+        "r_047",
+        "r_048",
+        "r_049",
+        "r_036",
+        "r_037",
+        "r_038",
+        "r_007",
+        "r_008",
+        "r_009",
+        "r_053",
+        "r_054",
+        "r_033",
+        "r_034",
+        "r_035",
+        "r_010",
+        "r_011",
+        "r_012",
+        "r_025",
+        "r_030",
+        "r_031",
+        "r_032",
+        "r_050",
+        "r_051",
+        "r_052",
+        "r_023",
+        "r_024",
+        "r_026",
+        "r_027",
+        "r_028",
+        "r_029",
+        "r_057",
+        "r_058",
+        "r_059",
+        "r_022",
+        "r_055",
+        "r_056",
+        "r_019",
+        "r_020",
+        "r_021",
+        "r_013",
+        "r_014",
+        "r_015",
+        "r_063",
+        "r_064",
+        "r_065",
+        "r_060",
+        "r_061",
+        "r_062",
+        "r_066",
+        "r_067"
+      ],
+      "feature_record": {
+        "features": {
+          "pigment_network": {
+            "value": "uncertain_not_visible",
+            "confidence": 0.0
+          },
+          "border_characteristics": {
+            "value": "irregular",
+            "confidence": 0.8
+          },
+          "color_variation": {
+            "value": "2",
+            "confidence": 0.95
+          },
+          "globules_and_dots_distribution": {
+            "value": "uncertain_not_visible",
+            "confidence": 0.0
+          },
+          "regression_structures": {
+            "value": "none",
+            "confidence": 0.0
+          },
+          "blue_white_veil": {
+            "value": "no",
+            "confidence": 0.0
+          },
+          "vascular_structures": {
+            "value": "dotted",
+            "confidence": 0.7
+          },
+          "bcc_specific_features": {
+            "value": "none",
+            "confidence": 0.0
+          },
+          "keratosis_specific_features": {
+            "value": "none",
+            "confidence": 0.0
+          },
+          "ak_specific_features": {
+            "value": "strawberry_pattern",
+            "confidence": 0.85
+          },
+          "vascular_lesion_specific_features": {
+            "value": "red_purple_lacunae",
+            "confidence": 0.8
+          },
+          "dermatofibroma_specific_features": {
+            "value": "none",
+            "confidence": 0.0
+          },
+          "pigment_network_character": {
+            "value": "absent",
+            "confidence": 1.0
+          },
+          "peripheral_dots_globules": {
+            "value": "no \u2014 absent or symmetrically distributed",
+            "confidence": 0.0
+          },
+          "arborizing_vessels": {
+            "value": "absent",
+            "confidence": 0.0
+          },
+          "blue_gray_ovoid_nests": {
+            "value": "absent",
+            "confidence": 0.0
+          },
+          "leaf_like_spoke_wheel": {
+            "value": "absent",
+            "confidence": 0.0
+          },
+          "milia_like_cysts": {
+            "value": "absent",
+            "confidence": 0.0
+          },
+          "comedo_like_openings": {
+            "value": "absent",
+            "confidence": 0.0
+          },
+          "strawberry_pattern": {
+            "value": "present",
+            "confidence": 0.9
+          },
+          "erythematous_background": {
+            "value": "yes \u2014 clearly pink/erythematous",
+            "confidence": 0.95
+          },
+          "red_purple_lacunae": {
+            "value": "present",
+            "confidence": 0.9
+          },
+          "central_white_scar": {
+            "value": "absent",
+            "confidence": 0.0
+          }
+        },
+        "notes": "The lesion displays a diffuse reddish color background with a central translucent area, suggestive of a vascular lesion. A strawberry pattern with dotted vascular structures is observed. No pigment network, regression structures, or special structures for other diagnoses are visible."
+      },
+      "decision": {
+        "label": "Vascular Lesion",
+        "confidence": 0.95,
+        "reasoning": "The lesion displays high-confidence features such as a clearly pink/erythematous background, dotted vascular structures, and red-purple lacunae, which are indicative of a vascular lesion. Additionally, the observation of a strawberry pattern further supports this diagnosis. Although the border is irregular, this does not detract from the strong vascular features. Rule r_052 directly applies and FAVORS Vascular Lesion due to the presence of vascular_lesion_specific_features and the absence of regression structures or a blue-white veil. No other class has as much supporting evidence.",
+        "applied_rules": [
+          "r_052"
+        ],
+        "eliminated_classes": [
+          "Melanoma",
+          "Melanocytic Nevus",
+          "Benign Keratosis",
+          "Basal Cell Carcinoma",
+          "Actinic Keratosis",
+          "Dermatofibroma"
+        ],
+        "features_used": [
+          "border_characteristics",
+          "color_variation",
+          "vascular_structures",
+          "ak_specific_features",
+          "vascular_lesion_specific_features",
+          "strawberry_pattern",
+          "erythematous_background",
+          "red_purple_lacunae"
+        ]
+      },
+      "verification": {
+        "consistent": true,
+        "confidence": 0.0,
+        "revision_signal": "",
+        "notes": "The test image displays pathognomonic features corresponding to a vascular lesion such as the clear erythematous background, dotted vessels, and red-purple lacunae. These features align with the reference Vascular Lesion image and the proposed diagnosis. While the border is noted as irregular, this feature alone does not create a hard contradiction with the vascular lesion classification given the strong presence of vascular characteristics. Other classes show distinct features not present in the test image."
+      }
+    },
+    {
+      "task_id": "dermatology_7class_vasc_ISIC_0024867",
+      "category_set_id": "dermatology_7class",
+      "predicted_label": "Vascular Lesion",
+      "correct_label": "Vascular Lesion",
+      "correct": true,
+      "confidence": 0.95,
+      "eliminated_classes": [
+        "Melanoma",
+        "Melanocytic Nevus",
+        "Benign Keratosis",
+        "Basal Cell Carcinoma",
+        "Actinic Keratosis",
+        "Dermatofibroma"
+      ],
+      "rounds_completed": 4,
+      "revisions": 0,
+      "duration_ms": 47068,
+      "cost_usd": 0.004366,
+      "input_tokens": 11151,
+      "cache_creation_tokens": 0,
+      "cache_read_tokens": 0,
+      "output_tokens": 978,
+      "api_calls": 3,
+      "model": "qwen/qwen2.5-vl-72b-instruct",
+      "dataset": "derm-ham10000",
+      "rule_ids_fired": [
+        "r_045",
+        "r_046",
+        "r_001",
+        "r_002",
+        "r_003",
+        "r_042",
+        "r_043",
+        "r_044",
+        "r_004",
+        "r_005",
+        "r_006",
+        "r_039",
+        "r_040",
+        "r_041",
+        "r_047",
+        "r_048",
+        "r_049",
+        "r_036",
+        "r_037",
+        "r_038",
+        "r_007",
+        "r_008",
+        "r_009",
+        "r_053",
+        "r_054",
+        "r_033",
+        "r_034",
+        "r_035",
+        "r_010",
+        "r_011",
+        "r_012",
+        "r_025",
+        "r_030",
+        "r_031",
+        "r_032",
+        "r_050",
+        "r_051",
+        "r_052",
+        "r_023",
+        "r_024",
+        "r_026",
+        "r_027",
+        "r_028",
+        "r_029",
+        "r_057",
+        "r_058",
+        "r_059",
+        "r_022",
+        "r_055",
+        "r_056",
+        "r_019",
+        "r_020",
+        "r_021",
+        "r_013",
+        "r_014",
+        "r_015",
+        "r_063",
+        "r_064",
+        "r_065",
+        "r_060",
+        "r_061",
+        "r_062",
+        "r_066",
+        "r_067"
+      ],
+      "feature_record": {
+        "features": {
+          "pigment_network": {
+            "value": "uncertain_not_visible",
+            "confidence": 0.1
+          },
+          "border_characteristics": {
+            "value": "uncertain_not_visible",
+            "confidence": 0.1
+          },
+          "color_variation": {
+            "value": "1",
+            "confidence": 0.9
+          },
+          "globules_and_dots_distribution": {
+            "value": "uncertain_not_visible",
+            "confidence": 0.1
+          },
+          "regression_structures": {
+            "value": "none",
+            "confidence": 0.9
+          },
+          "blue_white_veil": {
+            "value": "no",
+            "confidence": 0.9
+          },
+          "vascular_structures": {
+            "value": "none",
+            "confidence": 0.9
+          },
+          "bcc_specific_features": {
+            "value": "none",
+            "confidence": 0.9
+          },
+          "keratosis_specific_features": {
+            "value": "none",
+            "confidence": 0.9
+          },
+          "ak_specific_features": {
+            "value": "none",
+            "confidence": 0.9
+          },
+          "vascular_lesion_specific_features": {
+            "value": "red_purple_lacunae",
+            "confidence": 0.9
+          },
+          "dermatofibroma_specific_features": {
+            "value": "none",
+            "confidence": 0.9
+          },
+          "pigment_network_character": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "peripheral_dots_globules": {
+            "value": "no \u2014 absent or symmetrically distributed",
+            "confidence": 0.9
+          },
+          "arborizing_vessels": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "blue_gray_ovoid_nests": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "leaf_like_spoke_wheel": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "milia_like_cysts": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "comedo_like_openings": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "strawberry_pattern": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "erythematous_background": {
+            "value": "no \u2014 tan, brown, gray, or skin-toned",
+            "confidence": 0.9
+          },
+          "red_purple_lacunae": {
+            "value": "present",
+            "confidence": 0.9
+          },
+          "central_white_scar": {
+            "value": "absent",
+            "confidence": 0.9
+          }
+        },
+        "notes": "The lesion appears to have a single, sharply defined red-purple lacuna, suggesting a vascular lesion. No other dermoscopic features are clearly visible."
+      },
+      "decision": {
+        "label": "Vascular Lesion",
+        "confidence": 0.95,
+        "reasoning": "The dermoscopic feature observation record indicates the presence of a single, sharply defined red-purple lacuna (red_purple_lacunae) with a high confidence level. This is a strong indicator of a Vascular Lesion. No other specific features associated with Melanoma, Melanocytic Nevus, Benign Keratosis, Basal Cell Carcinoma, Actinic Keratosis, or Dermatofibroma are present at high confidence. Rule [r_052] is directly applicable as it states that if vascular_lesion_specific_features like red_purple_lacunae are present with the absence of regression structures, blue-white veil, and other lesion-specific features, then classify as Vascular Lesion. Therefore, following the rule and the observations, Vascular Lesion is the most appropriate classification.",
+        "applied_rules": [
+          "r_052"
+        ],
+        "eliminated_classes": [
+          "Melanoma",
+          "Melanocytic Nevus",
+          "Benign Keratosis",
+          "Basal Cell Carcinoma",
+          "Actinic Keratosis",
+          "Dermatofibroma"
+        ],
+        "features_used": [
+          "vascular_lesion_specific_features",
+          "red_purple_lacunae",
+          "regression_structures",
+          "blue_white_veil",
+          "vascular_structures"
+        ]
+      },
+      "verification": {
+        "consistent": true,
+        "confidence": 0.0,
+        "revision_signal": "",
+        "notes": "The test image shows a single, sharply defined red-purple lacuna, which is consistent with the proposed label of Vascular Lesion. No pathognomonic features of other classes are unmistakably present."
+      }
+    },
+    {
+      "task_id": "dermatology_7class_df_ISIC_0024973",
+      "category_set_id": "dermatology_7class",
+      "predicted_label": "Dermatofibroma",
+      "correct_label": "Dermatofibroma",
+      "correct": true,
+      "confidence": 0.9,
+      "eliminated_classes": [
+        "Melanoma",
+        "Melanocytic Nevus",
+        "Benign Keratosis",
+        "Basal Cell Carcinoma",
+        "Actinic Keratosis",
+        "Vascular Lesion"
+      ],
+      "rounds_completed": 4,
+      "revisions": 0,
+      "duration_ms": 54333,
+      "cost_usd": 0.004344,
+      "input_tokens": 11126,
+      "cache_creation_tokens": 0,
+      "cache_read_tokens": 0,
+      "output_tokens": 940,
+      "api_calls": 3,
+      "model": "qwen/qwen2.5-vl-72b-instruct",
+      "dataset": "derm-ham10000",
+      "rule_ids_fired": [
+        "r_045",
+        "r_046",
+        "r_001",
+        "r_002",
+        "r_003",
+        "r_042",
+        "r_043",
+        "r_044",
+        "r_004",
+        "r_005",
+        "r_006",
+        "r_039",
+        "r_040",
+        "r_041",
+        "r_047",
+        "r_048",
+        "r_049",
+        "r_036",
+        "r_037",
+        "r_038",
+        "r_007",
+        "r_008",
+        "r_009",
+        "r_053",
+        "r_054",
+        "r_033",
+        "r_034",
+        "r_035",
+        "r_010",
+        "r_011",
+        "r_012",
+        "r_025",
+        "r_030",
+        "r_031",
+        "r_032",
+        "r_050",
+        "r_051",
+        "r_052",
+        "r_023",
+        "r_024",
+        "r_026",
+        "r_027",
+        "r_028",
+        "r_029",
+        "r_057",
+        "r_058",
+        "r_059",
+        "r_022",
+        "r_055",
+        "r_056",
+        "r_019",
+        "r_020",
+        "r_021",
+        "r_013",
+        "r_014",
+        "r_015",
+        "r_063",
+        "r_064",
+        "r_065",
+        "r_060",
+        "r_061",
+        "r_062",
+        "r_066",
+        "r_067"
+      ],
+      "feature_record": {
+        "features": {
+          "pigment_network": {
+            "value": "uncertain_not_visible",
+            "confidence": 0.1
+          },
+          "border_characteristics": {
+            "value": "irregular",
+            "confidence": 0.7
+          },
+          "color_variation": {
+            "value": "2",
+            "confidence": 0.8
+          },
+          "globules_and_dots_distribution": {
+            "value": "uncertain_not_visible",
+            "confidence": 0.1
+          },
+          "regression_structures": {
+            "value": "none",
+            "confidence": 0.9
+          },
+          "blue_white_veil": {
+            "value": "no",
+            "confidence": 0.9
+          },
+          "vascular_structures": {
+            "value": "none",
+            "confidence": 0.9
+          },
+          "bcc_specific_features": {
+            "value": "none",
+            "confidence": 0.9
+          },
+          "keratosis_specific_features": {
+            "value": "none",
+            "confidence": 0.9
+          },
+          "ak_specific_features": {
+            "value": "none",
+            "confidence": 0.9
+          },
+          "vascular_lesion_specific_features": {
+            "value": "none",
+            "confidence": 0.9
+          },
+          "dermatofibroma_specific_features": {
+            "value": "central_white_scar_like_patch",
+            "confidence": 0.7
+          },
+          "pigment_network_character": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "peripheral_dots_globules": {
+            "value": "no \u2014 absent or symmetrically distributed",
+            "confidence": 0.9
+          },
+          "arborizing_vessels": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "blue_gray_ovoid_nests": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "leaf_like_spoke_wheel": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "milia_like_cysts": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "comedo_like_openings": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "strawberry_pattern": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "erythematous_background": {
+            "value": "no \u2014 tan, brown, gray, or skin-toned",
+            "confidence": 0.9
+          },
+          "red_purple_lacunae": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "central_white_scar": {
+            "value": "present",
+            "confidence": 0.7
+          }
+        },
+        "notes": "The lesion shows a central white scar-like area surrounded by a peripheral pigment ring, which is characteristic of a dermatofibroma. The border is irregular, and there are two distinct colors: pinkish and brown."
+      },
+      "decision": {
+        "label": "Dermatofibroma",
+        "confidence": 0.9,
+        "reasoning": "The lesion shows a central white scar-like area, which is highly characteristic of a dermatofibroma. The border is irregular, and there are two distinct colors: pinkish and brown. The absence of specific features such as globules, regression structures, vascular structures, and others further supports the diagnosis of dermatofibroma. Rule r_055 is directly applicable, as it considers an irregular border, lack of specific dermoscopic structures, and two distinct colors (brownish-pink) as indicative of dermatofibroma. Other classes are eliminated due to the absence of their specific features.",
+        "applied_rules": [
+          "r_055"
+        ],
+        "eliminated_classes": [
+          "Melanoma",
+          "Melanocytic Nevus",
+          "Benign Keratosis",
+          "Basal Cell Carcinoma",
+          "Actinic Keratosis",
+          "Vascular Lesion"
+        ],
+        "features_used": [
+          "border_characteristics",
+          "color_variation",
+          "regression_structures",
+          "vascular_structures",
+          "dermatofibroma_specific_features",
+          "central_white_scar"
+        ]
+      },
+      "verification": {
+        "consistent": true,
+        "confidence": 0.0,
+        "revision_signal": "",
+        "notes": "The test image shows a central white scar-like area and a peripheral pigment ring, which are characteristic of a dermatofibroma. The absence of specific features of other classes supports the proposed label. No pathognomonic features of a different class are unmistakably present."
+      }
+    },
+    {
+      "task_id": "dermatology_7class_df_ISIC_0025302",
+      "category_set_id": "dermatology_7class",
+      "predicted_label": "Melanoma",
+      "correct_label": "Dermatofibroma",
+      "correct": false,
+      "confidence": 0.85,
+      "eliminated_classes": [
+        "Benign Keratosis",
+        "Basal Cell Carcinoma",
+        "Actinic Keratosis",
+        "Vascular Lesion",
+        "Dermatofibroma"
+      ],
+      "rounds_completed": 4,
+      "revisions": 0,
+      "duration_ms": 39298,
+      "cost_usd": 0.004377,
+      "input_tokens": 11157,
+      "cache_creation_tokens": 0,
+      "cache_read_tokens": 0,
+      "output_tokens": 1002,
+      "api_calls": 3,
+      "model": "qwen/qwen2.5-vl-72b-instruct",
+      "dataset": "derm-ham10000",
+      "rule_ids_fired": [
+        "r_045",
+        "r_046",
+        "r_001",
+        "r_002",
+        "r_003",
+        "r_042",
+        "r_043",
+        "r_044",
+        "r_004",
+        "r_005",
+        "r_006",
+        "r_039",
+        "r_040",
+        "r_041",
+        "r_047",
+        "r_048",
+        "r_049",
+        "r_036",
+        "r_037",
+        "r_038",
+        "r_007",
+        "r_008",
+        "r_009",
+        "r_053",
+        "r_054",
+        "r_033",
+        "r_034",
+        "r_035",
+        "r_010",
+        "r_011",
+        "r_012",
+        "r_025",
+        "r_030",
+        "r_031",
+        "r_032",
+        "r_050",
+        "r_051",
+        "r_052",
+        "r_023",
+        "r_024",
+        "r_026",
+        "r_027",
+        "r_028",
+        "r_029",
+        "r_057",
+        "r_058",
+        "r_059",
+        "r_022",
+        "r_055",
+        "r_056",
+        "r_019",
+        "r_020",
+        "r_021",
+        "r_013",
+        "r_014",
+        "r_015",
+        "r_063",
+        "r_064",
+        "r_065",
+        "r_060",
+        "r_061",
+        "r_062",
+        "r_066",
+        "r_067"
+      ],
+      "feature_record": {
+        "features": {
+          "pigment_network": {
+            "value": "uncertain_not_visible",
+            "confidence": 0.1
+          },
+          "border_characteristics": {
+            "value": "uncertain_not_visible",
+            "confidence": 0.1
+          },
+          "color_variation": {
+            "value": "3_or_more",
+            "confidence": 0.8
+          },
+          "globules_and_dots_distribution": {
+            "value": "uncertain_not_visible",
+            "confidence": 0.1
+          },
+          "regression_structures": {
+            "value": "none",
+            "confidence": 0.4
+          },
+          "blue_white_veil": {
+            "value": "no",
+            "confidence": 0.6
+          },
+          "vascular_structures": {
+            "value": "uncertain_not_visible",
+            "confidence": 0.1
+          },
+          "bcc_specific_features": {
+            "value": "none",
+            "confidence": 0.4
+          },
+          "keratosis_specific_features": {
+            "value": "none",
+            "confidence": 0.4
+          },
+          "ak_specific_features": {
+            "value": "none",
+            "confidence": 0.4
+          },
+          "vascular_lesion_specific_features": {
+            "value": "none",
+            "confidence": 0.4
+          },
+          "dermatofibroma_specific_features": {
+            "value": "none",
+            "confidence": 0.4
+          },
+          "pigment_network_character": {
+            "value": "uncertain/not_visible",
+            "confidence": 0.1
+          },
+          "peripheral_dots_globules": {
+            "value": "no \u2014 absent or symmetrically distributed",
+            "confidence": 0.4
+          },
+          "arborizing_vessels": {
+            "value": "absent",
+            "confidence": 0.7
+          },
+          "blue_gray_ovoid_nests": {
+            "value": "absent",
+            "confidence": 0.7
+          },
+          "leaf_like_spoke_wheel": {
+            "value": "absent",
+            "confidence": 0.7
+          },
+          "milia_like_cysts": {
+            "value": "absent",
+            "confidence": 0.7
+          },
+          "comedo_like_openings": {
+            "value": "absent",
+            "confidence": 0.7
+          },
+          "strawberry_pattern": {
+            "value": "absent",
+            "confidence": 0.7
+          },
+          "erythematous_background": {
+            "value": "no \u2014 tan, brown, gray, or skin-toned",
+            "confidence": 0.7
+          },
+          "red_purple_lacunae": {
+            "value": "absent",
+            "confidence": 0.7
+          },
+          "central_white_scar": {
+            "value": "absent",
+            "confidence": 0.7
+          }
+        },
+        "notes": "The image shows a lesion with diffuse pink and brown hues with some bluish coloration but lacks clear dermoscopic structures such as a pigment network or specific vascular patterns. The overall appearance appears somewhat mottled."
+      },
+      "decision": {
+        "label": "Melanoma",
+        "confidence": 0.85,
+        "reasoning": "The lesion displays 3 or more distinct colors (brown, pink, and bluish) with no specific dermoscopic structures such as a pigment network, globules, vascular patterns, regression structures, or lesion-specific features. This aligns with rule [r_066], which suggests considering Melanoma when color variation with 3 or more distinct colors is observed and no specific dermoscopic structures are present. The absence of a blue-white veil and specific features for other lesions further supports this classification. Other classes like Benign Keratosis, Basal Cell Carcinoma, Actinic Keratosis, Vascular Lesion, and Dermatofibroma are eliminated due to the lack of their specific features.",
+        "applied_rules": [
+          "r_066"
+        ],
+        "eliminated_classes": [
+          "Benign Keratosis",
+          "Basal Cell Carcinoma",
+          "Actinic Keratosis",
+          "Vascular Lesion",
+          "Dermatofibroma"
+        ],
+        "features_used": [
+          "color_variation",
+          "arborizing_vessels",
+          "blue_gray_ovoid_nests",
+          "leaf_like_spoke_wheel",
+          "milia_like_cysts",
+          "comedo_like_openings",
+          "strawberry_pattern",
+          "erythematous_background",
+          "red_purple_lacunae",
+          "central_white_scar"
+        ]
+      },
+      "verification": {
+        "consistent": true,
+        "confidence": 0.0,
+        "revision_signal": "",
+        "notes": "The test image shows a lesion with diffuse coloration and lacks specific dermoscopic structures, which is consistent with the proposed label of Melanoma. There are no unmistakable pathognomonic features of a different class present."
+      }
+    },
+    {
+      "task_id": "dermatology_7class_df_ISIC_0025373",
+      "category_set_id": "dermatology_7class",
+      "predicted_label": "Melanocytic Nevus",
+      "correct_label": "Dermatofibroma",
+      "correct": false,
+      "confidence": 0.85,
+      "eliminated_classes": [
+        "Melanoma",
+        "Benign Keratosis",
+        "Basal Cell Carcinoma",
+        "Actinic Keratosis",
+        "Vascular Lesion",
+        "Dermatofibroma"
+      ],
+      "rounds_completed": 4,
+      "revisions": 0,
+      "duration_ms": 52310,
+      "cost_usd": 0.004376,
+      "input_tokens": 11105,
+      "cache_creation_tokens": 0,
+      "cache_read_tokens": 0,
+      "output_tokens": 1050,
+      "api_calls": 3,
+      "model": "qwen/qwen2.5-vl-72b-instruct",
+      "dataset": "derm-ham10000",
+      "rule_ids_fired": [
+        "r_045",
+        "r_046",
+        "r_001",
+        "r_002",
+        "r_003",
+        "r_042",
+        "r_043",
+        "r_044",
+        "r_004",
+        "r_005",
+        "r_006",
+        "r_039",
+        "r_040",
+        "r_041",
+        "r_047",
+        "r_048",
+        "r_049",
+        "r_036",
+        "r_037",
+        "r_038",
+        "r_007",
+        "r_008",
+        "r_009",
+        "r_053",
+        "r_054",
+        "r_033",
+        "r_034",
+        "r_035",
+        "r_010",
+        "r_011",
+        "r_012",
+        "r_025",
+        "r_030",
+        "r_031",
+        "r_032",
+        "r_050",
+        "r_051",
+        "r_052",
+        "r_023",
+        "r_024",
+        "r_026",
+        "r_027",
+        "r_028",
+        "r_029",
+        "r_057",
+        "r_058",
+        "r_059",
+        "r_022",
+        "r_055",
+        "r_056",
+        "r_019",
+        "r_020",
+        "r_021",
+        "r_013",
+        "r_014",
+        "r_015",
+        "r_063",
+        "r_064",
+        "r_065",
+        "r_060",
+        "r_061",
+        "r_062",
+        "r_066",
+        "r_067"
+      ],
+      "feature_record": {
+        "features": {
+          "pigment_network": {
+            "value": "uncertain_not_visible",
+            "confidence": 0.2
+          },
+          "border_characteristics": {
+            "value": "uncertain_not_visible",
+            "confidence": 0.2
+          },
+          "color_variation": {
+            "value": "1",
+            "confidence": 0.8
+          },
+          "globules_and_dots_distribution": {
+            "value": "uncertain_not_visible",
+            "confidence": 0.2
+          },
+          "regression_structures": {
+            "value": "none",
+            "confidence": 0.9
+          },
+          "blue_white_veil": {
+            "value": "no",
+            "confidence": 0.9
+          },
+          "vascular_structures": {
+            "value": "none",
+            "confidence": 0.9
+          },
+          "bcc_specific_features": {
+            "value": "none",
+            "confidence": 0.9
+          },
+          "keratosis_specific_features": {
+            "value": "none",
+            "confidence": 0.9
+          },
+          "ak_specific_features": {
+            "value": "none",
+            "confidence": 0.9
+          },
+          "vascular_lesion_specific_features": {
+            "value": "none",
+            "confidence": 0.9
+          },
+          "dermatofibroma_specific_features": {
+            "value": "none",
+            "confidence": 0.9
+          },
+          "pigment_network_character": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "peripheral_dots_globules": {
+            "value": "no \u2014 absent or symmetrically distributed",
+            "confidence": 0.9
+          },
+          "arborizing_vessels": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "blue_gray_ovoid_nests": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "leaf_like_spoke_wheel": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "milia_like_cysts": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "comedo_like_openings": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "strawberry_pattern": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "erythematous_background": {
+            "value": "no \u2014 tan, brown, gray, or skin-toned",
+            "confidence": 0.9
+          },
+          "red_purple_lacunae": {
+            "value": "absent",
+            "confidence": 0.9
+          },
+          "central_white_scar": {
+            "value": "absent",
+            "confidence": 0.9
+          }
+        },
+        "notes": "The lesion appears to have a diffuse pinkish hue with no distinct dermoscopic structures or features clearly visible."
+      },
+      "decision": {
+        "label": "Melanocytic Nevus",
+        "confidence": 0.85,
+        "reasoning": "The lesion has a single color variation (tan, brown, gray, or skin-toned) and lacks specific dermoscopic structures such as globules, dots, vascular patterns, regression structures, and other lesion-specific features. This aligns with the criteria for Melanocytic Nevus as per rules [r_012] and [r_014]. The absence of blue-white veil, specific keratosis or dermatofibroma features, and vascular structures further supports this classification. Other classes like Melanoma, Basal Cell Carcinoma, Actinic Keratosis, Vascular Lesion, and Dermatofibroma are eliminated due to the absence of their specific features.",
+        "applied_rules": [
+          "r_012",
+          "r_014"
+        ],
+        "eliminated_classes": [
+          "Melanoma",
+          "Benign Keratosis",
+          "Basal Cell Carcinoma",
+          "Actinic Keratosis",
+          "Vascular Lesion",
+          "Dermatofibroma"
+        ],
+        "features_used": [
+          "color_variation",
+          "regression_structures",
+          "vascular_structures",
+          "bcc_specific_features",
+          "keratosis_specific_features",
+          "ak_specific_features",
+          "vascular_lesion_specific_features",
+          "dermatofibroma_specific_features",
+          "pigment_network_character",
+          "peripheral_dots_globules",
+          "arborizing_vessels",
+          "blue_gray_ovoid_nests",
+          "leaf_like_spoke_wheel",
+          "milia_like_cysts",
+          "comedo_like_openings",
+          "strawberry_pattern",
+          "erythematous_background",
+          "red_purple_lacunae",
+          "central_white_scar"
+        ]
+      },
+      "verification": {
+        "consistent": true,
+        "confidence": 0.0,
+        "revision_signal": "",
+        "notes": "The test image lacks distinct dermoscopic features that would clearly indicate a different class. The diffuse pinkish hue and absence of specific structures align with the proposed label of Melanocytic Nevus, even though the features are subtle. There are no unmistakable pathognomonic features of another class present."
       }
     }
   ]

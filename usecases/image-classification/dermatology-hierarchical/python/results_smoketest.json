@@ -1,0 +1,119 @@
+{
+  "summary": {
+    "correct": 1,
+    "total": 1,
+    "accuracy": 1.0,
+    "l1_failures": 0,
+    "l2_failures": 0,
+    "avg_ms": 123807.0,
+    "total_cost_usd": 0.005925,
+    "l1_cost_usd": 0.003204,
+    "l2_cost_usd": 0.002721,
+    "avg_cost_usd": 0.005925,
+    "total_api_calls": 8,
+    "model": "qwen/qwen2.5-vl-72b-instruct",
+    "dataset": "derm-ham10000",
+    "timestamp": "2026-04-16T09:14:30Z",
+    "l1_rules": {
+      "total": 0,
+      "active": 0,
+      "candidates": 0,
+      "flagged": 0,
+      "deprecated": 0,
+      "archived": 0,
+      "total_fired": 0,
+      "total_succeeded": 0
+    }
+  },
+  "per_class": {
+    "Melanoma": {
+      "correct": 1,
+      "total": 1,
+      "accuracy": 1.0
+    }
+  },
+  "per_group": {
+    "Melanocytic": {
+      "correct": 1,
+      "total": 1,
+      "accuracy": 1.0
+    }
+  },
+  "confusion": {
+    "Melanoma": {
+      "Melanoma": 1
+    }
+  },
+  "tasks": [
+    {
+      "task_id": "derm_h_mel_ISIC_0024315",
+      "correct_label": "Melanoma",
+      "predicted_label": "Melanoma",
+      "correct": true,
+      "failure_level": null,
+      "true_group": "Melanocytic",
+      "predicted_group": "Melanocytic",
+      "l1_correct": true,
+      "l1_confidence": 0.9,
+      "l1_cost_usd": 0.003204,
+      "l1_api_calls": 4,
+      "l2_run": true,
+      "l2_correct": true,
+      "l2_confidence": 0.75,
+      "l2_cost_usd": 0.002721,
+      "l2_api_calls": 4,
+      "cost_usd": 0.005925,
+      "api_calls": 8,
+      "duration_ms": 123807,
+      "model": "qwen/qwen2.5-vl-72b-instruct",
+      "dataset": "derm-ham10000",
+      "l1_detail": {
+        "task_id": "derm_h_mel_ISIC_0024315_l1",
+        "category_set_id": "derm_h_level1",
+        "predicted_label": "Melanocytic",
+        "correct_label": "Melanocytic",
+        "correct": true,
+        "confidence": 0.9,
+        "eliminated_classes": [
+          "Keratosis-type",
+          "Basal Cell Carcinoma",
+          "Vascular Lesion",
+          "Dermatofibroma"
+        ],
+        "rounds_completed": 4,
+        "revisions": 0,
+        "duration_ms": 64015,
+        "cost_usd": 0.003204,
+        "input_tokens": 7278,
+        "cache_creation_tokens": 0,
+        "cache_read_tokens": 0,
+        "output_tokens": 1621,
+        "api_calls": 4,
+        "model": "qwen/qwen2.5-vl-72b-instruct",
+        "dataset": "derm-ham10000"
+      },
+      "l2_detail": {
+        "task_id": "derm_h_mel_ISIC_0024315_l2",
+        "category_set_id": "derm_h_l2_melanocytic",
+        "predicted_label": "Melanoma",
+        "correct_label": "Melanoma",
+        "correct": true,
+        "confidence": 0.75,
+        "eliminated_classes": [
+          "Melanocytic Nevus"
+        ],
+        "rounds_completed": 4,
+        "revisions": 0,
+        "duration_ms": 59791,
+        "cost_usd": 0.002721,
+        "input_tokens": 5974,
+        "cache_creation_tokens": 0,
+        "cache_read_tokens": 0,
+        "output_tokens": 1584,
+        "api_calls": 4,
+        "model": "qwen/qwen2.5-vl-72b-instruct",
+        "dataset": "derm-ham10000"
+      }
+    }
+  ]
+}
