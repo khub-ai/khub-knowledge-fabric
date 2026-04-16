@@ -40,10 +40,23 @@ confirmation that would trigger the session in a real deployment.
 
 | What was measured | Result |
 |---|---|
-| Qwen3-VL-8B PUPIL recall on 25 hardest person-in-water frames (baseline) | **8%** |
-| Qwen3-VL-8B PUPIL recall after one DD session | **52%** (+44 pp) |
+| `Qwen3-VL-8B` PUPIL recall on 25 hardest person-in-water frames (baseline) | **8%** |
+| `Qwen3-VL-8B` PUPIL recall after one DD session | **52%** (+44 pp) |
 | False alarms introduced | **0** |
 | Retraining required | **None** |
+
+**PatchBench probe** ([§11](#11-patchbench-probe-model-selection-for-seapatch-dd)):
+
+| PUPIL | Rule source | Zero-shot | Rule-aided | Verdict |
+|---|---|---|---|---|
+| `claude-sonnet-4-6` | `claude-opus-4-6` (model) | 70.8% | **83.3%** (+12.5 pp) | PARTIAL |
+| `claude-sonnet-4-6` | IAMSAR/human (no model) | 70.8% | **83.3%** (+12.5 pp) | PARTIAL |
+
+PARTIAL reflects the inherent difficulty of the domain: a person at 2–30 pixels
+is near the perceptual limit of current VLMs, and the false-positive suppression
+problem (whitecap → person_in_water) cannot be fully resolved by rules alone at
+that scale. See [§11](#11-patchbench-probe-model-selection-for-seapatch-dd) for
+the full error analysis and comparison with the wildfire (GO) result.
 
 ---
 
@@ -58,6 +71,8 @@ confirmation that would trigger the session in a real deployment.
 7. [The Three Roles of DD in This Context](#7-the-three-roles-of-dd-in-this-context)
 8. [Simulation Setup](#8-simulation-setup)
 9. [Getting Started](#9-getting-started)
+10. [Measured Results: Qwen3-VL-8B Before and After DD](#10-measured-results-qwen3-vl-8b-before-and-after-dd)
+11. [PatchBench Probe: Model Selection for SeaPatch DD](#11-patchbench-probe-model-selection-for-seapatch-dd)
 
 ---
 
@@ -661,3 +676,81 @@ failures upstream of the classification step need complementary solutions
 (detect-first pipeline, altitude adjustment, `uncertain_investigate` escalation).
 These are separable problems with separable solutions; KF occupies a well-defined
 and genuinely useful slot in that architecture.
+
+---
+
+## 11. PatchBench Probe: Model Selection for SeaPatch DD
+
+[PatchBench](https://github.com/khub-ai/patchbench) is a companion benchmark
+that answers the question *"which VLMs can actually be improved by DD rule
+injection on this domain?"* It runs a model on a fixed 24-frame probe set and
+returns a GO / PARTIAL / NO-GO verdict based on zero-shot accuracy, rule-aided
+accuracy, and perceptual feature detection.
+
+The maritime SAR probe (`benchmarks/maritime_sar/person_in_water_vs_whitecap/`)
+tests the core confusable pair in this use case: a person in the water
+(appearing as a small dark ellipse, 0.002–0.45% of frame area) vs whitecap
+foam (the dominant false-positive trigger in operational conditions).
+
+### Phase 2 results (PatchBench probe, 2026-04-16)
+
+All three runs used the SeaDronesSee validation split, 24 frames (12 per class),
+difficulty tiered by person bounding-box fraction. TUTOR model for precomputed
+outputs: `claude-opus-4-6`. VALIDATOR: `claude-sonnet-4-6`.
+
+| PUPIL | TUTOR / Rule source | Zero-shot | Rule-aided | Delta | Verdict |
+|---|---|---|---|---|---|
+| `claude-opus-4-6` | `claude-opus-4-6` (same tier) | 0.625 | 0.750 | +0.125 | PARTIAL |
+| `claude-sonnet-4-6` | `claude-opus-4-6` (model rules) | 0.708 | 0.833 | +0.125 | PARTIAL |
+| `claude-sonnet-4-6` | IAMSAR/human (expert rules) | 0.708 | 0.833 | +0.125 | PARTIAL |
+
+Results in `patchbench/results/maritime_sar/person_in_water_vs_whitecap/`.
+
+### What the PARTIAL verdict means
+
+PARTIAL is the honest result for this domain at this target size. All three
+runs achieve the same +0.125 lift and the rule gate reaches only 0.667
+(meaning the rules help, but not enough to push the VALIDATOR itself to
+confident accuracy). This is structurally different from the wildfire case
+(`claude-sonnet-4-6` reached GO at +0.292, 95.8% rule-aided accuracy).
+
+**Why maritime SAR is harder to rule-encode than wildfire:**
+
+Early chaparral smoke has unambiguous single-frame physical descriptors —
+blue-white Rayleigh scatter, structural coherence distinct from haze, consistent
+wind-aligned drift. A VLM can be directed to those features by a concise natural-
+language rule and they are clearly visible at the pixel scale of a mountaintop
+camera image.
+
+A person in the water at 50–150m altitude subtends 2–30 pixels. The
+discriminating features — rounded dark mass without foam crown, contrast polarity
+dark-on-light, bicolour pattern with life jacket — are present in the image but
+operate near the perceptual limit of the model. Rules describing those features
+help at the margin but cannot fully override the uncertainty at that scale.
+
+**The false-positive structure.** Zero-shot errors are almost entirely
+false positives: 6 whitecap frames classified as `person_in_water`, 1 person
+frame classified as `whitecap`. After rule injection: 4 persistent false
+positives remain. The model's search-and-rescue prior — trained to find people
+— causes it to over-detect on ambiguous small bright objects. The rules
+partially correct this (6 → 4 FPs) but cannot fully suppress it.
+
+This is a meaningful improvement in a real deployment (fewer false alarms) and
+confirms DD works in this domain, but a harder domain than wildfire requires
+proportionally better rules, higher-capability PUPIL models, or a pre-filter
+that separates small-object detection from classification.
+
+### IAMSAR expert rules
+
+The `--use-expert-rules` path for this probe uses rules sourced from:
+- IAMSAR Vol. III (2022 ed.) Chapter 5 — Visual Search Techniques
+- USCG Addendum to IAMSAR (2022) Annex F — Survivor Appearance / Sea Surface Clutter
+- WMO No. 306 / Beaufort Scale — Sea State Visual Criteria
+
+These rules describe the four single-frame discriminators: shape (compact
+rounded vs diffuse elongated), surface texture (dark non-foamy vs foam crown),
+colour (dark mass ± life jacket vs uniform white), and contrast polarity
+(dark-on-light vs light-on-dark). They achieve identical accuracy to the
+Opus-generated model rules — consistent with the wildfire finding that
+published expert guidelines can substitute for a TUTOR model when the domain
+has well-documented visual criteria.

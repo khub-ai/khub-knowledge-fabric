@@ -7,7 +7,7 @@
 > implemented and measured. **Theme**: [Knowledge Fabric (KF)](../../docs/what-is-kf.md)
 > as a zero-retraining update mechanism for large-scale deployments of heterogeneous
 > AI agents organised in capability tiers.
-> **Last updated**: 2026-04-14
+> **Last updated**: 2026-04-16
 
 ---
 
@@ -116,15 +116,23 @@ A rescue swimmer explains what the optical scout should have seen. DD turns that
 explanation into a grounded rule in 43 seconds. The rule broadcasts to the
 entire fleet and retroactively reclassifies 45 minutes of archived footage.
 
-**Implemented and measured.** Key result: Qwen3-VL-8B PUPIL classifier on the
+**Implemented and measured.** Key result: `Qwen3-VL-8B` PUPIL classifier on the
 SeaDronesSee dataset. Frame `71.jpg`: `life_ring_unoccupied` (0.95 confidence)
 → `person_in_water` (0.85 confidence) after one DD session. On the 25 hardest
 person-in-water frames from the val split, recall improves from 8% to 52%
 (+44 pp) with a single injected rule, zero retraining.
 
+**PatchBench model selection via [PatchBench](https://github.com/khub-ai/patchbench)**:
+The maritime SAR probe (`benchmarks/maritime_sar/person_in_water_vs_whitecap/`)
+yields PARTIAL for `claude-sonnet-4-6` as PUPIL (+12.5 pp, 70.8% → 83.3%), with
+both model-generated and IAMSAR human-authored expert rules achieving identical
+lift. This domain is harder than wildfire: a person at 2–30 pixels is near the
+perceptual limit of current VLMs, and persistent false positives (whitecap
+mis-called as person_in_water) cannot be fully suppressed by rules alone.
+
 **Distinctive elements**: cross-modal knowledge transfer (thermal → optical),
 temporal feature reformulation (temporal stability → single-frame proxies),
-architecture-agnostic broadcast (MobileNetV3 scouts + Qwen3-VL-8B commander
+architecture-agnostic broadcast (MobileNetV3 scouts + `Qwen3-VL-8B` commander
 updated by the same natural-language rule).
 
 ---
