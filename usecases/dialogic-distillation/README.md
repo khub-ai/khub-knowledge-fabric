@@ -195,8 +195,9 @@ Three categories of distillable knowledge have been identified:
 
 These heuristics transfer across games (game-agnostic), which is exactly what competition mode requires: the game identity is unknown in advance.
 
-Sequential-reasoning work has moved to the new cognitive engine — see
-[`core/cognitive_os/engine/DESIGN.md`](../../core/cognitive_os/engine/DESIGN.md).
+Sequential-reasoning work has moved to the new cognitive engine, now in
+its own repository:
+[github.com/khub-ai/cognitive-os-engine](https://github.com/khub-ai/cognitive-os-engine).
 
 ---
 
@@ -320,4 +321,4 @@ Results from the community will be aggregated into the Status table above.
 
 - [DESIGN.md](DESIGN.md) — developer-facing spec: three-party protocol, grounding mechanics, domain adaptations, differences across knowledge types
 - [usecases/image-classification/](../image-classification/) — reference implementation for visual classification
-- [`core/cognitive_os/engine/`](../../core/cognitive_os/engine/) — domain-agnostic cognitive engine (successor to the retired arc-agi-3 use case)
+- [cognitive-os-engine](https://github.com/khub-ai/cognitive-os-engine) — domain-agnostic cognitive engine (successor to the retired arc-agi-3 use case), extracted to its own MIT-0 repo

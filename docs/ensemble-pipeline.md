@@ -27,10 +27,11 @@ This document describes the Knowledge Fabric ensemble pipeline: its domain-agnos
 9. [Operational notes](#9-operational-notes)
 
 > The previous "Specialization 2 — ARC-AGI-3 (interactive environments)"
-> section has been removed.  Sequential-reasoning work has moved to
-> [`core/cognitive_os/engine/`](../core/cognitive_os/engine/) — a
-> clean-slate, domain-agnostic cognitive engine.  See the
-> [engine design spec](../core/cognitive_os/engine/DESIGN.md).
+> section has been removed.  Sequential-reasoning work has moved to a
+> clean-slate, domain-agnostic cognitive engine in its own repository:
+> [github.com/khub-ai/cognitive-os-engine](https://github.com/khub-ai/cognitive-os-engine)
+> (MIT-0 licensed so it can be used in contexts requiring OSI-permissive
+> licensing).  See that repo's `cognitive_os/DESIGN.md` for the full spec.
 
 ---
 
@@ -47,8 +48,8 @@ See [design-decisions.md](design-decisions.md#how-this-differs-from-existing-age
 | ARC-AGI-2 (static puzzles) | Active — 43/48 correct (89.6%) | `arc-agi-legacy` | `usecases/arc-agi-2/python/harness.py` |
 | Image classification UC200 (birds) | Design phase | `bird-uc200` | TBD — new harness needed |
 
-(Sequential-reasoning / interactive-environment work has moved to
-[`core/cognitive_os/engine/`](../core/cognitive_os/engine/).)
+(Sequential-reasoning / interactive-environment work has moved to the
+standalone [cognitive-os-engine](https://github.com/khub-ai/cognitive-os-engine) repo.)
 
 ---
 

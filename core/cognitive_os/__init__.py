@@ -1,17 +1,25 @@
-"""core.cognitive_os — Cognitive OS namespace.
+"""core.cognitive_os — Cognitive OS namespace (redirect stub).
 
-All COS work lives under this package, clearly separated from non-COS
-KF framework code (``core.knowledge``, ``core.pipeline``,
-``core.benchmark``, ``core.dialogic_distillation``).
+The cognitive engine previously lived at ``core.cognitive_os.engine``
+inside this repository.  It has been extracted to a standalone repo
+with a permissive license (MIT-0) so it can be used in contexts
+requiring OSI-approved licensing (e.g. the ARC Prize 2026 /
+ARC-AGI-3 competition, which mandates CC0- or MIT-0-equivalent terms).
 
-Current contents:
+    Engine repo:  https://github.com/khub-ai/cognitive-os-engine
+    Install:      pip install git+https://github.com/khub-ai/cognitive-os-engine
+    Import as:    import cognitive_os
 
-* ``core.cognitive_os.engine``  — domain-agnostic symbolic reasoning
-                                   substrate shared by sequential-
-                                   reasoning tasks and robotics.
-                                   See ``core/cognitive_os/engine/DESIGN.md``.
-
-This top-level package intentionally exports nothing at module level —
-import from the specific sub-package you need (currently
-``core.cognitive_os.engine``).
+KF itself remains under PolyForm Noncommercial 1.0.0.  Future KF code
+(robotics adapters, etc.) that wants to build on the engine should
+install ``cognitive-os-engine`` as a dependency and import the
+``cognitive_os`` package directly — the previous
+``core.cognitive_os.engine`` path is no longer available.
 """
+
+raise ImportError(
+    "core.cognitive_os.engine has been extracted to a standalone "
+    "repository under MIT-0 license.  Install "
+    "'pip install git+https://github.com/khub-ai/cognitive-os-engine' "
+    "and import the top-level 'cognitive_os' package instead."
+)
