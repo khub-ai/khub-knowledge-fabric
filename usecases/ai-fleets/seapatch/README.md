@@ -757,54 +757,97 @@ has well-documented visual criteria.
 
 ### Human directive swayability experiment (2026-04-17)
 
-A key question for DD in high-stakes deployments: *can a human operator's policy
-directive override a model's internalized prior?* Two opposing directives were
-tested on both `claude-sonnet-4-6` and `claude-opus-4-6`.
+A key question for any system where humans give AI models instructions:
+*can a human operator actually change how the model behaves, just by telling it to?*
 
-**Visual inspection of persistent FPs** revealed the root cause: the 4 frames
-that both models persistently call `person_in_water` all contain small orange or
-red floating objects (life rings / buoys). The models are not hallucinating — they
-see orange on water and apply a rescue prior. This is the model doing what its
-training intended, but the ground truth says "non-person."
+We tested this directly, using two opposite instructions injected as rules.
 
-**Two directives tested (`--use-human-directive` / `--use-human-conservative`):**
+**What triggered the question.** When we looked at the 4 frames the model kept
+getting wrong — classifying sea surface as "person in water" — we noticed they all
+contained small orange or red floating objects: life rings or buoys. The model
+wasn't confused about what it saw. It saw something orange on the water and called
+it a person. That is exactly what it was trained to do.
 
-| Run | Model | Rule-aided | FP | FN | Directive followed? |
+**The two instructions we tested:**
+
+- *Rescue bias:* "In SAR operations, any orange or red object on water means a
+  person may be nearby. Classify it as person-in-water. Dispatch first, confirm
+  later."
+- *Conservative:* "Default to whitecap unless you can clearly see a human body.
+  Orange equipment alone is not enough. False alarms are costly — when in doubt,
+  say whitecap."
+
+| Run | Model | Accuracy | False alarms | Missed persons | Followed instruction? |
 |---|---|---|---|---|---|
-| Model rules (baseline) | `claude-sonnet-4-6` | 0.833 | 4 | 0 | — |
-| IAMSAR expert rules | `claude-sonnet-4-6` | 0.833 | 4 | 0 | — |
-| Rescue directive ("orange = PIW") | `claude-sonnet-4-6` | 0.792 | 4 | 1 | Partially — no new FPs |
-| Conservative ("default to whitecap") | `claude-sonnet-4-6` | 0.792 | 4 | 1 | **No** — same 4 FPs persist |
-| Conservative ("default to whitecap") | `claude-opus-4-6` | 0.708 | 6 | 1 | **No** — FPs unchanged |
+| Model rules (baseline) | `claude-sonnet-4-6` | 83.3% | 4 | 0 | — |
+| IAMSAR expert rules | `claude-sonnet-4-6` | 83.3% | 4 | 0 | — |
+| Rescue bias instruction | `claude-sonnet-4-6` | 79.2% | 4 | 1 | Partially |
+| Conservative instruction | `claude-sonnet-4-6` | 79.2% | 4 | 1 | **No** |
+| Conservative instruction | `claude-opus-4-6` | 70.8% | 6 | 1 | **No** |
 
-**Finding: the rescue prior is immovable by natural-language directives.**
-The 4 orange-object FPs are identical across every Sonnet run regardless of
-whether the directive says "bias toward rescue" or "default to whitecap." The
-conservative directive never reduces FPs in either model; it only introduces a
-new false negative on a genuinely hard frame (`piw_hard_02`, a dark-clothed
-person with no orange component).
+**What happened.** The same 4 orange-object frames were called "person in water"
+in every single Sonnet run — regardless of which instruction was active. Telling
+the model to be more aggressive made no difference. Telling it to be more
+cautious made no difference. The 4 false alarms were immovable.
 
-**Higher capability = stronger rescue prior.** Opus has 6 immovable FPs vs
-Sonnet's 4. The conservative directive moves neither.
+The conservative instruction did have *one* effect: it introduced a new missed
+person (`piw_hard_02`, a dark-clothed victim with no orange component). The model
+partially followed the "be more cautious" instruction on genuinely ambiguous dark
+objects, but continued to override it on anything orange.
 
-**What this means for DD and human-in-the-loop systems:**
+**The more capable model (Opus) was harder to sway, not easier.** Opus had 6
+immovable false alarms vs Sonnet's 4. The conservative instruction moved none of
+them.
 
-VLMs trained with RLHF appear to have internalized a rescue/safety prior that
-sits below the level of instruction compliance. Natural-language directives can
-adjust behaviour *within the envelope* of that prior — they can reinforce it
-(rescue directive aligns with what the model already does) or partially redirect
-it (IAMSAR rules fix genuine perceptual errors) — but they cannot override it
-when it conflicts with the model's deep training signal.
+**Plain-English explanation of why.**
 
-From a safety perspective this is reassuring: a model cannot be instructed into
-ignoring a potential victim. From an operational perspective it is a real
-constraint: if a deployment requires the model to be less rescue-biased (e.g.,
-a high-traffic harbour where life rings are common and false alarms are costly),
-natural-language directives alone are insufficient. The fix requires either a
-different training regime, a pre-classification filter that identifies floating
-equipment before the VLM sees the frame, or a post-classification confidence
-gate tuned on domain-specific calibration data.
+Modern AI models are shaped during training by millions of human ratings of their
+outputs — this process is called RLHF (Reinforcement Learning from Human
+Feedback). One thing human raters consistently reward is: *take potential danger
+to people seriously.* Over time, the model internalises this as a deep belief,
+not just a rule it follows. "Orange thing on water = possible person in danger"
+is that kind of belief.
 
-This finding is unique to the dialogic approach: only by testing directive
-compliance across opposing instructions does the prior's stability become
-visible. A single-direction evaluation would miss it entirely.
+When we inject a rule via DD, we are talking to the part of the model that
+follows instructions. When that rule conflicts with a deep trained belief, the
+belief wins. You can teach the model new facts. You cannot easily override its
+values.
+
+More capable models, having been trained more extensively with human feedback,
+tend to hold these beliefs more firmly — which is why Opus was harder to sway
+than Sonnet.
+
+**What this means in practice.**
+
+DD works well for two things: correcting genuine perceptual errors ("you missed
+the smoke because you didn't know to look for blue-white scatter") and encoding
+domain knowledge the model doesn't have ("here is what a drowning victim looks
+like vs a life ring"). Both of these work *with* the model's existing inclinations.
+
+DD is less effective when you need to push against a deeply trained belief. A
+SAR model that has been told to take orange objects seriously will keep doing so
+no matter what the instruction says. For deployments where this matters — such
+as a busy harbour where life rings are common and every false alarm costs money
+— the solution is not a better instruction. It requires either choosing a model
+trained with lighter human-feedback conditioning, or adding a pre-classification
+filter that identifies floating equipment *before* the VLM classifies the scene.
+
+**The hypothesis: try a less-conditioned model.**
+
+Open-source vision models (such as `Qwen3-VL-8B`, already used in §10) are
+trained with less human-feedback conditioning than Claude models. They may follow
+operational directives more literally — including conservative ones — because
+they hold weaker safety priors. This is not simply "better" or "worse": a model
+that can be fully instructed in any direction gives operators more control but
+also more responsibility. Testing whether `Qwen3-VL-8B` or a similar open-source
+model follows the conservative directive is a natural next step and would
+directly answer whether the immovability is a property of the model family or
+of VLMs generally.
+
+**Why the dialogic method surfaces this.**
+
+This finding is invisible to standard benchmarking, which only tests accuracy in
+one direction. It only becomes visible when you test opposing instructions and
+compare the results. The dialogic approach — where the human acts as an active
+participant trying to shape the model's behaviour, not just a scorer of outputs
+— is what made this observable.
