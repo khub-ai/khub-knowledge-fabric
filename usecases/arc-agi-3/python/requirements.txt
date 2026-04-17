@@ -1,0 +1,3 @@
+arc-agi
+anthropic>=0.25.0
+rich>=13.7.0

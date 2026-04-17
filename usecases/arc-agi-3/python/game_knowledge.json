@@ -1,0 +1,17 @@
+{
+  "ls20": {
+    "action_map": {
+      "UP":    "ACTION1",
+      "DOWN":  "ACTION2",
+      "LEFT":  "ACTION3",
+      "RIGHT": "ACTION4"
+    },
+    "walkable_colors": [3, 5],
+    "step_size": 5,
+    "player_colors": [12],
+    "step_budget": 42,
+    "1": {},
+    "2": {},
+    "3": {}
+  }
+}

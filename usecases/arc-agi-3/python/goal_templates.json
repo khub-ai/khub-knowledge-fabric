@@ -1,0 +1,88 @@
+{
+  "ls20:1": {
+    "game_id": "ls20",
+    "level": 1,
+    "source": "bootstrap",
+    "variables": {
+      "game_id": "ls20",
+      "level": 1,
+      "start_rot": 270,
+      "goal_rot": 0,
+      "start_color": 9,
+      "goal_color": 9,
+      "n_rot_visits": 1,
+      "n_color_visits": 0,
+      "n_shape_visits": 0,
+      "step_budget": 42
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "parent": null,
+        "priority": 1,
+        "description": "Complete {game_id} level {level} within {step_budget} steps: transform player state (rot_idx {start_rot}\u2192{goal_rot} ({n_rot_visits} ROT_CHANGER visit(s))), then reach TARGET."
+      },
+      {
+        "id": "rot-state",
+        "parent": "root",
+        "priority": 2,
+        "description": "Transform rotation: step onto ROT_CHANGER object {n_rot_visits} time(s) to advance rot_idx from {start_rot} to {goal_rot}."
+      },
+      {
+        "id": "rot-navigate",
+        "parent": "rot-state",
+        "priority": 2,
+        "description": "Navigate to the ROT_CHANGER (its position is computed dynamically \u2014 see ## Computed navigation path above). FOLLOW THE COMPUTED BFS PATH exactly: take the first 3 actions, then re-read the next cycle. A ROT_CHANGER visit is confirmed by a step with diff > 80 in action history ([*** LARGE DIFF ***])."
+      },
+      {
+        "id": "win-target",
+        "parent": "root",
+        "priority": 3,
+        "description": "Navigate to WIN TARGET (its position is computed dynamically \u2014 see ## Computed navigation path above) after ROT_CHANGER is visited. FOLLOW THE COMPUTED BFS PATH exactly. Level advances when player occupies TARGET cell \u2014 confirmed by obs.levels_completed increment."
+      }
+    ]
+  },
+  "ls20:2": {
+    "game_id": "ls20",
+    "level": 2,
+    "source": "bootstrap",
+    "variables": {
+      "game_id": "ls20",
+      "level": 2,
+      "start_rot": 0,
+      "goal_rot": 270,
+      "start_color": 9,
+      "goal_color": 9,
+      "n_rot_visits": 3,
+      "n_color_visits": 1,
+      "n_shape_visits": 0,
+      "step_budget": 42
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "parent": null,
+        "priority": 1,
+        "description": "Complete {game_id} level {level} within {step_budget} steps: transform player state (rot_idx {start_rot}\u2192{goal_rot} ({n_rot_visits} ROT_CHANGER visit(s))), then reach TARGET."
+      },
+      {
+        "id": "rot-state",
+        "parent": "root",
+        "priority": 2,
+        "description": "Transform rotation: step onto ROT_CHANGER object {n_rot_visits} time(s) to advance rot_idx from {start_rot} to {goal_rot}."
+      },
+      {
+        "id": "rot-navigate",
+        "parent": "rot-state",
+        "priority": 2,
+        "description": "PHASE 1 ({n_rot_visits} visit(s)): Navigate to the ROT_CHANGER (its position is computed dynamically \u2014 see ## Computed navigation path above) {n_rot_visits} time(s). Each visit is confirmed by a step with diff > 80 in action history ([*** LARGE DIFF ***]). Between consecutive visits, take one step away from the ROT_CHANGER (bounce), then return. FOLLOW THE COMPUTED BFS PATH exactly."
+      },
+      {
+        "id": "win-target",
+        "parent": "root",
+        "priority": 3,
+        "description": "PHASE 2 (after {n_rot_visits} ROT_CHANGER visit(s)): Navigate to COLOR_CHANGER+WIN TARGET (its position is computed dynamically \u2014 see ## Computed navigation path above). After all ROT_CHANGER visits are done, a new BFS path to WIN will appear in ## Computed navigation path. FOLLOW THAT PATH. Level advances when player occupies TARGET cell \u2014 confirmed by obs.levels_completed increment."
+      }
+    ]
+  }
+}

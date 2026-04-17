@@ -1,0 +1,5 @@
+# Local workspace files — not committed
+.tmp/
+.private/
+python/__pycache__/
+python/environment_files/

@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ARC-AGI-3 Playback Viewer</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #1a1a2e; color: #e0e0e0; font-family: monospace; font-size: 13px; }
+
+#app { display: flex; flex-direction: column; height: 100vh; }
+
+/* ── top bar ── */
+#topbar {
+  background: #16213e;
+  border-bottom: 1px solid #0f3460;
+  padding: 8px 14px;
+  display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+}
+#topbar h1 { font-size: 15px; color: #e94560; }
+#file-btn {
+  background: #0f3460; color: #e0e0e0; border: 1px solid #e94560;
+  padding: 4px 10px; cursor: pointer; border-radius: 3px;
+}
+#file-btn:hover { background: #e94560; }
+#run-info { color: #a0a0c0; font-size: 12px; }
+
+/* ── main layout ── */
+#main { display: flex; flex: 1; overflow: hidden; }
+
+/* ── canvas column ── */
+#canvas-col {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 12px; gap: 8px; min-width: 560px;
+}
+.canvas-label { font-size: 11px; color: #888; }
+canvas { image-rendering: pixelated; border: 1px solid #0f3460; }
+
+/* ── controls ── */
+#controls {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  padding: 6px 12px; background: #16213e; border-top: 1px solid #0f3460;
+}
+button {
+  background: #0f3460; color: #e0e0e0; border: 1px solid #555;
+  padding: 4px 10px; cursor: pointer; border-radius: 3px; font-size: 12px;
+}
+button:hover { background: #1a4a8a; }
+button:disabled { opacity: 0.4; cursor: default; }
+#step-slider { flex: 1; min-width: 200px; }
+#step-label { color: #aaa; min-width: 90px; }
+#speed-label { color: #aaa; }
+#speed-range { width: 80px; }
+
+/* ── info panels ── */
+#info-col {
+  flex: 1; display: flex; flex-direction: column; overflow: hidden;
+  border-left: 1px solid #0f3460;
+}
+.panel {
+  padding: 10px 12px;
+  border-bottom: 1px solid #0f3460;
+}
+.panel h2 { font-size: 12px; color: #e94560; margin-bottom: 6px; text-transform: uppercase; }
+.kv { display: flex; gap: 8px; margin-bottom: 3px; flex-wrap: wrap; }
+.k  { color: #888; min-width: 90px; }
+.v  { color: #e0e0e0; }
+.v.ok    { color: #2ecc71; }
+.v.warn  { color: #f39c12; }
+.v.bad   { color: #e74c3c; }
+
+/* events */
+#events-list { max-height: 120px; overflow-y: auto; }
+.event-tag {
+  display: inline-block; padding: 1px 6px; margin: 2px 3px 2px 0;
+  border-radius: 10px; font-size: 11px;
+}
+.ev-push    { background: #8e44ad; }
+.ev-color   { background: #2980b9; }
+.ev-shape   { background: #27ae60; }
+.ev-rot     { background: #d35400; }
+.ev-reset   { background: #16a085; }
+.ev-life    { background: #c0392b; }
+.ev-level   { background: #e94560; font-weight: bold; }
+.ev-block   { background: #555; }
+.ev-other   { background: #444; }
+
+/* goal status */
+.goal-row { display: flex; gap: 8px; margin-bottom: 4px; }
+.goal-box {
+  padding: 3px 10px; border-radius: 3px; font-size: 12px;
+  background: #2c2c3e; border: 1px solid #444;
+}
+.goal-box.match { background: #1a4a2a; border-color: #2ecc71; color: #2ecc71; }
+.goal-box.miss  { background: #4a1a1a; border-color: #e74c3c; color: #e74c3c; }
+
+/* step log */
+#log-col {
+  flex: 1; overflow-y: auto; padding: 10px 12px;
+}
+#log-col h2 { font-size: 12px; color: #e94560; margin-bottom: 6px; text-transform: uppercase; }
+.log-row {
+  display: flex; gap: 6px; padding: 3px 0;
+  border-bottom: 1px solid #222; cursor: pointer; align-items: flex-start;
+  font-size: 11px;
+}
+.log-row:hover { background: #1e2a3e; }
+.log-row.active { background: #0f3460; }
+.log-step  { color: #666; min-width: 38px; }
+.log-level { color: #888; min-width: 28px; }
+.log-src   { min-width: 60px; }
+.log-src.presolve { color: #2980b9; }
+.log-src.agent    { color: #e67e22; }
+.log-action{ color: #e0e0e0; min-width: 72px; }
+.log-pos   { color: #aaa; min-width: 90px; }
+.log-events{ color: #ccc; }
+
+/* legend */
+#legend {
+  display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 12px;
+  border-top: 1px solid #0f3460; background: #16213e;
+}
+.legend-swatch {
+  display: flex; align-items: center; gap: 4px; font-size: 11px;
+}
+.swatch { width: 12px; height: 12px; display: inline-block; border: 1px solid #333; }
+
+/* overlay canvas */
+#canvas-wrap { position: relative; }
+#overlay-canvas { position: absolute; top: 0; left: 0; pointer-events: none; }
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- top bar -->
+<div id="topbar">
+  <h1>ARC-AGI-3 Playback Viewer</h1>
+  <input type="file" id="file-input" accept=".json" style="display:none">
+  <button id="file-btn" onclick="document.getElementById('file-input').click()">Load Recording</button>
+  <span id="run-info">No recording loaded</span>
+</div>
+
+<!-- main -->
+<div id="main">
+
+  <!-- left: canvas + controls -->
+  <div id="canvas-col">
+    <div class="canvas-label" id="frame-label">Frame (before action)</div>
+    <div id="canvas-wrap">
+      <canvas id="game-canvas" width="512" height="512"></canvas>
+      <canvas id="overlay-canvas" width="512" height="512"></canvas>
+    </div>
+    <div id="controls">
+      <button id="btn-first"  title="First step">⏮</button>
+      <button id="btn-prev"   title="Previous">◀</button>
+      <button id="btn-play"   title="Play/Pause">▶</button>
+      <button id="btn-next"   title="Next">▶|</button>
+      <button id="btn-last"   title="Last step">⏭</button>
+      <input type="range" id="step-slider" min="0" value="0">
+      <span id="step-label">Step 0/0</span>
+      <span id="speed-label">Speed:</span>
+      <input type="range" id="speed-range" min="1" max="20" value="5">
+    </div>
+    <!-- legend -->
+    <div id="legend"></div>
+  </div>
+
+  <!-- right: info + log -->
+  <div id="info-col">
+
+    <!-- state panel -->
+    <div class="panel" id="state-panel">
+      <h2>Game State</h2>
+      <div class="kv"><span class="k">Level:</span>   <span class="v" id="s-level">—</span></div>
+      <div class="kv"><span class="k">Action:</span>  <span class="v" id="s-action">—</span></div>
+      <div class="kv"><span class="k">Source:</span>  <span class="v" id="s-source">—</span></div>
+      <div class="kv"><span class="k">Player:</span>  <span class="v" id="s-player">—</span></div>
+      <div class="kv"><span class="k">Shape:</span>   <span class="v" id="s-shape">—</span></div>
+      <div class="kv"><span class="k">Color:</span>   <span class="v" id="s-color">—</span></div>
+      <div class="kv"><span class="k">Rotation:</span><span class="v" id="s-rot">—</span></div>
+      <div class="kv"><span class="k">Counter:</span> <span class="v" id="s-counter">—</span></div>
+      <div class="kv"><span class="k">Lives:</span>   <span class="v" id="s-lives">—</span></div>
+    </div>
+
+    <!-- goal panel -->
+    <div class="panel" id="goal-panel">
+      <h2>Goal Status</h2>
+      <div class="goal-row" id="goal-row"></div>
+      <div class="kv" style="margin-top:4px">
+        <span class="k">Target(s):</span><span class="v" id="s-targets">—</span>
+      </div>
+    </div>
+
+    <!-- events panel -->
+    <div class="panel">
+      <h2>Events This Step</h2>
+      <div id="events-list"></div>
+    </div>
+
+    <!-- step log -->
+    <div id="log-col">
+      <h2>Step Log</h2>
+      <div id="step-log"></div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// State
+// ═══════════════════════════════════════════════════════════════
+let recording = null;   // full JSON
+let steps     = [];     // recording.steps
+let stepIdx   = 0;      // current step (0 = before any step, 1..N = after step N)
+let playing   = false;
+let playTimer = null;
+
+const SCALE = 8;  // 64*8 = 512px canvas
+const canvas  = document.getElementById("game-canvas");
+const overlay = document.getElementById("overlay-canvas");
+const ctx     = canvas.getContext("2d");
+const octx    = overlay.getContext("2d");
+
+// ═══════════════════════════════════════════════════════════════
+// Load recording
+// ═══════════════════════════════════════════════════════════════
+document.getElementById("file-input").addEventListener("change", e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      recording = JSON.parse(ev.target.result);
+      steps     = recording.steps;
+      initViewer();
+    } catch(err) {
+      alert("Failed to parse JSON: " + err);
+    }
+  };
+  reader.readAsText(file);
+});
+
+function initViewer() {
+  const meta = recording.meta;
+  document.getElementById("run-info").textContent =
+    `${meta.env_id} | ${meta.total_steps} steps | Levels: ${meta.final_level}/${meta.total_levels} | ${meta.run_date}`;
+
+  // Slider
+  const slider = document.getElementById("step-slider");
+  slider.max   = steps.length;
+  slider.value = 0;
+  stepIdx = 0;
+
+  buildLegend();
+  buildLog();
+  renderStep(0);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Rendering
+// ═══════════════════════════════════════════════════════════════
+function renderStep(idx) {
+  stepIdx = idx;
+  document.getElementById("step-slider").value = idx;
+
+  if (!recording || steps.length === 0) return;
+
+  const step = idx === 0 ? null : steps[idx - 1];
+  const frame = step ? step.frame_before : steps[0].frame_before;
+
+  drawFrame(frame);
+
+  // Overlay: show interactables for this level
+  drawOverlay(step);
+
+  // Update UI
+  updateStatePanel(step);
+  updateGoalPanel(step);
+  updateEvents(step);
+  highlightLog(idx);
+
+  document.getElementById("step-label").textContent =
+    `Step ${idx}/${steps.length}`;
+  document.getElementById("frame-label").textContent =
+    step ? `Level ${step.level}  ·  Step ${step.step}  ·  Before: ${step.action}` : "Initial frame";
+}
+
+function drawFrame(frame) {
+  const palette = recording.meta.palette;
+  const imgData = ctx.createImageData(canvas.width, canvas.height);
+  const data    = imgData.data;
+  const H = frame.length, W = frame[0].length;
+
+  for (let r = 0; r < H; r++) {
+    for (let c = 0; c < W; c++) {
+      const col = frame[r][c];
+      const rgb = palette[col] || [128, 0, 128];
+      for (let dr = 0; dr < SCALE; dr++) {
+        for (let dc = 0; dc < SCALE; dc++) {
+          const pi = ((r * SCALE + dr) * canvas.width + (c * SCALE + dc)) * 4;
+          data[pi]   = rgb[0];
+          data[pi+1] = rgb[1];
+          data[pi+2] = rgb[2];
+          data[pi+3] = 255;
+        }
+      }
+    }
+  }
+  ctx.putImageData(imgData, 0, 0);
+}
+
+function drawOverlay(step) {
+  octx.clearRect(0, 0, overlay.width, overlay.height);
+  if (!step || !recording) return;
+
+  const levelIdx = step.level - 1;
+  if (levelIdx < 0 || levelIdx >= recording.levels.length) return;
+  const lm = recording.levels[levelIdx];
+
+  // Draw targets
+  for (const t of (lm.targets || [])) {
+    octx.strokeStyle = "rgba(255,220,0,0.9)";
+    octx.lineWidth   = 2;
+    octx.strokeRect(t.x * SCALE, t.y * SCALE, 5 * SCALE, 5 * SCALE);
+    labelCell(t.x, t.y, "T", "#ffe000");
+  }
+
+  // Draw shape changers
+  for (const s of (lm.shape_changers || [])) {
+    octx.strokeStyle = "rgba(46,204,113,0.9)";
+    octx.lineWidth   = 2;
+    octx.strokeRect(s.x * SCALE, s.y * SCALE, 5 * SCALE, 5 * SCALE);
+    labelCell(s.x, s.y, "S", "#2ecc71");
+  }
+
+  // Draw color changers
+  for (const s of (lm.color_changers || [])) {
+    octx.strokeStyle = "rgba(52,152,219,0.9)";
+    octx.lineWidth   = 2;
+    octx.strokeRect(s.x * SCALE, s.y * SCALE, 5 * SCALE, 5 * SCALE);
+    labelCell(s.x, s.y, "C", "#3498db");
+  }
+
+  // Draw rot changers
+  for (const s of (lm.rot_changers || [])) {
+    octx.strokeStyle = "rgba(230,126,34,0.9)";
+    octx.lineWidth   = 2;
+    octx.strokeRect(s.x * SCALE, s.y * SCALE, 5 * SCALE, 5 * SCALE);
+    labelCell(s.x, s.y, "R", "#e67e22");
+  }
+
+  // Draw resets
+  for (const s of (lm.resets || [])) {
+    octx.strokeStyle = "rgba(22,160,133,0.9)";
+    octx.lineWidth   = 1;
+    octx.strokeRect(s.x * SCALE, s.y * SCALE, 5 * SCALE, 5 * SCALE);
+    labelCell(s.x, s.y, "!", "#16a085");
+  }
+
+  // Push pad arrows
+  for (const pp of (lm.push_pads || [])) {
+    const name = pp.name;
+    let arrowChar = "?";
+    if (name.endsWith("_t")) arrowChar = "↑";
+    else if (name.endsWith("_b")) arrowChar = "↓";
+    else if (name.endsWith("_r")) arrowChar = "→";
+    else if (name.endsWith("_l")) arrowChar = "←";
+    labelCell(pp.x, pp.y, arrowChar, "#9b59b6");
+  }
+
+  // Player position highlight
+  if (step) {
+    const sb = step.state_before;
+    octx.strokeStyle = "rgba(255,255,255,0.8)";
+    octx.lineWidth   = 2;
+    octx.strokeRect(sb.player_x * SCALE, sb.player_y * SCALE, 5 * SCALE, 5 * SCALE);
+    // Arrow showing movement
+    const sa = step.state_after;
+    if (sa.player_x !== sb.player_x || sa.player_y !== sb.player_y) {
+      const fromX = (sb.player_x + 2.5) * SCALE;
+      const fromY = (sb.player_y + 2.5) * SCALE;
+      const toX   = (sa.player_x + 2.5) * SCALE;
+      const toY   = (sa.player_y + 2.5) * SCALE;
+      drawArrow(fromX, fromY, toX, toY, "rgba(255,255,255,0.5)");
+    }
+  }
+}
+
+function labelCell(gx, gy, text, color) {
+  octx.fillStyle = color;
+  octx.font      = "bold 10px monospace";
+  octx.fillText(text, gx * SCALE + 2, gy * SCALE + 11);
+}
+
+function drawArrow(x1, y1, x2, y2, color) {
+  const angle = Math.atan2(y2 - y1, x2 - x1);
+  const len   = Math.hypot(x2 - x1, y2 - y1);
+  if (len < 2) return;
+  octx.strokeStyle = color;
+  octx.lineWidth   = 2;
+  octx.beginPath();
+  octx.moveTo(x1, y1);
+  octx.lineTo(x2, y2);
+  const hw = 7;
+  octx.moveTo(x2, y2);
+  octx.lineTo(x2 - hw * Math.cos(angle - Math.PI/6), y2 - hw * Math.sin(angle - Math.PI/6));
+  octx.moveTo(x2, y2);
+  octx.lineTo(x2 - hw * Math.cos(angle + Math.PI/6), y2 - hw * Math.sin(angle + Math.PI/6));
+  octx.stroke();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// State panel
+// ═══════════════════════════════════════════════════════════════
+function updateStatePanel(step) {
+  if (!step) {
+    ["s-level","s-action","s-source","s-player","s-shape",
+     "s-color","s-rot","s-counter","s-lives"].forEach(id => {
+      document.getElementById(id).textContent = "—";
+    });
+    return;
+  }
+  const sb = step.state_before;
+  const sa = step.state_after;
+  const meta = recording.meta;
+  const colors = meta.color_names || {};
+  const rots   = meta.rot_values  || [];
+
+  setText("s-level",  `${step.level} / ${meta.total_levels}`);
+  setText("s-action", step.action);
+  const srcEl = document.getElementById("s-source");
+  srcEl.textContent = step.source;
+  srcEl.style.color = step.source === "presolve" ? "#3498db" : "#e67e22";
+  setText("s-player",  `(${sb.player_x},${sb.player_y}) → (${sa.player_x},${sa.player_y})`);
+
+  const shapeChg = sa.shape_idx !== sb.shape_idx;
+  const colChg   = sa.color_idx !== sb.color_idx;
+  const rotChg   = sa.rot_idx   !== sb.rot_idx;
+  const colorLabel = idx => `${colors[idx] || idx} (idx=${idx})`;
+  const rotLabel   = idx => `${rots[idx] !== undefined ? rots[idx]+"°" : idx} (idx=${idx})`;
+
+  setVal("s-shape",  `${sb.shape_idx}${shapeChg ? " → " + sa.shape_idx : ""}`, shapeChg ? "warn" : "");
+  setVal("s-color",  `${colorLabel(sb.color_idx)}${colChg ? " → " + colorLabel(sa.color_idx) : ""}`, colChg ? "warn" : "");
+  setVal("s-rot",    `${rotLabel(sb.rot_idx)}${rotChg ? " → " + rotLabel(sa.rot_idx) : ""}`, rotChg ? "warn" : "");
+
+  const ctr    = sa.counter;
+  const ctrMax = sa.counter_max;
+  const ctrPct = ctrMax > 0 ? ctr / ctrMax : 1;
+  setVal("s-counter", `${ctr} / ${ctrMax}`, ctrPct < 0.3 ? "bad" : ctrPct < 0.6 ? "warn" : "ok");
+  setVal("s-lives",   `${sa.lives}`, sa.lives < 2 ? "warn" : "ok");
+}
+
+function updateGoalPanel(step) {
+  const row = document.getElementById("goal-row");
+  row.innerHTML = "";
+  document.getElementById("s-targets").textContent = "—";
+
+  if (!step || !recording) return;
+  const levelIdx = step.level - 1;
+  if (levelIdx < 0 || levelIdx >= recording.levels.length) return;
+  const lm = recording.levels[levelIdx];
+
+  if (lm.targets && lm.targets.length > 0) {
+    document.getElementById("s-targets").textContent =
+      lm.targets.map(t => `(${t.x},${t.y})`).join(", ");
+  }
+
+  const gm = step.goal_match || {};
+  const meta = recording.meta;
+  const colors = meta.color_names || {};
+  const rots   = meta.rot_values  || [];
+
+  if (Object.keys(gm).length === 0) {
+    row.innerHTML = '<span style="color:#888">no shape/color/rot requirement</span>';
+    return;
+  }
+
+  ["shape","color","rot"].forEach(k => {
+    if (k in gm) {
+      const ok  = gm[k];
+      const div = document.createElement("div");
+      div.className = `goal-box ${ok ? "match" : "miss"}`;
+      let label = k.toUpperCase();
+      const sa  = step.state_after;
+      const lv  = recording.levels[levelIdx];
+      if (k === "color" && lv) label += `: ${colors[sa.color_idx]||sa.color_idx}→${colors[lv.goal_color]||lv.goal_color}`;
+      if (k === "rot"   && lv) label += `: ${rots[sa.rot_idx]||sa.rot_idx}°→${rots[lv.goal_rot]||lv.goal_rot}°`;
+      if (k === "shape" && lv) label += `: ${sa.shape_idx}→${lv.goal_shape}`;
+      div.textContent = (ok ? "✓ " : "✗ ") + label;
+      row.appendChild(div);
+    }
+  });
+}
+
+function updateEvents(step) {
+  const el = document.getElementById("events-list");
+  el.innerHTML = "";
+  if (!step) return;
+  for (const ev of (step.events || [])) {
+    const span = document.createElement("span");
+    span.className = "event-tag " + evClass(ev);
+    span.textContent = ev;
+    el.appendChild(span);
+  }
+  if ((step.events || []).length === 0) {
+    el.innerHTML = '<span style="color:#555">—</span>';
+  }
+}
+
+function evClass(ev) {
+  if (ev.startsWith("PUSH"))         return "ev-push";
+  if (ev.startsWith("COLOR"))        return "ev-color";
+  if (ev.startsWith("SHAPE"))        return "ev-shape";
+  if (ev.startsWith("ROT"))          return "ev-rot";
+  if (ev.startsWith("COUNTER"))      return "ev-reset";
+  if (ev.startsWith("LIFE"))         return "ev-life";
+  if (ev.startsWith("LEVEL"))        return "ev-level";
+  if (ev.startsWith("BLOCKED"))      return "ev-block";
+  return "ev-other";
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Step log
+// ═══════════════════════════════════════════════════════════════
+function buildLog() {
+  const log = document.getElementById("step-log");
+  log.innerHTML = "";
+  for (let i = 0; i < steps.length; i++) {
+    const s = steps[i];
+    const row = document.createElement("div");
+    row.className = "log-row";
+    row.id = `log-row-${i+1}`;
+    row.dataset.idx = i + 1;
+
+    const evSummary = (s.events || []).map(e => {
+      const span = document.createElement("span");
+      span.className = "event-tag " + evClass(e);
+      span.style.fontSize = "10px";
+      span.style.padding  = "0 4px";
+      span.textContent = e.split(":")[0];
+      return span.outerHTML;
+    }).join("");
+
+    row.innerHTML =
+      `<span class="log-step">#${s.step}</span>` +
+      `<span class="log-level">L${s.level}</span>` +
+      `<span class="log-src ${s.source}">${s.source}</span>` +
+      `<span class="log-action">${s.action}</span>` +
+      `<span class="log-pos">(${s.state_before.player_x},${s.state_before.player_y})</span>` +
+      `<span class="log-events">${evSummary}</span>`;
+
+    row.addEventListener("click", () => renderStep(parseInt(row.dataset.idx)));
+    log.appendChild(row);
+  }
+}
+
+function highlightLog(idx) {
+  document.querySelectorAll(".log-row").forEach(r => r.classList.remove("active"));
+  if (idx > 0) {
+    const el = document.getElementById(`log-row-${idx}`);
+    if (el) {
+      el.classList.add("active");
+      el.scrollIntoView({ block: "nearest" });
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Legend
+// ═══════════════════════════════════════════════════════════════
+function buildLegend() {
+  const legend  = document.getElementById("legend");
+  legend.innerHTML = "";
+  if (!recording) return;
+  const palette = recording.meta.palette;
+  const seenColors = new Set();
+
+  for (const step of steps) {
+    for (const row of step.frame_before) {
+      for (const v of row) seenColors.add(v);
+    }
+  }
+
+  for (const [idx, rgb] of Object.entries(palette)) {
+    if (!seenColors.has(parseInt(idx))) continue;
+    const div   = document.createElement("div");
+    div.className = "legend-swatch";
+    const sw    = document.createElement("span");
+    sw.className = "swatch";
+    sw.style.background = `rgb(${rgb.join(",")})`;
+    const label = document.createElement("span");
+    const cn    = recording.meta.color_names;
+    label.textContent = cn && cn[idx] ? `c${idx}(${cn[idx]})` : `c${idx}`;
+    div.appendChild(sw);
+    div.appendChild(label);
+    legend.appendChild(div);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Controls
+// ═══════════════════════════════════════════════════════════════
+document.getElementById("btn-first").addEventListener("click", () => { stopPlay(); renderStep(0); });
+document.getElementById("btn-last" ).addEventListener("click", () => { stopPlay(); renderStep(steps.length); });
+document.getElementById("btn-prev" ).addEventListener("click", () => { stopPlay(); renderStep(Math.max(0, stepIdx - 1)); });
+document.getElementById("btn-next" ).addEventListener("click", () => { stopPlay(); renderStep(Math.min(steps.length, stepIdx + 1)); });
+document.getElementById("step-slider").addEventListener("input", e => {
+  stopPlay();
+  renderStep(parseInt(e.target.value));
+});
+document.getElementById("btn-play").addEventListener("click", togglePlay);
+
+function togglePlay() {
+  playing = !playing;
+  document.getElementById("btn-play").textContent = playing ? "⏸" : "▶";
+  if (playing) scheduleNext();
+  else stopPlay(false);
+}
+
+function stopPlay(resetBtn = true) {
+  playing = false;
+  if (playTimer) { clearTimeout(playTimer); playTimer = null; }
+  if (resetBtn) document.getElementById("btn-play").textContent = "▶";
+}
+
+function scheduleNext() {
+  if (!playing) return;
+  const speed  = parseInt(document.getElementById("speed-range").value);
+  const ms     = Math.round(1000 / speed);
+  playTimer    = setTimeout(() => {
+    if (stepIdx >= steps.length) { stopPlay(); return; }
+    renderStep(stepIdx + 1);
+    if (playing) scheduleNext();
+  }, ms);
+}
+
+// Keyboard navigation
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+    stopPlay(); renderStep(Math.min(steps.length, stepIdx + 1));
+  } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+    stopPlay(); renderStep(Math.max(0, stepIdx - 1));
+  } else if (e.key === " ") {
+    e.preventDefault(); togglePlay();
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// Helpers
+// ═══════════════════════════════════════════════════════════════
+function setText(id, text) { document.getElementById(id).textContent = text; }
+function setVal(id, text, cls) {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = "v " + (cls || "");
+}
+</script>
+</body>
+</html>
