@@ -92,9 +92,9 @@ It does not try to demonstrate every KF capability, such as long-term accumulati
 
 - Jump to [Sub-Use-Case A: Birds](#3-sub-use-case-a-birds)
 - Jump to [Sub-Use-Case B: Dermatology](#4-sub-use-case-b-dermatology)
-- Jump to [Sub-Use-Case C: Road Surface Conditions](#4b-sub-use-case-c-road-surface-conditions)
-- Jump to [Cross-Use-Case Takeaways](#5-cross-use-case-takeaways)
-- Jump to [Why This Matters to VLM Vendors](#6-why-this-matters-to-vlm-vendors)
+- Jump to [Sub-Use-Case C: Road Surface Conditions](#5-sub-use-case-c-road-surface-conditions)
+- Jump to [Cross-Use-Case Takeaways](#6-cross-use-case-takeaways)
+- Jump to [Why This Matters to VLM Vendors](#7-why-this-matters-to-vlm-vendors)
 
 ---
 
@@ -139,7 +139,7 @@ For the developer-facing pipeline details and iteration history, see [DESIGN.md]
 
 ---
 
-## 4b. Sub-Use-Case C: Road Surface Conditions
+## 5. Sub-Use-Case C: Road Surface Conditions
 
 > **Full write-up**: [road-surface/README.md](road-surface/README.md) — includes dataset details, confusable pairs, vocabulary gap analysis, and edge deployment context. Written for autonomous driving engineers and road safety researchers.
 
@@ -153,7 +153,7 @@ Road surface condition classification moves KF from biological/medical domains i
 
 ---
 
-## 5. Cross-Use-Case Takeaways
+## 6. Cross-Use-Case Takeaways
 
 ### Where knowledge comes from
 
@@ -200,7 +200,7 @@ Summary of current evidence:
 
 ---
 
-## 6. Why This Matters to VLM Vendors
+## 7. Why This Matters to VLM Vendors
 
 For a VLM vendor, or for a product team wrapping a VLM, the core value is not just better benchmark accuracy. The value is a new post-deployment improvement loop. Instead of waiting for the next model release or running expensive customer-specific fine-tuning, the vendor can ship a system that improves through external knowledge patches authored and verified by domain experts.
 
@@ -257,7 +257,7 @@ The answer depends on what kind of fine-tuned model is involved, and the two cas
 
 ---
 
-## 7. Developer Notes
+## 8. Developer Notes
 
 This README is intentionally user-facing.
 
@@ -279,7 +279,7 @@ Useful entry points:
 - [Repository layout and developer quick start](DESIGN.md#4-repository-layout-and-developer-quick-start)
 
 ---
-## 8. References
+## 9. References
 
 - CUB-200-2011 dataset: [Caltech Perona Lab](https://www.vision.caltech.edu/datasets/cub_200_2011/)
 - Papers with Code leaderboard: [Fine-Grained Classification on CUB-200](https://paperswithcode.com/sota/fine-grained-image-classification-on-cub-200)
