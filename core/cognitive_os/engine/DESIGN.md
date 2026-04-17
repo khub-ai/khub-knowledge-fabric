@@ -914,7 +914,16 @@ core/cognitive_os/                     ← COS namespace
 ```
 
 Domain-specific adapters will live under `usecases/<domain>/` when the
-first one is implemented (Phase 5).  One name collision exists outside
+first one is implemented (Phase 5).  The engine imposes no structure on
+the action space: `Action.make(name, **params)` accepts any name string
+and arbitrary parameters, and `compute_plan(ws, goal_id, action_space)`
+iterates whatever list the adapter supplies.  ARC-AGI-3 has six or more
+distinct action types (four directional plus interaction and click-like
+actions depending on the game); robotics adapters will have dozens of
+parameterised actions.  The toy four-directional fixture used in the
+Phase 3 round-trip test is not a claim about any real domain.
+
+One name collision exists outside
 the `cognitive_os` namespace: `Goal` is also defined in
 `core/knowledge/goals.py` (a non-COS framework module); the engine's
 `Goal` is in `core.cognitive_os.engine.types` and the two never mix
