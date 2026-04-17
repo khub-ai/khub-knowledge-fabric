@@ -211,6 +211,23 @@ KF should not be positioned only as a feature that a VLM vendor must deeply embe
 - Identify verticals where explicit expert rules are both common and commercially valuable.
 - Position KF against prompt engineering, RAG, and fine-tuning with a simple comparison table.
 - Prove that patches improve the `model + KF` system reliably without creating unacceptable regressions elsewhere.
+- **Test KF on top of a fine-tuned domain VLM** — do the rule engine and router still add value when the base model already has calibrated domain perception? (See below.)
+
+---
+
+### KF on top of fine-tuned models: an open question and invitation
+
+All experiments in this repo use a general-purpose zero-shot VLM as the base model. A natural next question is whether KF's runtime correction methods still apply when the underlying model has already been fine-tuned on the target domain.
+
+The answer depends on what kind of fine-tuned model is involved, and the two cases are meaningfully different.
+
+**Fine-tuned classifiers (CNN, ViT, EfficientNet with a classification head).** These models output class probabilities, not natural language. The KF pipeline assumes a model that can describe what it sees — the Observer writes feature reports, Mediator reasons over them, rules interrogate stated feature presence. A pure classification head has no such surface. KF's rule injection does not apply in this form. Confidence thresholding or output-level ensembling remains possible, but that is a narrower mechanism than the full dialogic loop.
+
+**Fine-tuned VLMs.** This is the more interesting case, and the expectation is that KF works *better*, not worse. The core bottleneck in the current zero-shot experiments was systematic feature denial: the VLM reported diagnostic features (pigment network, milia cysts, arborizing vessels) as absent even when they were clearly visible, making rules unreliable. A VLM fine-tuned on domain imagery would have calibrated its feature vocabulary against ground truth, producing more accurate Observer reports and more reliably-firing rules. KF's role shifts from "correcting systematic perceptual blindness" to "handling the long tail of atypical presentations and genuine edge cases" — which is exactly where explicit human-authored rules add the most durable value. The dialogic patching loop, the hierarchical router, and the rule pre-condition architecture all transfer without modification; only the failure modes being corrected change.
+
+**To-do**: run the KF hierarchical dermatology pipeline on top of a domain-fine-tuned VLM (e.g., a VLM fine-tuned on ISIC/HAM10000) and measure (a) whether the accuracy floor is higher before any KF correction, (b) whether the +pp lift per rule is larger because feature reports are more trustworthy, and (c) whether fewer curation rounds are needed to close the remaining gap on hard cases.
+
+**If you have a fine-tuned dermoscopy or medical imaging model and want to try this**, the pipeline is designed for it. The agents module exposes `_set_active_model()` and `_set_default_model()` to swap the underlying model, and the rule engine, visual-similarity router, and evaluation harness are fully model-agnostic. The main integration point is the `call_agent()` interface in `agents.py` — implement that for your model endpoint and everything else runs as-is. Experiment reports and pull requests are very welcome; results from a domain-specialized model would be a meaningful data point for understanding where KF adds the most leverage.
 
 ---
 
