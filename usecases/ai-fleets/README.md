@@ -11,6 +11,40 @@
 
 ---
 
+## A Note on Drones with VLM Vision
+
+The drone use cases in this category (SeaPatch maritime SAR, PyroWatch wildfire
+detection) assume that drones carry **on-board vision-language models (VLMs)** —
+AI models capable of understanding natural-language instructions and classifying
+what they see in plain English, not just running a fixed neural network classifier.
+
+**This is a near-future capability, not a current industry standard.**
+
+Today, most operational drones use lightweight convolutional neural networks or
+classical computer vision for on-board inference. VLMs — models like Qwen3-VL or
+Claude — are large, power-hungry, and typically run in the cloud or on
+workstation-grade hardware. Deploying them on an airborne platform requires
+advances in edge hardware (e.g. Jetson Orin NX, which we specify for the
+commander tier) and continued model miniaturisation that is actively happening
+but not yet widespread.
+
+**Why we assume this capability:** The entire value of Dialogic Distillation in
+a drone fleet depends on it. DD works by injecting natural-language rules into a
+model's reasoning at inference time. A fixed CNN classifier cannot receive or act
+on a natural-language rule — it has no mechanism for it. A VLM can. The moment
+a drone carries a VLM, the knowledge propagation problem becomes solvable in the
+way DD solves it: broadcast a rule as text, and every drone that reads it
+immediately reasons differently about the scenes it sees.
+
+**What we actually measured** does not require flying drones. The experiments in
+this repository run entirely on public datasets (SeaDronesSee, FIgLib) on a
+desktop machine. We test the classification step — does rule injection improve
+accuracy? — not the flight dynamics or hardware integration. The drone context
+establishes *why* the problem matters and *what scale* the solution must reach;
+the experiments establish *whether* the solution works on the relevant data.
+
+---
+
 ## The Pattern
 
 Every large-scale AI deployment eventually faces the same problem. You have many

@@ -24,6 +24,11 @@
 
 ## Summary
 
+> **Note on drone VLM vision:** This scenario assumes scout drones and ground
+> sentinels carry on-board vision-language models — a near-future capability,
+> not current industry standard. See the [AI Fleets overview](../README.md#a-note-on-drones-with-vlm-vision)
+> for context on why we assume this and what we actually measured.
+
 **Motivating scenario**: a 164-agent wildfire detection fleet — 120 ground
 sentinel cameras, 40 scout drones, 4 commander aircraft — where the commander
 tier's MWIR sensor confirms ignitions that the optical tier misses. An expert

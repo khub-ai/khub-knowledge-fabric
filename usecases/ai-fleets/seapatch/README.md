@@ -23,6 +23,11 @@
 
 ## Summary
 
+> **Note on drone VLM vision:** This scenario assumes drones carry on-board
+> vision-language models — a near-future capability, not current industry
+> standard. See the [AI Fleets overview](../README.md#a-note-on-drones-with-vlm-vision)
+> for context on why we assume this and what we actually measured.
+
 **Motivating scenario**: a 40-drone maritime SAR fleet (38 optical scout
 drones + 2 commander drones with thermal FLIR) where the commander tier's
 thermal sensor confirms a person in the water that the optical scouts missed.
