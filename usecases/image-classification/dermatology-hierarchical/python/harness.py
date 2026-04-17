@@ -254,6 +254,18 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--model",         default="claude-sonnet-4-6")
     p.add_argument("--quiet",         action="store_true")
     p.add_argument("--prompts",       action="store_true")
+    p.add_argument(
+        "--curated-refs",
+        dest="curated_refs",
+        default=str(_HERE / "curated_references.json"),
+        help=(
+            "JSON file mapping group names to canonical reference image paths "
+            "(produced by curate_references.py).  When present and non-empty, "
+            "Level-1 routing uses the visual-similarity router instead of the full "
+            "KF Observer→Mediator→Verifier pipeline.  Pass --curated-refs='' to "
+            "force the full KF L1 pipeline regardless."
+        ),
+    )
     return p.parse_args()
 
 
@@ -286,6 +298,25 @@ async def main() -> None:
     from dotenv import load_dotenv
     load_dotenv(dotenv_path=_KF_ROOT / ".env", override=False)
 
+    # Curated canonical references for L1 visual-similarity router
+    curated_refs: dict[str, str] = {}
+    curated_refs_path = Path(args.curated_refs) if args.curated_refs else None
+    if curated_refs_path and curated_refs_path.exists():
+        try:
+            curated_refs = json.loads(curated_refs_path.read_text(encoding="utf-8"))
+            console.print(
+                f"[dim]Curated references loaded: {len(curated_refs)} groups "
+                f"from {curated_refs_path.name}[/dim]"
+            )
+        except Exception as exc:
+            console.print(f"[yellow]Warning: could not load curated refs: {exc}[/yellow]")
+    elif args.curated_refs:
+        console.print(
+            f"[yellow]Curated refs file not found: {args.curated_refs}\n"
+            f"  → Run curate_references.py first to generate it.\n"
+            f"  → Falling back to full KF pipeline for Level-1 routing.[/yellow]"
+        )
+
     # Data
     ds = load_ham10000(args.data_dir)
     max_pc = None if args.all else args.max_per_class
@@ -316,7 +347,12 @@ async def main() -> None:
         correct_count = sum(1 for r in all_results if r.get("correct"))
         console.print(f"[dim]Resuming: {len(completed_ids)} tasks already done.[/dim]")
 
-    _scope = args.filter_class or "all 7 classes"
+    _scope   = args.filter_class or "all 7 classes"
+    _l1_mode = (
+        f"visual-similarity router ({len(curated_refs)} curated refs)"
+        if curated_refs
+        else "full KF pipeline (Observer→Mediator→Verifier)"
+    )
     console.print(Panel(
         f"[bold]KF Dermatology Hierarchical — 2-Level Ensemble[/bold]\n"
         f"Model:       [cyan]{args.model}[/cyan]\n"
@@ -324,6 +360,7 @@ async def main() -> None:
         f"Mode:        {'test (read-only)' if test_mode else 'train (learning)'}\n"
         f"Few-shot:    {args.n_few_shot} images/fine-class\n"
         f"Level 1:     {len(LEVEL1_GROUP_NAMES)} groups — {', '.join(LEVEL1_GROUP_NAMES)}\n"
+        f"L1 routing:  {_l1_mode}\n"
         + "Level 2:     " + ", ".join(f"{k}: {v['categories']}" for k,v in LEVEL2_SUBPROBLEMS.items()),
         title="Hierarchical Ensemble", border_style="blue"
     ))
@@ -348,6 +385,7 @@ async def main() -> None:
                 dataset=args.dataset,
                 dataset_tag=args.dataset_tag,
                 test_mode=test_mode,
+                curated_refs=curated_refs,
             )
         except Exception as exc:
             console.print(f"[red]ERROR on {tid}: {exc}[/red]")

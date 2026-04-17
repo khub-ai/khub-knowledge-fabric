@@ -1,0 +1,13 @@
+{
+  "Melanocytic": [
+    "C:\\_backup\\ml\\data\\DermaMNIST_HAM10000\\HAM10000_images_part_1\\ISIC_0028799.jpg",
+    "C:\\_backup\\ml\\data\\DermaMNIST_HAM10000\\HAM10000_images_part_1\\ISIC_0026207.jpg"
+  ],
+  "Keratosis-type": [
+    "C:\\_backup\\ml\\data\\DermaMNIST_HAM10000\\HAM10000_images_part_1\\ISIC_0027990.jpg",
+    "C:\\_backup\\ml\\data\\DermaMNIST_HAM10000\\HAM10000_images_part_1\\ISIC_0025992.jpg"
+  ],
+  "Basal Cell Carcinoma": "C:\\_backup\\ml\\data\\DermaMNIST_HAM10000\\HAM10000_images_part_1\\ISIC_0028671.jpg",
+  "Vascular Lesion": "C:\\_backup\\ml\\data\\DermaMNIST_HAM10000\\HAM10000_images_part_1\\ISIC_0027665.jpg",
+  "Dermatofibroma": "C:\\_backup\\ml\\data\\DermaMNIST_HAM10000\\HAM10000_images_part_2\\ISIC_0031257.jpg"
+}

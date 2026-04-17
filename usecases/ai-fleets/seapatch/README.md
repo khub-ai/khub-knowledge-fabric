@@ -754,3 +754,57 @@ colour (dark mass ± life jacket vs uniform white), and contrast polarity
 Opus-generated model rules — consistent with the wildfire finding that
 published expert guidelines can substitute for a TUTOR model when the domain
 has well-documented visual criteria.
+
+### Human directive swayability experiment (2026-04-17)
+
+A key question for DD in high-stakes deployments: *can a human operator's policy
+directive override a model's internalized prior?* Two opposing directives were
+tested on both `claude-sonnet-4-6` and `claude-opus-4-6`.
+
+**Visual inspection of persistent FPs** revealed the root cause: the 4 frames
+that both models persistently call `person_in_water` all contain small orange or
+red floating objects (life rings / buoys). The models are not hallucinating — they
+see orange on water and apply a rescue prior. This is the model doing what its
+training intended, but the ground truth says "non-person."
+
+**Two directives tested (`--use-human-directive` / `--use-human-conservative`):**
+
+| Run | Model | Rule-aided | FP | FN | Directive followed? |
+|---|---|---|---|---|---|
+| Model rules (baseline) | `claude-sonnet-4-6` | 0.833 | 4 | 0 | — |
+| IAMSAR expert rules | `claude-sonnet-4-6` | 0.833 | 4 | 0 | — |
+| Rescue directive ("orange = PIW") | `claude-sonnet-4-6` | 0.792 | 4 | 1 | Partially — no new FPs |
+| Conservative ("default to whitecap") | `claude-sonnet-4-6` | 0.792 | 4 | 1 | **No** — same 4 FPs persist |
+| Conservative ("default to whitecap") | `claude-opus-4-6` | 0.708 | 6 | 1 | **No** — FPs unchanged |
+
+**Finding: the rescue prior is immovable by natural-language directives.**
+The 4 orange-object FPs are identical across every Sonnet run regardless of
+whether the directive says "bias toward rescue" or "default to whitecap." The
+conservative directive never reduces FPs in either model; it only introduces a
+new false negative on a genuinely hard frame (`piw_hard_02`, a dark-clothed
+person with no orange component).
+
+**Higher capability = stronger rescue prior.** Opus has 6 immovable FPs vs
+Sonnet's 4. The conservative directive moves neither.
+
+**What this means for DD and human-in-the-loop systems:**
+
+VLMs trained with RLHF appear to have internalized a rescue/safety prior that
+sits below the level of instruction compliance. Natural-language directives can
+adjust behaviour *within the envelope* of that prior — they can reinforce it
+(rescue directive aligns with what the model already does) or partially redirect
+it (IAMSAR rules fix genuine perceptual errors) — but they cannot override it
+when it conflicts with the model's deep training signal.
+
+From a safety perspective this is reassuring: a model cannot be instructed into
+ignoring a potential victim. From an operational perspective it is a real
+constraint: if a deployment requires the model to be less rescue-biased (e.g.,
+a high-traffic harbour where life rings are common and false alarms are costly),
+natural-language directives alone are insufficient. The fix requires either a
+different training regime, a pre-classification filter that identifies floating
+equipment before the VLM sees the frame, or a post-classification confidence
+gate tuned on domain-specific calibration data.
+
+This finding is unique to the dialogic approach: only by testing directive
+compliance across opposing instructions does the prior's stability become
+visible. A single-direction evaluation would miss it entirely.

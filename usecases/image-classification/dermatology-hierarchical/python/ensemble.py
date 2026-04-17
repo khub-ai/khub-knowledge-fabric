@@ -82,6 +82,7 @@ _run_ensemble_base = _mc_ens.run_ensemble
 # Rules / tools from 2-way (appended to sys.path, so safe to import normally)
 from rules import RuleEngine     # noqa: E402
 from tools import ToolRegistry   # noqa: E402
+from router import run_l1_router # noqa: E402  — visual-similarity L1 router
 
 DATASET_TAG   = "derm-ham10000"
 MAX_REVISIONS = 1
@@ -91,6 +92,8 @@ _DEFAULT_RULES = {
     "melanocytic": str(_HERE / "rules_h_l2_melanocytic.json"),
     "keratosis":   str(_HERE / "rules_h_l2_keratosis.json"),
 }
+
+_DEFAULT_CURATED_REFS_PATH = _HERE / "curated_references.json"
 
 
 # ---------------------------------------------------------------------------
@@ -108,6 +111,7 @@ async def run_hierarchical_ensemble(
     dataset_tag: str = DATASET_TAG,
     max_revisions: int = MAX_REVISIONS,
     test_mode: bool = False,
+    curated_refs: Optional[dict[str, str]] = None,
 ) -> dict:
     """Run the 2-level hierarchical ensemble on a single fine-grained task.
 
@@ -116,6 +120,12 @@ async def run_hierarchical_ensemble(
             test_image_path  str
             test_label       str   fine class name (e.g. "Melanoma")
             few_shot         dict  {class_name: [paths]}  — all 7 classes
+        curated_refs:
+            Optional {group_name: path} dict of expert-curated canonical
+            reference images.  When provided (non-empty), Level-1 routing
+            uses the visual-similarity router (router.run_l1_router) instead
+            of the full KF Observer → Mediator → Verifier pipeline.
+            Pass None or {} to use the full KF pipeline for L1 (legacy mode).
 
     Returns:
         Result dict including per-level detail, aggregated cost, and a
@@ -167,17 +177,65 @@ async def run_hierarchical_ensemble(
     log(f"\n--- LEVEL 1: group classification ---")
     log(f"    Groups: {', '.join(LEVEL1_GROUP_NAMES)}")
 
-    l1_result = await _run_ensemble_base(
-        l1_task,
-        task_id=f"{task_id}_l1",
-        rule_engine=rule_engine_l1,
-        tool_registry=tool_registry,
-        verbose=verbose,
-        dataset=dataset,
-        dataset_tag=dataset_tag,
-        max_revisions=max_revisions,
-        test_mode=test_mode,
-    )
+    # ------------------------------------------------------------------
+    # Level-1 routing: visual-similarity router OR full KF pipeline
+    # ------------------------------------------------------------------
+    _use_router = bool(curated_refs)
+
+    if _use_router:
+        log(f"    L1 mode: visual-similarity router ({len(curated_refs)} curated refs)")
+        import sys as _sys
+        _agents_mod = _sys.modules.get("agents")
+
+        # Snapshot cost tracker before router call
+        _ct_before = 0.0
+        _calls_before = 0
+        if _agents_mod:
+            try:
+                _ct_before    = _agents_mod.get_cost_tracker().cost_usd()
+                _calls_before = _agents_mod.get_cost_tracker().api_calls
+            except Exception:
+                pass
+
+        l1_grp, l1_conf, l1_ms = await run_l1_router(
+            task["test_image_path"],
+            curated_refs=curated_refs,
+            verbose=verbose,
+        )
+
+        _ct_after = 0.0
+        _calls_after = 0
+        if _agents_mod:
+            try:
+                _ct_after    = _agents_mod.get_cost_tracker().cost_usd()
+                _calls_after = _agents_mod.get_cost_tracker().api_calls
+            except Exception:
+                pass
+
+        l1_router_cost  = max(0.0, _ct_after - _ct_before)
+        l1_router_calls = max(0, _calls_after - _calls_before)
+
+        l1_result = {
+            "predicted_label": l1_grp,
+            "confidence":      l1_conf,
+            "cost_usd":        l1_router_cost,
+            "api_calls":       l1_router_calls,
+            "model":           "",
+            "l1_mode":         "router",
+        }
+    else:
+        log(f"    L1 mode: full KF pipeline (Observer→Mediator→Verifier)")
+        l1_result = await _run_ensemble_base(
+            l1_task,
+            task_id=f"{task_id}_l1",
+            rule_engine=rule_engine_l1,
+            tool_registry=tool_registry,
+            verbose=verbose,
+            dataset=dataset,
+            dataset_tag=dataset_tag,
+            max_revisions=max_revisions,
+            test_mode=test_mode,
+        )
 
     l1_predicted_group = l1_result["predicted_label"]
     l1_correct         = (l1_predicted_group == true_group_name)

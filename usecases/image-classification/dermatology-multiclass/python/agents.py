@@ -211,25 +211,137 @@ _ABSENCE_CHECKLIST_NWAY: list[dict] = [
 ]
 
 
-async def run_schema_generator(task: dict, matched_rules: list) -> tuple[dict, int]:
-    """Generate an N-way feature observation schema for all 7 lesion classes.
+def _is_fine_schema(task: dict) -> bool:
+    """Return True when the task is a fine-class (7-way or L2) schema.
 
-    Returns (schema_dict, duration_ms).  Always appends the N-way absence
-    checklist so the Observer consistently records all key class markers.
+    Returns False for coarse L1 group schemas (category_set_id starts with
+    'derm_h_level1') so the fine-class absence checklist and visual reference
+    are NOT injected into group-level observation prompts.
     """
-    cats     = task.get("categories", CATEGORY_NAMES)
-    cats_str = "\n".join(f"  - {c}" for c in cats)
-    rules_hint = ""
-    if matched_rules:
-        actions = "\n".join(f"- {m.rule.get('action', '')}" for m in matched_rules[:8])
-        rules_hint = f"\nKnown expert rules (use to guide field selection):\n{actions}"
+    cset = task.get("category_set_id", "")
+    return not cset.startswith("derm_h_level1")
 
-    user_msg = (
-        f"Generate a dermoscopic feature observation schema for classifying images "
-        f"into ONE of the following {len(cats)} lesion classes:\n{cats_str}\n"
-        f"{rules_hint}\n\n"
-        "The schema must surface features that discriminate across ALL classes simultaneously."
-    )
+
+# ---------------------------------------------------------------------------
+# Level-1 group schema — hand-authored per-group feature brief
+# ---------------------------------------------------------------------------
+
+# Explicit per-group visual definitions injected into the L1 schema-generator
+# user message so the generated schema knows WHAT each group contains and
+# WHICH dermoscopic features define each group boundary.
+_L1_GROUP_BRIEFS = """\
+You are generating a feature schema for COARSE GROUP classification, not fine-class
+classification.  Each group may contain multiple fine classes.  The schema must
+capture the key visual signals that separate these 5 groups from each other.
+
+Group definitions and their primary dermoscopic discriminators:
+
+  Melanocytic (contains: Melanoma, Melanocytic Nevus)
+    - Pigment network present (brown meshwork of lines)
+    - Melanocytic architecture: dots, globules, or streaks within pigmented areas
+    - May show blue-white veil, regression (white scar zones), atypical network
+    - Key signal: presence of any organized pigment network or melanocytic dots/globules
+
+  Keratosis-type (contains: Benign Keratosis, Actinic Keratosis)
+    - Absent or markedly reduced true pigment network
+    - Surface features: milia-like cysts (bright white round dots), comedo-like
+      openings (dark plugged pores), cerebriform/warty/stuck-on texture
+    - OR: erythematous (pink/red) background with dotted vessels or diffuse redness
+    - Key signal: keratotic surface structures OR erythematous base without lacunae
+
+  Basal Cell Carcinoma
+    - Arborizing (tree-like branching) bright red vessels on pearly background
+    - Blue-gray ovoid nests or large gray-blue structureless blobs
+    - Leaf-like areas or spoke-wheel pigmented structures
+    - Key signal: arborizing vessels and/or blue-gray nests — NO pigment network
+
+  Vascular Lesion (contains: Haemangioma, Angiokeratoma)
+    - Sharply demarcated red, dark-red, or purple round/oval lacunae (blood-filled spaces)
+    - No pigment network; overall reddish/purplish colour with lacunar pattern
+    - Key signal: clearly visible lacunae (like blood bubbles)
+
+  Dermatofibroma
+    - Central white or ivory scar-like structureless area (depressed, fibrous)
+    - Peripheral delicate light-brown pigment ring or network surrounding the centre
+    - Symmetric shape; no atypical pigment network or regression
+    - Key signal: central white scar patch + surrounding peripheral pigment ring
+
+Generate 10-14 fields that maximally separate these 5 groups using the above signals.
+"""
+
+# Hard-wired L1 absence checklist — one decisive field per group boundary.
+# These are appended regardless of what the schema generator produces, ensuring
+# the Observer always records the primary discriminating signal for every group.
+_L1_ABSENCE_CHECKLIST: list[dict] = [
+    {"name": "pigment_network_present",
+     "question": "Is a pigment network (brown meshwork of lines) visible anywhere in the lesion?",
+     "options": ["clearly present", "faint or partial", "absent", "uncertain/not visible"]},
+    {"name": "arborizing_vessels_l1",
+     "question": "Are arborizing (bright-red tree-like branching) vessels visible?",
+     "options": ["present", "absent", "uncertain/not visible"]},
+    {"name": "blue_gray_nests_l1",
+     "question": "Are blue-gray ovoid nests or large structureless blue-gray blobs present?",
+     "options": ["present", "absent", "uncertain/not visible"]},
+    {"name": "red_purple_lacunae_l1",
+     "question": "Are sharply demarcated red or purple round/oval lacunae (blood-filled spaces) visible?",
+     "options": ["present", "absent", "uncertain/not visible"]},
+    {"name": "keratotic_surface_l1",
+     "question": "Are keratotic surface structures visible (milia-like cysts, comedo openings, or warty/stuck-on texture)?",
+     "options": ["present", "absent", "uncertain/not visible"]},
+    {"name": "erythematous_base_l1",
+     "question": "Is the overall lesion background clearly erythematous (pink or red) rather than brown or pigmented?",
+     "options": ["yes — clearly pink/red base", "no — brown, gray, or pigmented", "uncertain/not visible"]},
+    {"name": "central_white_patch_l1",
+     "question": "Is there a central white or ivory scar-like structureless patch (NOT regression peppering)?",
+     "options": ["present with peripheral pigment ring", "present without peripheral ring",
+                 "absent", "uncertain/not visible"]},
+]
+
+
+def _merge_l1_checklist(schema: dict) -> dict:
+    """Append L1 group-boundary checklist fields, skipping duplicates."""
+    existing = {f["name"] for f in schema.get("fields", [])}
+    new_fields = [f for f in _L1_ABSENCE_CHECKLIST if f["name"] not in existing]
+    if new_fields:
+        schema = dict(schema)
+        schema["fields"] = list(schema.get("fields", [])) + new_fields
+    return schema
+
+
+async def run_schema_generator(task: dict, matched_rules: list) -> tuple[dict, int]:
+    """Generate a feature observation schema for the given category set.
+
+    For fine-class schemas (7-way or L2 sub-problems) the N-way absence
+    checklist is appended so all key class markers are consistently recorded.
+
+    For coarse L1 group schemas:
+      - The user message is replaced with a group-aware brief (_L1_GROUP_BRIEFS)
+        that tells the schema generator exactly what each group contains and
+        which features define each group boundary.
+      - The L1 absence checklist (_L1_ABSENCE_CHECKLIST) is appended instead
+        of the fine-class checklist, ensuring one decisive field per group.
+
+    Returns (schema_dict, duration_ms).
+    """
+    fine = _is_fine_schema(task)
+    cats = task.get("categories", CATEGORY_NAMES)
+
+    if fine:
+        # Fine-class or L2 sub-problem — original behaviour
+        cats_str = "\n".join(f"  - {c}" for c in cats)
+        rules_hint = ""
+        if matched_rules:
+            actions = "\n".join(f"- {m.rule.get('action', '')}" for m in matched_rules[:8])
+            rules_hint = f"\nKnown expert rules (use to guide field selection):\n{actions}"
+        user_msg = (
+            f"Generate a dermoscopic feature observation schema for classifying images "
+            f"into ONE of the following {len(cats)} lesion classes:\n{cats_str}\n"
+            f"{rules_hint}\n\n"
+            "The schema must surface features that discriminate across ALL classes simultaneously."
+        )
+    else:
+        # L1 coarse group schema — use the hand-authored group brief
+        user_msg = _L1_GROUP_BRIEFS
 
     text, ms = await call_agent(
         "SCHEMA_GENERATOR",
@@ -239,9 +351,12 @@ async def run_schema_generator(task: dict, matched_rules: list) -> tuple[dict, i
 
     schema = _parse_json_block(text)
     if schema and "fields" in schema:
-        return _merge_absence_checklist(schema), ms
+        if fine:
+            return _merge_absence_checklist(schema), ms
+        else:
+            return _merge_l1_checklist(schema), ms
 
-    # Fallback: minimal N-way schema
+    # Fallback: minimal schema
     fallback = {"fields": [
         {"name": "symmetry",        "question": "Is the lesion symmetric in shape and color distribution?",
          "options": ["symmetric", "asymmetric in one axis", "asymmetric in two axes", "uncertain/not visible"]},
@@ -259,11 +374,17 @@ async def run_schema_generator(task: dict, matched_rules: list) -> tuple[dict, i
                      "blue-white veil", "regression structures", "red/purple lacunae",
                      "central white scar", "none", "uncertain/not visible"]},
     ]}
-    return _merge_absence_checklist(fallback), ms
+    if fine:
+        return _merge_absence_checklist(fallback), ms
+    else:
+        return _merge_l1_checklist(fallback), ms
 
 
 def _merge_absence_checklist(schema: dict) -> dict:
-    """Append N-way absence-checklist fields, skipping any already present."""
+    """Append N-way absence-checklist fields, skipping any already present.
+
+    Only called for fine-class schemas (see _is_fine_schema).
+    """
     existing = {f["name"] for f in schema.get("fields", [])}
     new_fields = [f for f in _ABSENCE_CHECKLIST_NWAY if f["name"] not in existing]
     if new_fields:
@@ -365,16 +486,26 @@ async def run_observer(
     schema_text = json.dumps(schema, indent=2)
     cats_str    = ", ".join(task.get("categories", CATEGORY_NAMES))
 
+    # Inject the visual feature reference only for fine-class schemas (7-way
+    # or L2 sub-problems).  For coarse L1 group classification the reference
+    # contains fine-class feature descriptions (lacunae, central white scar,
+    # milia cysts …) that bias the Observer toward incorrect fine-class
+    # predictions before the group has even been determined.
+    visual_ref_block = (
+        f"{_OBSERVER_VISUAL_REFERENCE}\n\n"
+        "Carefully examine the image. Use the visual reference above to actively "
+        "search for each special structure before filling in the form.\n\n"
+    ) if _is_fine_schema(task) else ""
+
     content_blocks = [
         _image_block(task["test_image_path"]),
         {
             "type": "text",
             "text": (
                 f"Candidate classes: {cats_str}\n\n"
-                f"{_OBSERVER_VISUAL_REFERENCE}\n\n"
+                f"{visual_ref_block}"
                 f"Feature observation form:\n{schema_text}\n\n"
-                "Carefully examine the image. Use the visual reference above to actively "
-                "search for each special structure before filling in the form. "
+                "Fill in every field based on what you can see in this dermoscopic image. "
                 "Return a JSON object with the structure shown in the system prompt."
             ),
         },
