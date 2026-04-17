@@ -2,11 +2,11 @@
 
 > **For**: Ornithologists, naturalists, and field biologists curious about how AI can be corrected by domain experts without any programming or retraining.
 >
-> **Status**: Experiment completed — Bronzed Cowbird vs Shiny Cowbird: Qwen3-VL-8B zero-shot 33% → 83% after 2-round KF dialogic patching (+50pp). Expanded to 30/class (60 images): 46.7% → 96.7% (+50pp), 4 rules registered.
+> **Status**: Experiment completed — Bronzed Cowbird vs Shiny Cowbird: Qwen3-VL-8B zero-shot 33% → 83% after 2-round [Dialogic Distillation](../../dialogic-distillation/README.md) (+50pp). Expanded to 30/class (60 images): 46.7% → 96.7% (+50pp), 4 rules registered.
 >
 > **Dataset**: CUB-200-2011, 200 North American bird species, 11,788 images.
 >
-> **Also see**: [Image Classification Overview](../README.md) for the broader Knowledge Fabric context, including the dermatology use case and cross-domain comparisons.
+> **Also see**: [Image Classification Overview](../README.md) for the broader Knowledge Fabric context, including the dermatology use case, road surface conditions, and cross-domain comparisons.
 
 ---
 
@@ -71,9 +71,9 @@ The 312 binary attribute annotations are the closest analogue in ornithology to 
 
 ## 3. The Approach
 
-This experiment demonstrates [Dialogic Learning](../../../docs/glossary.md#dialogic-learning) applied to a bird identification AI.
+This experiment demonstrates [Dialogic Distillation (DD)](../../dialogic-distillation/README.md) applied to a bird identification AI — the mechanism by which a weaker model's accuracy is improved at runtime through structured knowledge transfer from an expert source, without retraining.
 
-The core idea: a cheap, capable-but-fallible vision model (the "pupil") makes errors on hard confusable pairs. An expert — which may be a human ornithologist or a superior AI acting in that role — examines each error and explains *in plain language* what the pupil missed and what field mark should have been decisive. The system turns that explanation into an explicit, testable rule. Before the rule is trusted, it is validated against a pool of labeled images. If it passes, it is registered and applied to the pupil — and the pupil is re-tested.
+The core idea: a cheap, capable-but-fallible vision model (the "pupil") makes errors on hard confusable pairs. An expert source — which may be a human ornithologist, a superior AI model acting in that role, or published field-guide criteria used as reference — examines each error and explains *in plain language* what the pupil missed and what field mark should have been decisive. The system turns that explanation into an explicit, testable rule. Before the rule is trusted, it is validated against a pool of labeled images. If it passes, it is registered and applied to the pupil — and the pupil is re-tested.
 
 This is not fine-tuning. The base model's weights are never changed. The knowledge lives in an explicit, human-readable rule file that can be inspected, corrected, or withdrawn at any time.
 
@@ -367,7 +367,7 @@ The accumulated Bronzed knowledge implicitly defined the boundary for the opposi
 
 ---
 
-## 8. What This Shows About Dialogic Learning
+## 8. What This Shows About Dialogic Distillation
 
 ### The pupil can be taught — if it is teachable
 
@@ -375,7 +375,7 @@ Qwen3-VL-8B followed the injected rules. When r_001 said "if you see a bright re
 
 ### A single precise rule can fix multiple failures
 
-Two rules fixed two failures each. Neither rule was authored with the second failure in mind — cross-generalization was an emergent result of capturing the right underlying field mark. This is Dialogic Learning at work: the expert's explanation of *why* the first failure was wrong turned out to contain the knowledge needed to fix a second, unrelated image.
+Two rules fixed two failures each. Neither rule was authored with the second failure in mind — cross-generalization was an emergent result of capturing the right underlying field mark. This is Dialogic Distillation at work: the expert's explanation of *why* the first failure was wrong turned out to contain the knowledge needed to fix a second, unrelated image.
 
 ### The precision gate protects what already works
 
@@ -395,9 +395,9 @@ This shows both the value and the limit of multi-round dialogic exchange: the lo
 
 Shiny_0080 was never fixed by a dedicated Shiny Cowbird rule — every Shiny rule failed validation. It was fixed indirectly, by the accumulation of four Bronzed Cowbird rules that together made the alternative hypothesis too costly. When none of the Bronzed rules fire on a plain brown bird, the pupil correctly defaults to Shiny. This emergent effect was not designed in. It suggests that in binary classification, building a sufficiently rich rule set for one class may implicitly resolve failures in the other.
 
-### What this is — and what true dialogic learning would look like
+### What this is — and what true dialogic distillation would look like
 
-The round 2 exchange is closer to dialogic learning than a single-pass injection, but it is not yet the full vision. It is more accurately described as **structured tutoring with feedback**: the system assembles the pupil's failure record into a context block and presents it to the tutor; the tutor responds with a new rule; the pupil applies it. The information flow is real, but it is one-directional within each round. The pupil does not actually formulate a question. It does not say "I can see the bill looks thick, but I'm uncertain whether it's thick *enough* — can you give me a reference?" It does not push back, express partial understanding, or identify which precondition it found ambiguous. The "pupil question" is synthesized by the system from failure data, not expressed by the pupil in its own words.
+The round 2 exchange is closer to full dialogic distillation than a single-pass injection, but it is not yet the complete vision. It is more accurately described as **structured tutoring with feedback**: the system assembles the pupil's failure record into a context block and presents it to the tutor; the tutor responds with a new rule; the pupil applies it. The information flow is real, but it is one-directional within each round. The pupil does not actually formulate a question. It does not say "I can see the bill looks thick, but I'm uncertain whether it's thick *enough* — can you give me a reference?" It does not push back, express partial understanding, or identify which precondition it found ambiguous. The "pupil question" is synthesized by the system from failure data, not expressed by the pupil in its own words.
 
 **The long-term goal is true dialogic learning** — an exchange where the pupil has a genuine first-class reasoning trace and can initiate questions, express degrees of uncertainty, and negotiate with the tutor over which features are visible or reliable in a given image. Whether that is achievable depends heavily on the pupil model's capability. A model that produces only a prediction and a one-sentence justification gives the system very little to work with. A model that can express *what it was looking for*, *what it found*, and *where its confidence broke down* gives the tutor a much richer target for correction — and opens the door to genuinely collaborative learning rather than repeated one-way instruction.
 
@@ -407,6 +407,6 @@ The teachability test — verifying that a candidate pupil will follow injected 
 
 *For the technical architecture, pipeline design, and full implementation notes, see [DESIGN.md](../DESIGN.md).*
 
-*For the dermatology parallel — where the same pipeline was applied to skin-lesion classification — see [dermatology/README.md](../dermatology/README.md).*
+*For the dermatology parallel — where the same pipeline was applied to skin-lesion classification — see [dermatology/README.md](../dermatology/README.md). For the road surface parallel, see [road-surface/README.md](../road-surface/README.md).*
 
 *For the broader Knowledge Fabric positioning, see the [Image Classification Overview](../README.md).*

@@ -9,7 +9,7 @@
 >
 > **Dataset**: HAM10000 (ISIC archive), 10,015 dermoscopic images across 7 diagnostic categories.
 >
-> **Also see**: [Image Classification Overview](../README.md) for the broader Knowledge Fabric context, including the bird use case and cross-domain comparisons. That document is intended for a more technical audience.
+> **Also see**: [Image Classification Overview](../README.md) for the broader Knowledge Fabric context, including the bird use case, road surface conditions, and cross-domain comparisons. That document is intended for a more technical audience.
 
 ---
 
@@ -80,7 +80,9 @@ In each case, Qwen focused on features it recognized and ignored features it did
 
 ## 3. How Knowledge Fabric Solves It
 
-The core idea is simple: **the AI has a gap in its knowledge, and a human expert fills it.**
+The core idea is simple: **the AI has a gap in its knowledge, and an expert source fills it.**
+
+That expert source may be a human clinician, a more capable AI model acting in the expert role, or published diagnostic guidelines (such as structured dermoscopic criteria). All three have been tested in these experiments. The common thread is that the corrective knowledge is extracted from the expert source into explicit rules — rather than left implicit in a prompt or in model weights.
 
 What makes KF different from just writing a better prompt is that we formulate domain knowledge into a rule form that is:
 
@@ -89,7 +91,7 @@ What makes KF different from just writing a better prompt is that we formulate d
 - **Auditable** — the rule is a readable text artifact, not a weight adjustment, so any clinician can read it, challenge it, or correct it
 - **Persistent** — the rule lives independently of the AI model, so it survives model upgrades, vendor changes, or deployment to a different system
 
-The process that extracts this rule-based knowledge is called the **dialogic patching loop**.
+The process that extracts this rule-based knowledge is called **[Dialogic Distillation](../../dialogic-distillation/README.md)** (sometimes also called the dialogic patching loop in earlier sections of this document).
 
 ---
 
@@ -510,7 +512,7 @@ When a model is fine-tuned on additional melanoma examples, the result is change
 
 ---
 
-## 10. Three-Party Dialogic Learning — Why It Works
+## 10. Three-Party Dialogic Distillation — Why It Works
 
 The experiments above used a dialogic patching loop driven by specific failure cases. But can we distill knowledge from an expert model *more efficiently*? And does the dialog itself matter, or could we just ask the expert to write rules in one shot?
 
