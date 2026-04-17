@@ -134,6 +134,25 @@ from .explorer import (
     propose_curiosity_goals,
     choose_exploration_action,
 )
+from . import adapters
+from .adapters import Adapter
+from . import miners
+from .miners import (
+    Miner,
+    PropertyObservedMiner,
+    TransitionMiner,
+    FutilePatternMiner,
+    SurpriseMiner,
+    default_miners,
+)
+from . import postmortem
+from .postmortem import (
+    run_post_mortem,
+    extract_lessons,
+    OptionSynthesiser,
+)
+from . import episode_runner
+from .episode_runner import run_episode
 from .tools import (
     ToolSignature,
     ToolRegistry,
@@ -238,6 +257,16 @@ __all__ = [
     "explorer",
     "claim_coverage", "info_gain",
     "propose_curiosity_goals", "choose_exploration_action",
+    # adapter protocol (Phase 4)
+    "adapters", "Adapter",
+    # miners (Phase 4)
+    "miners", "Miner",
+    "PropertyObservedMiner", "TransitionMiner",
+    "FutilePatternMiner", "SurpriseMiner", "default_miners",
+    # postmortem (Phase 4)
+    "postmortem", "run_post_mortem", "extract_lessons", "OptionSynthesiser",
+    # episode runner (Phase 4)
+    "episode_runner", "run_episode",
     # tools
     "ToolSignature", "ToolRegistry", "ToolInvocation", "ToolResult",
     "ToolProposal", "ToolCallback",

@@ -1,6 +1,6 @@
 # Cognitive Engine — Design Specification
 
-**Status:** Phase 3 complete (goal forest + planner + explorer).  Episode runner / miners / adapters in progress.
+**Status:** Phase 4 complete (adapter protocol + miners + runner + post-mortem).  First domain adapter (Phase 5) in progress.
 **Scope:** Domain-agnostic symbolic reasoning substrate shared by
 sequential-reasoning benchmarks (ARC-style interactive environments)
 and embodied robotics.
@@ -834,7 +834,7 @@ a single loader function rather than scanning the entire codebase.
 | 1 | Data types + protocols (`types.py`, `claims.py`, `conditions.py`, `credence.py`, `config.py`, `tools.py`) | **Complete** |
 | 2 | `hypothesis_store.py` (propose, dedup, link, update, prune) + `refinement.py` (specialise, generalise-candidate detection) | **Complete** |
 | 3 | `planner.py` (AO* over goal forest) + `explorer.py` (info-gain + curiosity) + `goal_forest.py` | **Complete** |
-| 4 | `episode_runner.py` (main loop) + core miners + `adapters.py` protocol + `postmortem.py` | Pending |
+| 4 | `episode_runner.py` (main loop) + core miners + `adapters.py` protocol + `postmortem.py` (OptionSynthesiser stub) | **Complete** |
 | 5 | ARC adapter (new `usecases/<arc-target>/`) + Observer + Mediator implementations | Pending |
 | 6 | First integration benchmark (target level TBD) | Pending |
 | 7 | OptionSynthesiser + persistence layer | Pending |
@@ -911,6 +911,23 @@ core/cognitive_os/                     ← COS namespace
                                          TransitionClaim-based state simulation
         explorer.py                    ← claim coverage / info-gain / curiosity goals /
                                          fallback action selection when planner exhausted
+        adapters.py                    ← Adapter ABC (initialize / reset / observe /
+                                         execute / action_space / is_done) +
+                                         observer_query / mediator_query / invoke_tool
+                                         default "unsupported" implementations
+        miners.py                      ← Miner ABC + PropertyObservedMiner /
+                                         TransitionMiner / FutilePatternMiner /
+                                         SurpriseMiner + default_miners() suite
+        postmortem.py                  ← run_post_mortem(ws, ...) → PostMortem /
+                                         extract_lessons (StrategyClaim updates from
+                                         branch outcomes + failure-context lessons) /
+                                         OptionSynthesiser stub (candidate detection;
+                                         full synthesis deferred to Phase 7)
+        episode_runner.py              ← run_episode(adapter, ws, cfg) → PostMortem
+                                         wires: observe → miners → credence update →
+                                         decay → prune → derive subgoals → detect
+                                         conflicts → select goal → compute_plan →
+                                         explore fallback → execute → repeat
 ```
 
 Domain-specific adapters will live under `usecases/<domain>/` when the
