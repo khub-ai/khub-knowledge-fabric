@@ -1,0 +1,257 @@
+{
+  "benchmark_id": "road_surface_wet_vs_water_probe_v1",
+  "version": "1.0.0",
+  "benchmark_type": "probe",
+  "created": "2026-04-17",
+  "pair_id": "wet_vs_water",
+  "class_a": "Wet Road",
+  "class_b": "Standing Water",
+  "material_filter": "asphalt",
+  "rscd_split": "train",
+  "selection_seed": 7,
+  "pupil_model": null,
+  "n_per_class": 12,
+  "description": "Fixed probe image set for PUPIL Domain Readiness Probe. 12 Wet Road + 12 Standing Water images, sampled from RSCD training split (seed=7).",
+  "images": [
+    {
+      "image_id": "20220622155519502",
+      "filename": "20220622155519502-wet-asphalt-smooth.jpg",
+      "friction": "wet",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Wet Road",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "20220330144623829",
+      "filename": "20220330144623829-wet-asphalt-slight.jpg",
+      "friction": "wet",
+      "material": "asphalt",
+      "roughness": "slight",
+      "true_class": "Wet Road",
+      "difficulty": "medium",
+      "notes": ""
+    },
+    {
+      "image_id": "202206221601391914",
+      "filename": "202206221601391914-wet-asphalt-smooth.jpg",
+      "friction": "wet",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Wet Road",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "2022071500272212",
+      "filename": "2022071500272212-wet-asphalt-smooth.jpg",
+      "friction": "wet",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Wet Road",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "202203202202157",
+      "filename": "202203202202157-wet-asphalt-smooth.jpg",
+      "friction": "wet",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Wet Road",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "202203241622461",
+      "filename": "202203241622461-wet-asphalt-slight.jpg",
+      "friction": "wet",
+      "material": "asphalt",
+      "roughness": "slight",
+      "true_class": "Wet Road",
+      "difficulty": "medium",
+      "notes": ""
+    },
+    {
+      "image_id": "20220714234429504",
+      "filename": "20220714234429504-wet-asphalt-smooth.jpg",
+      "friction": "wet",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Wet Road",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "20220329200741781",
+      "filename": "20220329200741781-wet-asphalt-smooth.jpg",
+      "friction": "wet",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Wet Road",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "20220622155859141",
+      "filename": "20220622155859141-wet-asphalt-smooth.jpg",
+      "friction": "wet",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Wet Road",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "20220715002053108",
+      "filename": "20220715002053108-wet-asphalt-smooth.jpg",
+      "friction": "wet",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Wet Road",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "20220321222926387",
+      "filename": "20220321222926387-wet-asphalt-slight.jpg",
+      "friction": "wet",
+      "material": "asphalt",
+      "roughness": "slight",
+      "true_class": "Wet Road",
+      "difficulty": "medium",
+      "notes": ""
+    },
+    {
+      "image_id": "20220714234237684",
+      "filename": "20220714234237684-wet-asphalt-smooth.jpg",
+      "friction": "wet",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Wet Road",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "202206221557491453",
+      "filename": "202206221557491453-water-asphalt-smooth.jpg",
+      "friction": "water",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Standing Water",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "2022032822445949",
+      "filename": "2022032822445949-water-asphalt-smooth.jpg",
+      "friction": "water",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Standing Water",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "20220722225215674",
+      "filename": "20220722225215674-water-asphalt-smooth.jpg",
+      "friction": "water",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Standing Water",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "20220727001655686",
+      "filename": "20220727001655686-water-asphalt-smooth.jpg",
+      "friction": "water",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Standing Water",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "202203211042514",
+      "filename": "202203211042514-water-asphalt-smooth.jpg",
+      "friction": "water",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Standing Water",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "202203241627153",
+      "filename": "202203241627153-water-asphalt-smooth.jpg",
+      "friction": "water",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Standing Water",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "20220722233826506",
+      "filename": "20220722233826506-water-asphalt-smooth.jpg",
+      "friction": "water",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Standing Water",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "20220328151537885",
+      "filename": "20220328151537885-water-asphalt-smooth.jpg",
+      "friction": "water",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Standing Water",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "20220722225156262",
+      "filename": "20220722225156262-water-asphalt-smooth.jpg",
+      "friction": "water",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Standing Water",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "20220723000042753",
+      "filename": "20220723000042753-water-asphalt-smooth.jpg",
+      "friction": "water",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Standing Water",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "20220322202924207",
+      "filename": "20220322202924207-water-asphalt-smooth.jpg",
+      "friction": "water",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Standing Water",
+      "difficulty": "easy",
+      "notes": ""
+    },
+    {
+      "image_id": "2022072223314150",
+      "filename": "2022072223314150-water-asphalt-smooth.jpg",
+      "friction": "water",
+      "material": "asphalt",
+      "roughness": "smooth",
+      "true_class": "Standing Water",
+      "difficulty": "easy",
+      "notes": ""
+    }
+  ]
+}

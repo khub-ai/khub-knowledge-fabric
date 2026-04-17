@@ -2,11 +2,11 @@
 
 > **For**: Autonomous driving engineers, ADAS developers, and road safety researchers interested in how domain expertise can improve small-model accuracy on safety-critical surface classification without retraining.
 >
-> **Status**: Active experiments — benchmark manifests committed, first DD session run (dry vs wet, Qwen3-VL-8B). PUPIL Domain Readiness Probe implemented.
+> **Status**: Active experiments — dry_vs_wet run (4/4 grounded, 0/4 accepted — pair is a continuum); wet_vs_water pair set up (expected to be easier); visual similarity router and canonical reference curation added.
 >
 > **Dataset**: RSCD (Road Surface Classification Dataset), Tsinghua University — ~600K images, labels encoded in filenames across friction, material, and roughness.
 >
-> **Also see**: [Image Classification Overview](../README.md) for the broader Knowledge Fabric context, including the dermatology and ornithology use cases.
+> **Also see**: [Image Classification Overview](../README.md) for the broader Knowledge Fabric context, including the bird and dermatology use cases.
 
 ---
 
@@ -24,6 +24,7 @@ A small vision model confuses wet road with black ice — both look like a dark 
 4. [The Vocabulary Gap](#4-the-vocabulary-gap)
 5. [Edge Deployment Context](#5-edge-deployment-context)
 6. [Getting Started](#6-getting-started)
+7. [Lessons Carried Over from Dermatology](#7-lessons-carried-over-from-dermatology)
 
 ---
 
@@ -309,9 +310,141 @@ texture, no specular highlights, visible aggregate) are also intermittently
 present in lightly-wet asphalt images. The visual boundary is a continuum, not
 a sharp threshold.
 
-**Next steps:** Increase pool size (`--val-per-class 20`) and process more
-failures (`--n-failures 8`) to give the tightening algorithm more signal. Also
-try the wet_vs_ice pair where the vocabulary gap is starker.
+**Why 0/4 accepted:** The dry/wet visual boundary is a continuum — lightly-wet
+asphalt can look indistinguishable from dry in certain lighting, and the RSCD
+pool inevitably contains borderline cases where even human annotators might
+disagree. Rules that correctly identify clearly-wet images also fire on these
+borderline dry images, capping precision below 0.90.
+
+**Next steps based on dermatology lessons:** Switch to the **wet_vs_water** pair
+(standing water vs. thin moisture film) where the visual signal is much stronger
+and the decision boundary is sharper. Curate canonical reference images for the
+visual similarity router. Process more failures with `--n-failures 8` and a
+larger pool with `--val-per-class 20`. See §7 below for the full carry-over
+plan.
+
+---
+
+---
+
+### Step 5 — Run DD on the wet_vs_water pair
+
+Benchmark manifests for wet_vs_water are committed. Run DD on this pair next —
+standing water is visually far more distinct from wet than wet is from dry,
+giving rules a better chance of passing the precision gate:
+
+```bash
+cd usecases/image-classification/road-surface/python
+
+# Generate wet_vs_water benchmark manifests (already committed — skip if present)
+# python create_benchmark.py --pair wet_vs_water --types probe,pool
+
+# Run three-party DD on wet_vs_water
+python distill_dialogic.py --pair wet_vs_water \
+    --val-per-class 20 --max-rounds 4 --n-failures 8
+```
+
+---
+
+### Step 6 — Build the visual similarity router (multi-class)
+
+Once binary-pair DD has produced accepted rules for each pair, the next step is
+the full multi-class L1 router. Instead of the schema-based Observer pipeline
+(which suffers from feature denial on road surface imagery), the router uses
+curated canonical reference images to answer "which friction class does this
+image most resemble?":
+
+```bash
+cd usecases/image-classification/road-surface/python
+
+# 1. Curate one canonical reference image per L1 friction group (Dry, Wet, Water)
+python curate_references.py --n-candidates 8
+
+# The script saves curated_references.json in the benchmarks/ directory.
+# Review and commit the selected images.
+
+# 2. The router is then available for evaluation scripts:
+#    from router import run_l1_router, load_curated_refs
+#    refs  = load_curated_refs()
+#    group, conf, ms = await run_l1_router(image_path, refs, verbose=True)
+```
+
+---
+
+## 7. Lessons Carried Over from Dermatology
+
+The dermatology hierarchical classification experiments produced several
+findings that apply directly here.
+
+### Start with the easier pair
+
+In dermatology, the most confusable pairs (BCC vs Keratosis) required more
+rules and more dialogue rounds than the cleaner pairs (Melanoma vs Nevus).
+The same principle applies here: **dry_vs_wet** is the hardest road surface pair
+(continuum boundary, high borderline-image rate in the pool). **wet_vs_water**
+has a much sharper visual boundary and should yield rules that pass the pool
+gate more easily. Build the rule library on the easier pair first, then return
+to dry_vs_wet with more evidence and a better-understood vocabulary.
+
+### Feature denial: use visual similarity routing at L1
+
+In dermatology, the VLM consistently reported diagnostic features (pigment
+network, arborizing vessels, milia cysts) as **absent** even when clearly
+visible — making the schema-based Observer pipeline unreliable for coarse
+group routing. The same pattern will occur here: ask a general-purpose VLM
+"is there aggregate texture visible through a water film?" and it will report
+"no" regardless of the image content.
+
+The fix is `router.py`: show the model a canonical reference image per group
+and ask "does this look like THAT?" instead of "is feature X present?" For the
+multi-class problem (all 27 RSCD classes), the visual similarity router should
+be the L1 routing mechanism, with the DD rule engine applied at L2 within each
+friction group.
+
+### Vocabulary bridging is already in place — but refine the examples
+
+The `domain_config.py` already includes the three meta-learnings from
+dermatology:
+1. Frame the task for the validator's vocabulary (visual colors and textures,
+   not engineering terms)
+2. GOOD/BAD vocabulary examples are provided
+3. Precondition count is limited
+
+The first DD session confirmed this works: 4/4 rules grounded at round 1,
+meaning the TUTOR's vocabulary was compatible with the VALIDATOR's. The failure
+was at the pool gate (precision), not the grounding check. The vocabulary
+bridging is working; the challenge is pair difficulty.
+
+### Multiple canonical exemplars per friction group
+
+In dermatology, groups with visually diverse subtypes (Keratosis-type: warty vs
+erythematous; Melanocytic: NV vs Melanoma) needed two canonical references in
+the router. Road surface has the same problem:
+
+| Group | Subtypes needing separate exemplars |
+|---|---|
+| **Wet** | Overcast (uniform dark surface) vs. bright sun (faint specular sheen) |
+| **Water** | Shallow puddles (partial texture visible at edges) vs. deep film (full mirror reflection) |
+| **Dry** | Fresh dark asphalt vs. bleached pale-gray aged surface |
+
+Plan for 2 canonical references per group when running `curate_references.py`
+with `--n-candidates 10`. The router already supports multi-exemplar groups.
+
+### Published standards can replace the TUTOR model
+
+From the wildfire and maritime SAR experiments: injecting NWCG fire-spotting
+rules and IAMSAR search criteria directly — without running the dialogic TUTOR
+loop — produced the same accuracy as model-generated rules. Road surface has
+directly applicable published standards:
+
+- **PIARC** (World Road Association) friction classification criteria
+- **ASTM E1845** pavement condition assessment
+- **Highway patrol and winter road maintenance operational thresholds** —
+  concrete operational criteria for what counts as "icy road" or "standing water
+  risk" in practice
+
+These can be formatted as DD rules and tested directly on the pool before
+running the full dialogic loop — providing a baseline and a sanity check.
 
 ---
 
@@ -319,19 +452,26 @@ try the wet_vs_ice pair where the vocabulary gap is starker.
 
 ```
 usecases/image-classification/road-surface/
-  README.md                     ← this file
+  README.md                          ← this file
+  curated_references.json            ← canonical reference images per L1 group (after running curate_references.py)
   benchmarks/
-    README.md                   ← manifest format, versioning policy
-    dry_vs_wet_probe_v1.json    ← 24 probe images (committed)
-    dry_vs_wet_pool_v1.json     ← 40 pool images (committed)
-    reports/                    ← probe reports saved here (gitignored)
-  knowledge_base/               ← accepted rules committed here after DD sessions (empty — no rules accepted yet)
+    README.md                        ← manifest format, versioning policy
+    dry_vs_wet_probe_v1.json         ← 24 probe images (committed)
+    dry_vs_wet_pool_v1.json          ← 40 pool images (committed)
+    wet_vs_water_probe_v1.json       ← 24 probe images (committed)
+    wet_vs_water_pool_v1.json        ← 40 pool images (committed)
+    sessions/
+      distill_dialogic_dry_vs_wet_claude_opus_4_6.json  ← first DD session (4 grounded, 0 accepted)
+    reports/                         ← probe reports saved here (gitignored)
+  knowledge_base/                    ← accepted rules committed here after DD sessions (empty — no rules accepted yet)
   python/
-    domain_config.py            ← DomainConfig for road surface domain
-    dataset.py                  ← RSCD loader (zip-native, no extraction needed)
-    benchmark.py                ← load_benchmark(), to_probe_images(), to_pool_images()
-    create_benchmark.py         ← one-time manifest generator (run by maintainer)
-    probe_rscd.py               ← PUPIL domain readiness probe driver
-    distill_dialogic.py         ← three-party DD session runner
-    agents.py                   ← model backend wiring
+    domain_config.py                 ← DomainConfig for road surface (with vocabulary bridging)
+    dataset.py                       ← RSCD loader (zip-native, no extraction needed)
+    benchmark.py                     ← load_benchmark(), to_probe_images(), to_pool_images()
+    create_benchmark.py              ← one-time manifest generator (run by maintainer)
+    probe_rscd.py                    ← PUPIL domain readiness probe driver
+    distill_dialogic.py              ← three-party DD session runner
+    curate_references.py             ← curate canonical reference images per L1 group (for router)
+    router.py                        ← visual similarity L1 router (bypasses feature-denial problem)
+    agents.py                        ← model backend wiring
 ```
