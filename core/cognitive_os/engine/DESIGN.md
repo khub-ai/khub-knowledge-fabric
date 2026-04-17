@@ -1,6 +1,6 @@
 # Cognitive Engine — Design Specification
 
-**Status:** Phase 2 complete (hypothesis store + refinement).  Planner / explorer / runner in progress.
+**Status:** Phase 3 complete (goal forest + planner + explorer).  Episode runner / miners / adapters in progress.
 **Scope:** Domain-agnostic symbolic reasoning substrate shared by
 sequential-reasoning benchmarks (ARC-style interactive environments)
 and embodied robotics.
@@ -833,7 +833,7 @@ a single loader function rather than scanning the entire codebase.
 |---|---|---|
 | 1 | Data types + protocols (`types.py`, `claims.py`, `conditions.py`, `credence.py`, `config.py`, `tools.py`) | **Complete** |
 | 2 | `hypothesis_store.py` (propose, dedup, link, update, prune) + `refinement.py` (specialise, generalise-candidate detection) | **Complete** |
-| 3 | `planner.py` (AO* over goal forest) + `explorer.py` (info-gain + curiosity) + `goal_forest.py` | Pending |
+| 3 | `planner.py` (AO* over goal forest) + `explorer.py` (info-gain + curiosity) + `goal_forest.py` | **Complete** |
 | 4 | `episode_runner.py` (main loop) + core miners + `adapters.py` protocol + `postmortem.py` | Pending |
 | 5 | ARC adapter (new `usecases/<arc-target>/`) + Observer + Mediator implementations | Pending |
 | 6 | First integration benchmark (target level TBD) | Pending |
@@ -862,6 +862,16 @@ These constraints apply to every change under `core/cognitive_os/engine/`:
    miner that produces hypotheses only useful within one episode is a
    red flag — it likely generalises to something broader that should
    persist.
+7. **Capability audit on every phase.**  The engine exists to do
+   three things well: *debug* (iteratively refine beliefs from
+   contradiction), *problem-solve* (decompose and compose across
+   primitives), and *create tools* (compress recurring patterns into
+   reusable macros).  Every phase's opening design note must state
+   explicitly which of the three it advances and which it defers,
+   and no phase may ship without advancing at least one.  The final
+   system must embody all three.  This invariant exists because the
+   three capabilities are the COS value proposition — deferring them
+   silently would let the implementation drift from the thesis.
 
 ---
 
@@ -892,6 +902,15 @@ core/cognitive_os/                     ← COS namespace
         refinement.py                  ← specialise on contradiction /
                                          detect generalisation candidates /
                                          parent-child lattice maintenance
+        goal_forest.py                 ← add_goal / select_active / derive subgoals from
+                                         CausalClaims / achievement walk / conflict detection
+                                         (MUTEX / RESOURCE / TEMPORAL / ADVERSARIAL)
+        planner.py                     ← AO* over AND-OR-CHANCE-OPTION trees; Rules filter
+                                         (INVIOLABLE/DEFEASIBLE hard-prune, ADVISORY cost
+                                         penalty); StrategyClaim branch heuristic;
+                                         TransitionClaim-based state simulation
+        explorer.py                    ← claim coverage / info-gain / curiosity goals /
+                                         fallback action selection when planner exhausted
 ```
 
 Domain-specific adapters will live under `usecases/<domain>/` when the

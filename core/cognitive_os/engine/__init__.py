@@ -110,6 +110,30 @@ from .refinement import (
     link_parent_child,
     prune_subsumed_children,
 )
+from . import goal_forest
+from .goal_forest import (
+    add_goal,
+    select_active_goal,
+    derive_subgoals_from_causal,
+    atomic_leaves,
+    is_achieved,
+    mark_status,
+    refresh_status,
+    detect_conflicts,
+)
+from . import planner
+from .planner import (
+    compute_plan,
+    apply_rules_filter,
+    advisory_penalty_for_action,
+)
+from . import explorer
+from .explorer import (
+    claim_coverage,
+    info_gain,
+    propose_curiosity_goals,
+    choose_exploration_action,
+)
 from .tools import (
     ToolSignature,
     ToolRegistry,
@@ -202,6 +226,18 @@ __all__ = [
     "refinement",
     "specialize_on_contradiction", "detect_generalization_candidates",
     "link_parent_child", "prune_subsumed_children",
+    # goal forest (Phase 3)
+    "goal_forest",
+    "add_goal", "select_active_goal", "derive_subgoals_from_causal",
+    "atomic_leaves", "is_achieved", "mark_status", "refresh_status",
+    "detect_conflicts",
+    # planner (Phase 3)
+    "planner",
+    "compute_plan", "apply_rules_filter", "advisory_penalty_for_action",
+    # explorer (Phase 3)
+    "explorer",
+    "claim_coverage", "info_gain",
+    "propose_curiosity_goals", "choose_exploration_action",
     # tools
     "ToolSignature", "ToolRegistry", "ToolInvocation", "ToolResult",
     "ToolProposal", "ToolCallback",
