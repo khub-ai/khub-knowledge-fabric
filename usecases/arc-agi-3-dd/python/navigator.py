@@ -9,9 +9,37 @@ from __future__ import annotations
 from collections import deque
 from typing import Optional
 
+import numpy as np
 
 GRID_H = 64
 GRID_W = 64
+
+# Palette values the agent CANNOT enter (read from the game frame).
+# Palette 4 = wall/gap tiles confirmed by pixel analysis.
+WALL_PALETTES: frozenset[int] = frozenset({4})
+
+
+def _passable(nr: int, nc: int, passable_grid) -> bool:
+    """Return True if cell (nr,nc) is navigable according to passable_grid."""
+    if passable_grid is None:
+        return True
+    return bool(passable_grid[nr, nc])
+
+
+def build_passable_grid(
+    frame_grid,
+    wall_palettes: frozenset[int] = WALL_PALETTES,
+) -> np.ndarray:
+    """Return a 64×64 bool array: True = agent can enter this cell.
+
+    Reads palette values directly from the game frame so BFS never needs to
+    discover walls by bumping into them.
+    """
+    arr = np.asarray(frame_grid, dtype=np.int32)
+    passable = np.ones(arr.shape[:2], dtype=bool)
+    for p in wall_palettes:
+        passable[arr == p] = False
+    return passable
 
 
 def bfs_navigate(
@@ -20,6 +48,7 @@ def bfs_navigate(
     action_effects: dict[str, tuple[int, int]],
     max_steps:      int = 60,
     walls:          set | None = None,
+    passable_grid           = None,
 ) -> Optional[list[str]]:
     """Return the shortest action sequence to move from `start` to `target`.
 
@@ -49,10 +78,17 @@ def bfs_navigate(
         if len(path) >= max_steps:
             continue
         for action, (dr, dc) in move_actions.items():
-            if walls and (r, c, action) in walls:
-                continue  # known wall — skip
             nr = max(0, min(GRID_H - 1, r + dr))
             nc = max(0, min(GRID_W - 1, c + dc))
+            if walls and (r, c, action) in walls:
+                # Recorded wall: trust it only if passable_grid also confirms
+                # the destination is impassable.  If passable_grid says it's
+                # open, the wall was likely a cursor-drift false positive.
+                if not _passable(nr, nc, passable_grid):
+                    continue  # real wall confirmed by palette
+                # else: passable_grid overrides — allow this move
+            if not _passable(nr, nc, passable_grid):
+                continue  # palette-level wall — skip
             steps = len(path) + 1
             if (nr, nc) in visited and visited[(nr, nc)] <= steps:
                 continue
@@ -71,6 +107,7 @@ def nearest_reachable(
     action_effects: dict[str, tuple[int, int]],
     max_steps:      int = 60,
     walls:          set | None = None,
+    passable_grid           = None,
 ) -> Optional[tuple[tuple[int, int], list[str]]]:
     """Return (closest_reachable_pos, path) to get as close as possible to target.
 
@@ -100,10 +137,13 @@ def nearest_reachable(
         if len(path) >= max_steps:
             continue
         for action, (dr, dc) in move_actions.items():
-            if walls and (r, c, action) in walls:
-                continue
             nr = max(0, min(GRID_H - 1, r + dr))
             nc = max(0, min(GRID_W - 1, c + dc))
+            if walls and (r, c, action) in walls:
+                if not _passable(nr, nc, passable_grid):
+                    continue  # real wall confirmed by palette
+            if not _passable(nr, nc, passable_grid):
+                continue
             steps = len(path) + 1
             if (nr, nc) in visited and visited[(nr, nc)] <= steps:
                 continue

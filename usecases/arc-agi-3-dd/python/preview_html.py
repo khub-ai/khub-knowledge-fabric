@@ -356,6 +356,17 @@ PLAY_STYLE = STYLE + """
 .pgk-block   { background:#0e1a0e; border:1px solid #1d3d1d; border-radius:4px;
                padding:10px; margin-top:12px; font-size:12px; color:#b7e4c7; }
 .pgk-block h3 { margin:0 0 8px; font-size:13px; color:#52b788; }
+.src-label   { font-size:9px; font-weight:bold; border-radius:2px; padding:1px 4px;
+               margin-right:5px; vertical-align:middle; letter-spacing:.03em; }
+.src-tutor   { background:#264653; color:#a8dadc; }
+.src-harness { background:#1d3d1d; color:#74c69d; }
+.src-cc      { background:#3d2020; color:#e07070; }
+.harness-note  { background:#0d2215; border-left:3px solid #52b788;
+                 padding:4px 8px; margin:4px 0; color:#b7e4c7; font-size:11px; }
+.harness-error { background:#2a0e0e; border-left:3px solid #e76f51;
+                 padding:4px 8px; margin:4px 0; color:#ff8b6d; font-size:11px; }
+.harness-info  { background:#0a1a2a; border-left:3px solid #457b9d;
+                 padding:4px 8px; margin:4px 0; color:#a8dadc; font-size:11px; }
 """
 
 
@@ -450,6 +461,14 @@ def render_play_session(
         if run_id.endswith(suffix):
             run_id = run_id[:-len(suffix)]
 
+    # Parse run_id timestamp for JS relative-time display
+    run_iso = ""
+    try:
+        run_dt = datetime.strptime(run_id, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+        run_iso = run_dt.isoformat()
+    except Exception:
+        pass
+
     # Human-readable level label: series + "Level N / M"
     series = game_id.split("-")[0] if "-" in game_id else game_id
     level_label = f"Level {levels_completed_now + 1}"
@@ -462,21 +481,26 @@ def render_play_session(
 
     # ---- header
     status_color = {"WIN": "#2a9d8f", "GAME_OVER": "#e76f51"}.get(final_state, "#888")
+    run_ago_span = (f'<b id="run-ago" data-run-ts="{escape(run_iso)}">'
+                   f'{escape(run_id)}</b>') if run_iso else f'<b>{escape(run_id)}</b>'
     if live:
         banner = (f'<div class="live-banner running">'
                   f'<span class="blink">&#9679;</span> LIVE &nbsp;|&nbsp; '
                   f'last update <b>{now_str}</b> &nbsp;|&nbsp; '
                   f'auto-refresh every 5 s &nbsp;|&nbsp; '
-                  f'run <b>{escape(run_id)}</b></div>')
+                  f'run {run_ago_span}</div>')
     else:
         banner = (f'<div class="live-banner done">'
                   f'&#9632; DONE &nbsp;|&nbsp; '
                   f'finished at <b>{now_str}</b> &nbsp;|&nbsp; '
                   f'state=<b style="color:{status_color}">{escape(final_state)}</b> &nbsp;|&nbsp; '
-                  f'run <b>{escape(run_id)}</b></div>')
+                  f'run {run_ago_span}</div>')
 
     parts = [f"""<!doctype html>
 <html><head><meta charset="utf-8">{refresh_tag}
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>{escape(page_title)} play</title>
 <style>{PLAY_STYLE}</style></head><body>
 {banner}
@@ -486,7 +510,7 @@ def render_play_session(
   <span class="stat">state <b style="color:{status_color}">{escape(final_state)}</b></span>
   <span class="stat cost-total">cost <b>{_fmt_cost(total_cost)}</b></span>
   <span class="stat">tokens in <b>{total_in_tok:,}</b> / out <b>{total_out_tok:,}</b></span>
-  <span class="stat" title="{escape(session_dir.name)}">run <b>{escape(run_id)}</b></span>
+  <span class="stat" title="{escape(session_dir.name)}">run {run_ago_span}</span>
 </div>"""]
 
     # ---- working knowledge
@@ -506,10 +530,15 @@ def render_play_session(
         cost      = e.get("cost_usd", 0)
         in_tok    = e.get("input_tokens", 0)
         out_tok   = e.get("output_tokens", 0)
-        frame_b64 = e.get("frame_b64", "")
-        seq       = e.get("action_sequence") or []
-        steps     = e.get("steps_taken", 0)
-        cursor    = e.get("cursor_pos")
+        frame_b64     = e.get("frame_b64", "")
+        seq           = e.get("action_sequence") or []
+        steps         = e.get("steps_taken", 0)
+        cursor        = e.get("cursor_pos")
+        cr_dict       = e.get("command_result") or {}
+        harness_note  = cr_dict.get("harness_note") or e.get("harness_note", "")
+        exec_error    = cr_dict.get("error") or e.get("exec_error") or e.get("error", "")
+        elem_overlaps = cr_dict.get("element_overlaps") or e.get("element_overlaps") or []
+        glyph_info    = cr_dict.get("glyph_interior") or {}
 
         ts_str = ""
         elapsed_str = ""
@@ -522,7 +551,12 @@ def render_play_session(
             except Exception:  # noqa: BLE001
                 pass
 
+        # change_report: check top-level first, then last step of motion_log
         cr = e.get("change_report") or {}
+        if not cr:
+            motion_log = cr_dict.get("motion_log") or []
+            if motion_log:
+                cr = motion_log[-1].get("change_report") or {}
         cr_pm = (cr.get("primary_motion") or {})
         cr_line = ""
         if cr:
@@ -584,11 +618,51 @@ def render_play_session(
             )
         parts.append('<div class="turn-info">')
         if rationale:
-            parts.append(f'<div class="rationale">{escape(rationale)}</div>')
+            parts.append(
+                f'<div class="rationale">'
+                f'<span class="src-label src-tutor">TUTOR</span>'
+                f'{escape(rationale)}</div>'
+            )
         if revise:
-            parts.append(f'<div class="revise">REVISE: {escape(revise)}</div>')
+            parts.append(
+                f'<div class="revise">'
+                f'<span class="src-label src-tutor">TUTOR REVISE</span>'
+                f'{escape(revise)}</div>'
+            )
+        if harness_note:
+            parts.append(
+                f'<div class="harness-note">'
+                f'<span class="src-label src-harness">HARNESS NOTE</span>'
+                f'{escape(harness_note)}</div>'
+            )
+        if exec_error:
+            parts.append(
+                f'<div class="harness-error">'
+                f'<span class="src-label src-harness">HARNESS ERROR</span>'
+                f'{escape(str(exec_error))}</div>'
+            )
+        if elem_overlaps:
+            parts.append(
+                f'<div class="harness-info">'
+                f'<span class="src-label src-harness">HARNESS OVERLAPS</span>'
+                f'{escape(str(elem_overlaps))}</div>'
+            )
+        if glyph_info:
+            changed = glyph_info.get("changed")
+            glyph_cls = "harness-note" if changed else "cr-compact"
+            glyph_txt = ("GLYPH ROTATED" if changed else "glyph unchanged") + \
+                        f" (rows 11-13 cols 35-37)"
+            parts.append(
+                f'<div class="{glyph_cls}">'
+                f'<span class="src-label src-harness">HARNESS GLYPH</span>'
+                f'{escape(glyph_txt)}</div>'
+            )
         if cr_line:
-            parts.append(f'<div class="cr-compact">{cr_line}</div>')
+            parts.append(
+                f'<div class="cr-compact">'
+                f'<span class="src-label src-harness">HARNESS</span>'
+                f'{cr_line}</div>'
+            )
         parts.append('</div></div></div>')  # turn-info / turn-body / turn-card
 
     # ---- post-game note
@@ -601,5 +675,25 @@ def render_play_session(
     if live:
         parts.append('<script>var el=document.getElementById("latest");'
                      'if(el)el.scrollIntoView({behavior:"smooth",block:"start"});</script>')
+    parts.append("""<script>
+(function(){
+  function fmtAgo(isoTs){
+    var d=new Date(isoTs), s=Math.round((Date.now()-d.getTime())/1000);
+    if(s<60) return s+'s ago';
+    var m=Math.floor(s/60), r=s%60;
+    if(m<60) return m+'m '+r+'s ago';
+    var h=Math.floor(m/60); m=m%60;
+    return h+'h '+m+'m ago';
+  }
+  function tick(){
+    var el=document.querySelectorAll('#run-ago[data-run-ts]');
+    el.forEach(function(e){
+      var ts=e.getAttribute('data-run-ts');
+      if(ts) e.textContent='run '+fmtAgo(ts);
+    });
+  }
+  tick(); setInterval(tick,1000);
+})();
+</script>""")
     parts.append('</body></html>')
     (frames_dir / "index.html").write_text("\n".join(parts), encoding="utf-8")
