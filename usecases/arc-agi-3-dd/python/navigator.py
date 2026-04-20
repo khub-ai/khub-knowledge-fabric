@@ -81,12 +81,11 @@ def bfs_navigate(
             nr = max(0, min(GRID_H - 1, r + dr))
             nc = max(0, min(GRID_W - 1, c + dc))
             if walls and (r, c, action) in walls:
-                # Recorded wall: trust it only if passable_grid also confirms
-                # the destination is impassable.  If passable_grid says it's
-                # open, the wall was likely a cursor-drift false positive.
-                if not _passable(nr, nc, passable_grid):
-                    continue  # real wall confirmed by palette
-                # else: passable_grid overrides — allow this move
+                # Trust runtime-discovered walls unconditionally.
+                # These come from game-authoritative cursor positions and
+                # reflect walls the palette-4 analysis may have missed
+                # (e.g. L1 walls that use a different palette colour).
+                continue
             if not _passable(nr, nc, passable_grid):
                 continue  # palette-level wall — skip
             steps = len(path) + 1
@@ -140,8 +139,7 @@ def nearest_reachable(
             nr = max(0, min(GRID_H - 1, r + dr))
             nc = max(0, min(GRID_W - 1, c + dc))
             if walls and (r, c, action) in walls:
-                if not _passable(nr, nc, passable_grid):
-                    continue  # real wall confirmed by palette
+                continue  # trust runtime-discovered walls unconditionally
             if not _passable(nr, nc, passable_grid):
                 continue
             steps = len(path) + 1

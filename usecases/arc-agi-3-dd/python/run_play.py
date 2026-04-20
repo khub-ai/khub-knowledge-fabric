@@ -735,28 +735,49 @@ def exec_move_to(
     walls: set | None = None,
     passable_grid=None,
     stamp_action: str | None = None,
+    avoid_cells: list[tuple[int, int]] | None = None,
 ):
     """BFS-navigate to target_pos, optionally fire stamp_action there.
 
-    Detects wall-blocked moves during execution: records the wall, aborts
-    the path early, and returns an error describing the actual vs intended
-    position so TUTOR can self-correct its spatial model.
+    avoid_cells: extra cells to treat as impassable regardless of palette.
+    Use when aligned=True to prevent BFS from routing through cross cells.
+
+    Wall-hit rerouting: if a wall is hit mid-path, the wall is learned and
+    BFS replans from the current position (up to _MAX_WALL_RETRIES times).
     """
     if not cursor_pos:
         return None, prev_grid, [], cursor_pos, "cursor_pos unknown", {}
 
+    # Merge avoid_cells into passable_grid (modifying a copy so the caller's
+    # grid stays clean).  Cross-avoidance must be applied BEFORE the first BFS
+    # so that the initial path doesn't go through the cross.
+    if avoid_cells:
+        passable_grid = passable_grid.copy() if passable_grid is not None else \
+            np.ones((64, 64), dtype=bool)
+        for av_r, av_c in avoid_cells:
+            for dr in range(-1, 2):
+                for dc in range(-1, 2):
+                    pr, pc = av_r + dr, av_c + dc
+                    if 0 <= pr < 64 and 0 <= pc < 64:
+                        passable_grid[pr, pc] = False
+
     tr_r, tr_c = target_pos
     target_passable = bool(passable_grid[tr_r, tr_c]) if passable_grid is not None else None
 
-    path = bfs_navigate(cursor_pos, target_pos, action_effects, walls=walls, passable_grid=passable_grid)
+    def _plan(start):
+        p = bfs_navigate(start, target_pos, action_effects,
+                         walls=walls, passable_grid=passable_grid)
+        if p is None:
+            res = nearest_reachable(start, target_pos, action_effects,
+                                    walls=walls, passable_grid=passable_grid)
+            if res is not None:
+                p = res[1]
+        return p
+
+    path = _plan(cursor_pos)
     if path is None:
-        wall_suffix = ""
-        if target_passable is False:
-            wall_suffix = " (target cell is palette-4 wall — impassable)"
-        result = nearest_reachable(cursor_pos, target_pos, action_effects, walls=walls, passable_grid=passable_grid)
-        if result is None:
-            return None, prev_grid, [], cursor_pos, f"unreachable{wall_suffix}: no path and cannot get closer", {}
-        actual_target, path = result
+        wall_suffix = " (target cell is palette-4 wall — impassable)" if target_passable is False else ""
+        return None, prev_grid, [], cursor_pos, f"unreachable{wall_suffix}: no path and cannot get closer", {}
 
     if stamp_action:
         path = path + [stamp_action]
@@ -766,13 +787,16 @@ def exec_move_to(
             f"path length {len(path)} exceeds remaining budget {budget_remaining}"
         ), {}
 
+    _MAX_WALL_RETRIES = 3
     motion_log = []
     cur_grid = prev_grid
     obs = None
     exec_error: str | None = None
     walls_hit: list[dict] = []
+    retries = 0
 
-    for action in path:
+    while path:
+        action = path.pop(0)
         pos_before = cursor_pos
         obs, cur_grid, cr, cursor_pos, entry = exec_raw_action(
             env, action, cur_grid, element_records, action_effects, cursor_pos,
@@ -804,6 +828,15 @@ def exec_move_to(
                     "expected_dc": planned_dc,
                 }
                 walls_hit.append(wall_info)
+                # Attempt to reroute around the newly learned wall.
+                if retries < _MAX_WALL_RETRIES:
+                    retry_path = _plan(cursor_pos)
+                    if retry_path is not None and len(retry_path) <= budget_remaining - len(motion_log) - 2:
+                        path = retry_path  # switch to re-planned path
+                        retries += 1
+                        print(f"  [nav] Wall hit at {pos_before}, rerouting (attempt {retries}).")
+                        exec_error = None  # will re-evaluate at end
+                        continue
                 exec_error = (
                     f"wall: {action} blocked at {pos_before} "
                     f"(expected dr={planned_dr},dc={planned_dc}, got 0,0). "
@@ -1121,10 +1154,21 @@ def main() -> None:
                 if b_before is not None:
                     budget_remaining = b_before
                 passable_grid = build_passable_grid(cur_grid)
+                # Cross-avoidance: when the rotation is already aligned
+                # (advances_remaining=0), mark cross cells impassable so BFS
+                # does NOT accidentally route through them on the way to the
+                # win position — each inadvertent cross entry over-rotates.
+                avoid_cells: list[tuple[int, int]] = []
+                if (lstate_before
+                        and lstate_before.get("advances_remaining") == 0
+                        and command == "MOVE_TO"):
+                    for cp in (lstate_before.get("cross_positions") or []):
+                        avoid_cells.append(tuple(cp))
                 obs, cur_grid, motion_log, cursor_pos, exec_error, target_analysis = exec_move_to(
                     env, target, cur_grid, element_records, action_effects,
                     cursor_pos, budget_remaining, walls=walls,
                     passable_grid=passable_grid, stamp_action=stamp,
+                    avoid_cells=avoid_cells if avoid_cells else None,
                 )
 
         elif command == "RAW_ACTION":
