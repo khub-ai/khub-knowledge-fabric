@@ -85,6 +85,29 @@ DISCOVERY-LOOP OBLIGATION (second-priority, after ROTATION TRACKER):
   does the step_counter_ui.current_steps still decrement?").  Exploration
   turns are legitimate uses of the budget when they resolve uncertainty.
 
+BUDGET MANAGEMENT OBLIGATION (third-priority, after ROTATION TRACKER and DISCOVERY-LOOP):
+  rotation_tracker.budget_current shows the EXACT remaining move budget
+  (read directly from step_counter_ui.current_steps — authoritative).
+  rotation_tracker.budget_max shows the max budget after a refill.
+  rotation_tracker.pickup_positions lists [row, col] of budget-refill
+  pickup items present on the current level.  Entering a pickup cell
+  restores budget_current to budget_max.
+
+  CRITICAL RULE — check BEFORE every cross visit or win attempt:
+    If budget_current < 14 AND pickup_positions is non-empty:
+      Issue MOVE_TO rotation_tracker.pickup_positions[0] (or nearest)
+      IMMEDIATELY.  Do NOT attempt the cross or win first.
+      After collection, budget_current resets to budget_max and you
+      resume the Rotation Tracker decision tree from step 1.
+
+  Why 14? A cross visit can cost up to 17 game steps in a maze level.
+  Attempting it below 14 guarantees budget exhaustion before you
+  return to the win marker — costing a life and a full budget reset.
+
+  If budget_current < 14 AND pickup_positions is empty:
+    Issue RESET (costs a life, refills budget) rather than attempting
+    a move that will certainly exhaust the budget mid-path.
+
 EVIDENCE PRECEDENCE:
   COMMAND_RESULT is ground truth for what just happened.
   CURSOR_POS in COMMAND_RESULT overrides your spatial model.

@@ -1132,6 +1132,10 @@ def main() -> None:
         if lstate_before and lstate_before.get("agent_cursor"):
             cursor_pos = tuple(lstate_before["agent_cursor"])
         rot_idx_before = lstate_before["cur_rot_idx"] if lstate_before else None
+        # Use game-authoritative budget (step_counter_ui.current_steps) rather
+        # than the pixel-based _read_budget which is unreliable between turns.
+        if lstate_before and lstate_before.get("budget_current") is not None:
+            budget_remaining = lstate_before["budget_current"]
         # Raw state-variable vector (no interpretation) — captures every
         # change in per-level game state so TUTOR can correlate events
         # with numeric changes and discover what they mean.
@@ -1400,6 +1404,9 @@ def main() -> None:
                 "goal_rot_idx":       lstate_after["goal_rot_idx"],
                 "win_position":       win_pos_now,
                 "cross_position":     cross_pos_now,
+                "pickup_positions":   lstate_after.get("pickup_positions") or [],
+                "budget_current":     lstate_after.get("budget_current"),
+                "budget_max":         lstate_after.get("budget_max"),
                 "level_index":        lstate_after["level_index"],
                 "rotation_count_this_level": rotation_count,
                 "rotation_advanced":  rotation_advanced,
