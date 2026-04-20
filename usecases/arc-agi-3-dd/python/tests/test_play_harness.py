@@ -445,6 +445,123 @@ def test_strip_authored_on_current_ls20_kb():
 
 
 # ---------------------------------------------------------------------------
+# apply_patch tests
+# ---------------------------------------------------------------------------
+
+_PATCHABLE_KB = """
+Prose header.
+
+```yaml
+version: 1
+game_id: test
+beliefs:
+  - id: B1
+    provenance: discovered
+    discovered_in: [s1]
+    statement: original belief
+hypotheses:
+  - id: H1
+    provenance: discovered
+    status: proposed
+    statement: hypothesis to be supported
+    evidence:
+      supporting: []
+traps: []
+open_experiments:
+  - id: E1
+    provenance: discovered
+    description: run test X
+```
+
+Prose footer.
+"""
+
+
+def test_apply_patch_adds_belief():
+    from kb_tools import apply_patch
+    patch = {"belief_updates": [
+        {"op": "add", "id": "B2", "provenance": "discovered",
+         "discovered_in": ["s2"], "statement": "new belief from session s2"},
+    ], "hypothesis_updates": [], "trap_updates": [], "open_experiment_updates": []}
+    updated, warns = apply_patch(_PATCHABLE_KB, patch)
+    assert "new belief from session s2" in updated
+    assert "B2" in updated
+    assert not warns
+
+
+def test_apply_patch_skips_duplicate_add():
+    from kb_tools import apply_patch
+    patch = {"belief_updates": [
+        {"op": "add", "id": "B1", "provenance": "discovered",
+         "discovered_in": ["s2"], "statement": "duplicate id"},
+    ], "hypothesis_updates": [], "trap_updates": [], "open_experiment_updates": []}
+    updated, warns = apply_patch(_PATCHABLE_KB, patch)
+    # B1 already exists — should not add
+    assert updated.count("original belief") == 1  # only once
+    assert updated.count("duplicate id") == 0
+    assert any("already exists" in w for w in warns)
+
+
+def test_apply_patch_updates_hypothesis_status():
+    from kb_tools import apply_patch
+    patch = {"belief_updates": [], "hypothesis_updates": [
+        {"op": "update_status", "id": "H1", "status": "supported",
+         "evidence_session": "s2", "note": "prediction confirmed"},
+    ], "trap_updates": [], "open_experiment_updates": []}
+    updated, warns = apply_patch(_PATCHABLE_KB, patch)
+    assert "supported" in updated
+    assert "prediction confirmed" in updated
+    assert not warns
+
+
+def test_apply_patch_corroborates_belief():
+    from kb_tools import apply_patch
+    patch = {"belief_updates": [
+        {"op": "corroborate", "id": "B1", "session_id": "s2"},
+    ], "hypothesis_updates": [], "trap_updates": [], "open_experiment_updates": []}
+    updated, warns = apply_patch(_PATCHABLE_KB, patch)
+    assert "s2" in updated
+    assert "corroborated" in updated
+    assert not warns
+
+
+def test_apply_patch_closes_experiment():
+    from kb_tools import apply_patch
+    patch = {"belief_updates": [], "hypothesis_updates": [],
+             "trap_updates": [],
+             "open_experiment_updates": [
+                 {"op": "close", "id": "E1", "session_id": "s2",
+                  "result": "test confirmed X works"},
+             ]}
+    updated, warns = apply_patch(_PATCHABLE_KB, patch)
+    assert "closed" in updated
+    assert "test confirmed X works" in updated
+    assert not warns
+
+
+def test_apply_patch_warns_on_missing_id():
+    from kb_tools import apply_patch
+    patch = {"belief_updates": [], "hypothesis_updates": [
+        {"op": "update_status", "id": "H99", "status": "refuted",
+         "evidence_session": "s2"},
+    ], "trap_updates": [], "open_experiment_updates": []}
+    updated, warns = apply_patch(_PATCHABLE_KB, patch)
+    assert any("H99" in w for w in warns)
+
+
+def test_apply_patch_empty_patch_unchanged():
+    from kb_tools import apply_patch, provenance_summary
+    patch = {"belief_updates": [], "hypothesis_updates": [],
+             "trap_updates": [], "open_experiment_updates": []}
+    updated, warns = apply_patch(_PATCHABLE_KB, patch)
+    # Content should be equivalent (modulo YAML reserialisation)
+    orig_summary  = provenance_summary(_PATCHABLE_KB)
+    patch_summary = provenance_summary(updated)
+    assert orig_summary == patch_summary
+    assert not warns
+
+
+# ---------------------------------------------------------------------------
 # Direct-runner entry point
 # ---------------------------------------------------------------------------
 
@@ -470,6 +587,13 @@ if __name__ == "__main__":
         test_strip_authored_returns_unchanged_when_no_yaml_block,
         test_provenance_summary_counts_correctly,
         test_strip_authored_on_current_ls20_kb,
+        test_apply_patch_adds_belief,
+        test_apply_patch_skips_duplicate_add,
+        test_apply_patch_updates_hypothesis_status,
+        test_apply_patch_corroborates_belief,
+        test_apply_patch_closes_experiment,
+        test_apply_patch_warns_on_missing_id,
+        test_apply_patch_empty_patch_unchanged,
     ]
     passed = 0
     failed = 0

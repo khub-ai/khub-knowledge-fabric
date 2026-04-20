@@ -259,82 +259,68 @@ def build_play_user_message(
     )
 
 
-SYSTEM_POSTGAME = """You just finished a session of an ARC-AGI-3 game.  Your job now is to
-UPDATE the structured game knowledge base (KB) given what this session
-observed.  The KB is a markdown document with an embedded YAML block
-containing beliefs, hypotheses, traps, and open experiments.  Every
-item has a `provenance` tag.
+SYSTEM_POSTGAME = """You just finished a session of an ARC-AGI-3 game.  Your job is to
+produce a compact JSON PATCH that updates the structured game knowledge
+base (KB).
 
 You will be given:
-  PRIOR_KB              -- the existing KB document.  Treat it as a
-                           persistent scientific notebook: preserve
-                           existing items, update statuses in place,
-                           add new items with fresh IDs.
-  HARNESS_OBSERVED_FACTS -- ground-truth events the harness recorded
-                           (levels_completed deltas, per-turn level
-                           completion events, action_effects learned,
-                           walls learned).  These are AUTHORITATIVE —
-                           if your narrative contradicts them, trust
-                           the facts.
-  OUTCOME + COMMAND_TRACE -- what you did and how it ended.
+  PRIOR_KB              -- the existing KB (read-only, do NOT echo it).
+  HARNESS_OBSERVED_FACTS -- ground-truth events (AUTHORITATIVE).
+  OUTCOME + COMMAND_TRACE -- what happened this session.
 
-OUTPUT SHAPE — return the FULL updated KB document (prose preamble +
-YAML block).  Do NOT truncate prior content.  Preserve every belief,
-hypothesis, and trap unless you have direct contradicting evidence.
-The YAML block must remain valid (correct indentation, valid keys).
+OUTPUT: Return a single JSON object — the patch.  Nothing else.
+No prose, no code fences, no markdown.  The harness applies it.
 
-UPDATE RULES (by section):
+PATCH FORMAT:
+{
+  "belief_updates": [
+    {"op": "add", "id": "B<n>", "provenance": "discovered",
+     "discovered_in": ["<session_id>"], "statement": "..."},
+    {"op": "corroborate", "id": "<existing_id>",
+     "session_id": "<session_id>"}
+  ],
+  "hypothesis_updates": [
+    {"op": "add", "id": "H<n>", "provenance": "discovered",
+     "status": "proposed", "statement": "...",
+     "evidence": {"supporting": ["<session_id>"]}},
+    {"op": "update_status", "id": "<existing_id>",
+     "status": "supported|refuted|proposed",
+     "evidence_session": "<session_id>",
+     "note": "one sentence explanation"}
+  ],
+  "trap_updates": [
+    {"op": "add", "id": "T<n>", "provenance": "discovered",
+     "description": "..."}
+  ],
+  "open_experiment_updates": [
+    {"op": "add", "id": "E<n>", "description": "..."},
+    {"op": "close", "id": "<existing_id>",
+     "session_id": "<session_id>", "result": "..."}
+  ]
+}
 
-1. beliefs: only ADD when you have direct run-evidence.  Every new
-   belief MUST include provenance: discovered and a discovered_in list
-   of session IDs.  Never add provenance: authored-* items yourself —
-   those are reserved for Claude Code.  Status updates to existing
-   beliefs: append session IDs to corroborating_sessions when you have
-   verified them via use.
+RULES:
+1. Only add beliefs with DIRECT run evidence.
+   provenance must be "discovered".  Never use "authored-*".
+2. Only update hypothesis status if this session directly supports or refutes it.
+3. Assign fresh IDs (B<n>, H<n>, T<n>, E<n>) that don't collide with PRIOR_KB.
+4. If nothing new: return {"belief_updates":[],"hypothesis_updates":[],
+   "trap_updates":[],"open_experiment_updates":[]}.
+5. Do NOT re-add items already in PRIOR_KB.
+6. If HARNESS_OBSERVED_FACTS shows a level completed, do NOT add a trap
+   claiming it failed.
+7. Be specific: name exact variables, observed values, and what changed.
 
-2. hypotheses: update status based on THIS session's evidence —
-   `proposed -> supported` when a prediction from the hypothesis was
-   confirmed; `proposed -> refuted` when a prediction was directly
-   contradicted.  Append session IDs to evidence.supporting or
-   evidence.contradicting.  If a supported discovered-hypothesis now
-   has >=2 distinct corroborating sessions, you MAY promote it to a
-   belief and remove from hypotheses (cross-reference by belief ID).
-
-3. New hypotheses: ADD when this session produced an observation you
-   could not explain with current beliefs.  BE SPECIFIC — describe
-   the observation, not a vague hunch.  Provenance: discovered.
-
-4. traps: ADD when this session hit a failure mode worth warning
-   future sessions about.
-
-5. open_experiments: ADD or update descriptions of concrete tests
-   future sessions could run to resolve open hypotheses.
-
-ANTI-RULES — do not do these:
-
-- Do NOT invent plausible-sounding explanations for observations you
-  cannot actually attribute to a specific mechanism.  Prefer
-  "unexplained" to a story that fits the vibe.  (This is trap T5 in
-  the current KB — misdiagnosing unknowns as known failure modes.)
-- Do NOT claim a level failed if HARNESS_OBSERVED_FACTS shows it was
-  completed (e.g. levels_completed incremented during the command).
-- Do NOT mark authored-by-claude-code items as discovered.  Their
-  provenance stays as-is; you only add your own discovered items.
-- Do NOT shrink the KB.  The output should be at least as long as the
-  input, with your additions and status updates woven in.
-
-If this run yielded no new beliefs, hypotheses, or traps, still return
-the full PRIOR_KB unchanged (plus any status updates to existing
-hypotheses)."""
+Return ONLY the JSON object.  No surrounding text."""
 
 
-POSTGAME_TEMPLATE = """POST-GAME KB UPDATE
+POSTGAME_TEMPLATE = """POST-GAME KB PATCH
 
 GAME: {game_id}
 SESSION_ID: {session_id}
 OUTCOME: {outcome}   ({turns} turns, final_state={final_state}, levels={levels_completed}/{win_levels})
 
-PRIOR_KB (existing knowledge base — return this updated, not rewritten):
+PRIOR_KB (read-only — output only the patch, NOT this document):
 {prior_kb}
 
 HARNESS_OBSERVED_FACTS (ground truth — authoritative):
@@ -345,17 +331,13 @@ HARNESS_OBSERVED_FACTS (ground truth — authoritative):
   action_effects_confirmed: {action_effects_json}
   walls_learned:            {walls_json}
 
-WORKING_KNOWLEDGE used during play:
+WORKING_KNOWLEDGE used during play (your model at session end):
 {working_knowledge}
 
 COMMAND_TRACE (turn -> command -> brief):
 {command_trace}
 
-Return the FULL updated KB document (markdown prose preamble + YAML
-block).  Preserve every existing item; append new items with fresh IDs
-(B<n>, H<n>, T<n>); update statuses of existing hypotheses based on
-session evidence.  No fences around the whole document — return it as
-the KB will be written verbatim to disk."""
+Output the JSON patch object only."""
 
 
 def build_postgame_user_message(

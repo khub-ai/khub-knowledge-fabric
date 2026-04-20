@@ -32,6 +32,7 @@ from play_prompts import (
     SYSTEM_PLAY, build_play_user_message,
     SYSTEM_POSTGAME, build_postgame_user_message,
 )
+from kb_tools import apply_patch
 from dsl_executor import _build_change_report, _normalise_frame
 from navigator import bfs_navigate, nearest_reachable, build_passable_grid
 from preview_html import render_play_session, grid_to_png_b64
@@ -1499,6 +1500,13 @@ def main() -> None:
         outcome = final_state   # e.g. NOT_FINISHED with zero progress
 
     session_id_str = f"trial_{trial_id}_play"
+    # Patch-format postgame: TUTOR outputs a compact JSON patch
+    # (~300-800 tokens) instead of a full KB rewrite (~3000 tokens).
+    # Harness applies the patch programmatically via kb_tools.apply_patch().
+    # Expected latency: 15-40 seconds vs 5+ minutes for full rewrite.
+    postgame_patch: dict | None = None
+    postgame_raw_reply: str = ""
+    postgame_err: str | None = None
     try:
         rsp = backends.call_anthropic(
             model=TUTOR_MODEL, system=SYSTEM_POSTGAME,
@@ -1517,40 +1525,39 @@ def main() -> None:
                 walls_learned=[list(w) for w in sorted(walls)],
                 session_id=session_id_str,
             ),
-            # The KB grows; give TUTOR enough headroom for a full rewrite.
-            # Bump client-side timeout since an 8k-token rewrite of an 11k+
-            # char KB can genuinely take 5+ minutes on Sonnet.  The default
-            # 300s killed the first validation attempt at this payload.
-            image_b64=None, max_tokens=8000, timeout_s=600,
+            # Patch output is small — 2000 tokens is generous headroom.
+            # Timeout at 120s (patches complete in 15-40s normally).
+            image_b64=None, max_tokens=2000, timeout_s=120,
         )
-        note = rsp["reply"].strip()
+        postgame_raw_reply = rsp["reply"].strip()
+        postgame_patch = extract_json(postgame_raw_reply)
+        print(
+            f"Postgame patch received: {sum(len(v) for v in postgame_patch.values())} ops, "
+            f"{rsp.get('output_tokens',0)} output tokens, "
+            f"{rsp.get('latency_ms',0)//1000}s"
+        )
     except Exception as e:  # noqa: BLE001
-        note = f"(post-game call failed: {e})"
-    (session_dir / "post_game_knowledge.md").write_text(note, encoding="utf-8")
+        postgame_err = str(e)
+        print(f"WARNING: postgame call failed: {e}")
 
-    # Save the updated knowledge note back to the cumulative per-game KB so
-    # future sessions of this game get it as GAME_KNOWLEDGE_BASE.
-    # SAFEGUARDS:
-    #   1. Only persist if the TUTOR call succeeded.
-    #   2. If the output is meaningfully shorter than the prior KB, reject
-    #      it — TUTOR likely truncated and we'd be discarding known items.
-    #      The postgame prompt explicitly instructs "do NOT shrink the KB".
+    # Save raw reply for debugging (JSON patch or error message).
+    raw_reply_text = postgame_raw_reply if postgame_raw_reply else f"(postgame call failed: {postgame_err})"
+    (session_dir / "post_game_knowledge.md").write_text(raw_reply_text, encoding="utf-8")
+
+    # Apply the patch to the KB and persist the updated document.
     kb_written = False
     kb_rejection_reason: str | None = None
-    if kb_path is not None and not note.startswith("(post-game call failed"):
-        prior_len = len(prior_kb_text.strip())
-        new_len   = len(note.strip())
-        if prior_len > 0 and new_len < prior_len * 0.7:
-            kb_rejection_reason = (
-                f"postgame output truncated: {new_len} chars vs prior "
-                f"{prior_len}; keeping prior KB"
-            )
-            print(f"WARNING: {kb_rejection_reason}")
-        else:
-            kb_path.parent.mkdir(parents=True, exist_ok=True)
-            kb_path.write_text(note, encoding="utf-8")
-            kb_written = True
-            print(f"Knowledge base updated: {kb_path}")
+    if kb_path is not None and postgame_patch is not None:
+        updated_kb, patch_warnings = apply_patch(prior_kb_text or "", postgame_patch)
+        if patch_warnings:
+            print(f"Patch warnings: {patch_warnings}")
+        kb_path.parent.mkdir(parents=True, exist_ok=True)
+        kb_path.write_text(updated_kb, encoding="utf-8")
+        kb_written = True
+        print(f"Knowledge base updated via patch: {kb_path} ({len(updated_kb)} chars, was {len(prior_kb_text)} chars)")
+    elif kb_path is not None and postgame_patch is None:
+        kb_rejection_reason = f"postgame patch not applied: {postgame_err or 'JSON parse failed'}"
+        print(f"WARNING: {kb_rejection_reason}")
 
     # Runtime sidecar: action_effects + walls merged across runs.  Loaded
     # at session start to avoid re-probing the action grammar every time.

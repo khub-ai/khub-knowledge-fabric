@@ -118,6 +118,145 @@ def provenance_summary(kb_text: str) -> dict[str, dict[str, int]]:
     return out
 
 
+def apply_patch(kb_text: str, patch: dict) -> tuple[str, list[str]]:
+    """Apply a JSON patch dict to the KB, returning (updated_kb_text, warnings).
+
+    Supported patch keys:
+      belief_updates, hypothesis_updates, trap_updates, open_experiment_updates
+
+    Per-key ops:
+      {"op": "add",  "id": "<new_id>", ...rest of item fields...}
+        — appends a new item if <id> not already present in the section.
+
+      {"op": "corroborate", "id": "<existing_id>", "session_id": "<sid>"}
+        — adds session_id to corroborating_sessions; promotes provenance
+          from "discovered" to "corroborated" if not already.
+
+      {"op": "update_status", "id": "<existing_id>",
+       "status": "supported|refuted|proposed",
+       "evidence_session": "<sid>",  (optional)
+       "note": "one sentence"}       (optional)
+        — updates hypothesis status and appends to evidence.supporting or
+          evidence.contradicting depending on new status.
+
+      {"op": "close", "id": "<existing_id>", "session_id": "<sid>",
+       "result": "..."}
+        — marks an open_experiment resolved by appending a result note.
+    """
+    split = _split_yaml_block(kb_text)
+    if split is None:
+        return kb_text, ["no YAML block found — patch not applied"]
+    prose_before, yaml_body, prose_after = split
+
+    try:
+        data = yaml.safe_load(yaml_body) or {}
+    except yaml.YAMLError as exc:
+        return kb_text, [f"YAML parse error: {exc}"]
+
+    section_map = {
+        "belief_updates":           "beliefs",
+        "hypothesis_updates":       "hypotheses",
+        "trap_updates":             "traps",
+        "open_experiment_updates":  "open_experiments",
+    }
+
+    warnings: list[str] = []
+
+    for patch_key, section_key in section_map.items():
+        updates = patch.get(patch_key) or []
+        if not updates:
+            continue
+        items: list = data.setdefault(section_key, [])
+        existing_ids = {
+            item.get("id")
+            for item in items
+            if isinstance(item, dict) and item.get("id")
+        }
+
+        for upd in updates:
+            if not isinstance(upd, dict):
+                continue
+            op  = upd.get("op")
+            uid = upd.get("id")
+
+            if op == "add":
+                if uid in existing_ids:
+                    warnings.append(
+                        f"{section_key}: id {uid!r} already exists — skipped add"
+                    )
+                    continue
+                new_item = {k: v for k, v in upd.items() if k != "op"}
+                items.append(new_item)
+                existing_ids.add(uid)
+
+            elif op == "corroborate":
+                found = False
+                for item in items:
+                    if isinstance(item, dict) and item.get("id") == uid:
+                        sess = upd.get("session_id") or ""
+                        if sess:
+                            cs = item.setdefault("corroborating_sessions", [])
+                            if sess not in cs:
+                                cs.append(sess)
+                        if item.get("provenance") == "discovered":
+                            item["provenance"] = "corroborated"
+                        found = True
+                        break
+                if not found:
+                    warnings.append(
+                        f"{section_key}: id {uid!r} not found for corroborate"
+                    )
+
+            elif op == "update_status":
+                found = False
+                for item in items:
+                    if isinstance(item, dict) and item.get("id") == uid:
+                        new_status = upd.get("status")
+                        if new_status:
+                            item["status"] = new_status
+                        evidence_session = upd.get("evidence_session") or ""
+                        note = upd.get("note") or ""
+                        if evidence_session:
+                            ev = item.setdefault("evidence", {})
+                            if new_status in ("supported", "corroborated"):
+                                supp = ev.setdefault("supporting", [])
+                                if evidence_session not in supp:
+                                    supp.append(evidence_session)
+                            elif new_status == "refuted":
+                                contra = ev.setdefault("contradicting", [])
+                                if evidence_session not in contra:
+                                    contra.append(evidence_session)
+                        if note:
+                            item.setdefault("notes", []).append(note)
+                        found = True
+                        break
+                if not found:
+                    warnings.append(
+                        f"{section_key}: id {uid!r} not found for update_status"
+                    )
+
+            elif op == "close":
+                found = False
+                for item in items:
+                    if isinstance(item, dict) and item.get("id") == uid:
+                        result = upd.get("result") or ""
+                        sess   = upd.get("session_id") or ""
+                        note   = f"[closed by {sess}] {result}".strip()
+                        item.setdefault("notes", []).append(note)
+                        item["status"] = "closed"
+                        found = True
+                        break
+                if not found:
+                    warnings.append(
+                        f"{section_key}: id {uid!r} not found for close"
+                    )
+            else:
+                warnings.append(f"unknown op {op!r} for id {uid!r} — skipped")
+
+    new_body = yaml.safe_dump(data, sort_keys=False, default_flow_style=False)
+    return f"{prose_before}```yaml\n{new_body}```{prose_after}", warnings
+
+
 if __name__ == "__main__":
     import argparse
     import sys
