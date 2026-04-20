@@ -61,6 +61,30 @@ ROTATION TRACKER OBLIGATION (mandatory every turn — highest priority):
   glyph_summary.pattern_match_report is a secondary visual corroboration
   only; rotation_tracker is the authoritative signal.
 
+DISCOVERY-LOOP OBLIGATION (second-priority, after ROTATION TRACKER):
+  COMMAND_RESULT.prediction_error reports whether your `predict` dict from
+  the previous turn matched observation.  If any field is in
+  predicted_mismatch, YOU PREDICTED WRONG.  Do not paper over this —
+  explicitly account for the mismatch in your `revise_knowledge` field
+  before issuing your next command.  Mismatches are the most valuable
+  data you produce: they identify mechanics you don't yet understand.
+
+  COMMAND_RESULT.state_vector_delta lists every raw game-state variable
+  that changed during the last command.  Variables are exposed under
+  their raw (often obfuscated) names — "game.cklxociuu", "game.aqygnziho",
+  "step_counter_ui.current_steps", etc.  These are sensor readings with
+  no interpretation attached.  When a variable changes in a way you did
+  NOT anticipate, that is a NEW OBSERVATION WORTH A HYPOTHESIS.  In your
+  revise_knowledge, state what you think the variable represents and
+  what caused the change.  The postgame call will convert these notes
+  into hypotheses in the KB.
+
+  Prefer experiments over speculation.  If COMMAND_RESULT shows an
+  unexplained variable change, consider issuing a RAW_ACTION that tests
+  a specific hypothesis about it (e.g. "if I stay still for one action,
+  does the step_counter_ui.current_steps still decrement?").  Exploration
+  turns are legitimate uses of the budget when they resolve uncertainty.
+
 EVIDENCE PRECEDENCE:
   COMMAND_RESULT is ground truth for what just happened.
   CURSOR_POS in COMMAND_RESULT overrides your spatial model.
@@ -71,9 +95,24 @@ EVIDENCE PRECEDENCE:
     revise_knowledge and use the corrected coordinates in future commands.
   element_overlaps: which named elements the avatar is currently ON.
     Use this to confirm you reached the right element -- it is authoritative.
-  rotation_tracker: harness-computed rotation state (authoritative; read
-    the ROTATION TRACKER OBLIGATION section for semantics).  Valid per
-    current sub-level only — refreshes on level auto-advance.
+  rotation_tracker: harness-computed rotation state (CONTAINS BOTH raw
+    and interpreted fields; the interpreted ones — aligned,
+    advances_remaining, win_position, cross_position — are
+    provenance=authored-interpretation in the KB and may be removed in
+    a stripped-eval variant; the raw ones — cur_rot_idx, goal_rot_idx,
+    level_index — are sensor readings).  Valid per current sub-level
+    only — refreshes on level auto-advance.
+  state_vector: raw numeric game-state variables (no interpretation;
+    names are the game's own).  Pair with state_vector_delta to see
+    what changed last command and form hypotheses about what each
+    variable means.
+  prediction_error: diff between your predict-field on the previous
+    turn and the observed outcome.  Non-empty predicted_mismatch means
+    your model is wrong about something.  UNRECOGNIZED fields mean you
+    used a predict-key the harness doesn't know how to observe — either
+    pick different keys (cursor_pos_after, levels_completed_after,
+    rotation_advanced, advances_remaining, state, level_completed) or
+    record the intent in revise_knowledge instead.
   glyph_summary: dict with two parts:
     - "<element_name>_3x3": 3×3 palette grid for each small named element
     - pattern_match_report: list of {pair, match_deg, result} for every
@@ -221,48 +260,84 @@ def build_play_user_message(
 
 
 SYSTEM_POSTGAME = """You just finished a session of an ARC-AGI-3 game.  Your job now is to
-produce an UPDATED cumulative knowledge note for this game that will be
-loaded as GAME_KNOWLEDGE_BASE on every future session.
+UPDATE the structured game knowledge base (KB) given what this session
+observed.  The KB is a markdown document with an embedded YAML block
+containing beliefs, hypotheses, traps, and open experiments.  Every
+item has a `provenance` tag.
 
 You will be given:
-  PRIOR_KNOWLEDGE_BASE  -- the KB you (or prior runs) wrote last time.
-                           Preserve anything still true; refine what the
-                           current run contradicts; add what's new.
+  PRIOR_KB              -- the existing KB document.  Treat it as a
+                           persistent scientific notebook: preserve
+                           existing items, update statuses in place,
+                           add new items with fresh IDs.
   HARNESS_OBSERVED_FACTS -- ground-truth events the harness recorded
                            (levels_completed deltas, per-turn level
-                           completion events, action_effects, walls).
-                           These are AUTHORITATIVE.  If your narrative
-                           contradicts them, trust the facts and revise.
+                           completion events, action_effects learned,
+                           walls learned).  These are AUTHORITATIVE —
+                           if your narrative contradicts them, trust
+                           the facts.
   OUTCOME + COMMAND_TRACE -- what you did and how it ended.
 
-Write a single dense note (< 400 words, prose OK, no headers/fences):
-  - confirmed action effects (dr, dc per action)
-  - level structure: how many sub-levels exist (win_levels), what
-    triggers levels_completed advancement, what varies between levels
-    vs. stays constant (positions per level, rotations, etc.)
-  - win condition and counter semantics (e.g. rotation index, goal
-    state check, one-trigger vs. multi-trigger, state-dependent walls)
-  - traps / false-lesson risks (cursor drift on glyph repaint, auto-
-    advance between sub-levels, win_position being state-dependent)
-  - confirmed element roles; coordinates ONLY if stable across levels
-    (otherwise mark them as level-specific and describe how to find
-    them on a new level)
-  - 1-2 hypotheses still worth testing
+OUTPUT SHAPE — return the FULL updated KB document (prose preamble +
+YAML block).  Do NOT truncate prior content.  Preserve every belief,
+hypothesis, and trap unless you have direct contradicting evidence.
+The YAML block must remain valid (correct indentation, valid keys).
 
-Do NOT duplicate PRIOR_KNOWLEDGE_BASE verbatim -- build on it.  Do NOT
-claim failure if HARNESS_OBSERVED_FACTS shows a level was completed.
-Do NOT hardcode single-level coordinates as if they apply globally."""
+UPDATE RULES (by section):
+
+1. beliefs: only ADD when you have direct run-evidence.  Every new
+   belief MUST include provenance: discovered and a discovered_in list
+   of session IDs.  Never add provenance: authored-* items yourself —
+   those are reserved for Claude Code.  Status updates to existing
+   beliefs: append session IDs to corroborating_sessions when you have
+   verified them via use.
+
+2. hypotheses: update status based on THIS session's evidence —
+   `proposed -> supported` when a prediction from the hypothesis was
+   confirmed; `proposed -> refuted` when a prediction was directly
+   contradicted.  Append session IDs to evidence.supporting or
+   evidence.contradicting.  If a supported discovered-hypothesis now
+   has >=2 distinct corroborating sessions, you MAY promote it to a
+   belief and remove from hypotheses (cross-reference by belief ID).
+
+3. New hypotheses: ADD when this session produced an observation you
+   could not explain with current beliefs.  BE SPECIFIC — describe
+   the observation, not a vague hunch.  Provenance: discovered.
+
+4. traps: ADD when this session hit a failure mode worth warning
+   future sessions about.
+
+5. open_experiments: ADD or update descriptions of concrete tests
+   future sessions could run to resolve open hypotheses.
+
+ANTI-RULES — do not do these:
+
+- Do NOT invent plausible-sounding explanations for observations you
+  cannot actually attribute to a specific mechanism.  Prefer
+  "unexplained" to a story that fits the vibe.  (This is trap T5 in
+  the current KB — misdiagnosing unknowns as known failure modes.)
+- Do NOT claim a level failed if HARNESS_OBSERVED_FACTS shows it was
+  completed (e.g. levels_completed incremented during the command).
+- Do NOT mark authored-by-claude-code items as discovered.  Their
+  provenance stays as-is; you only add your own discovered items.
+- Do NOT shrink the KB.  The output should be at least as long as the
+  input, with your additions and status updates woven in.
+
+If this run yielded no new beliefs, hypotheses, or traps, still return
+the full PRIOR_KB unchanged (plus any status updates to existing
+hypotheses)."""
 
 
-POSTGAME_TEMPLATE = """POST-GAME KNOWLEDGE CAPTURE
+POSTGAME_TEMPLATE = """POST-GAME KB UPDATE
 
 GAME: {game_id}
+SESSION_ID: {session_id}
 OUTCOME: {outcome}   ({turns} turns, final_state={final_state}, levels={levels_completed}/{win_levels})
 
-PRIOR_KNOWLEDGE_BASE (cumulative knowledge from earlier sessions — blank if first run):
+PRIOR_KB (existing knowledge base — return this updated, not rewritten):
 {prior_kb}
 
-HARNESS_OBSERVED_FACTS (ground truth — authoritative over your narrative):
+HARNESS_OBSERVED_FACTS (ground truth — authoritative):
   initial_levels_completed: {initial_lc}
   final_levels_completed:   {final_lc}
   win_levels_required:      {win_levels}
@@ -270,14 +345,17 @@ HARNESS_OBSERVED_FACTS (ground truth — authoritative over your narrative):
   action_effects_confirmed: {action_effects_json}
   walls_learned:            {walls_json}
 
-WORKING_KNOWLEDGE at end of play:
+WORKING_KNOWLEDGE used during play:
 {working_knowledge}
 
 COMMAND_TRACE (turn -> command -> brief):
 {command_trace}
 
-Write the updated cumulative knowledge note now (< 400 words, no fences,
-no headers)."""
+Return the FULL updated KB document (markdown prose preamble + YAML
+block).  Preserve every existing item; append new items with fresh IDs
+(B<n>, H<n>, T<n>); update statuses of existing hypotheses based on
+session evidence.  No fences around the whole document — return it as
+the KB will be written verbatim to disk."""
 
 
 def build_postgame_user_message(
@@ -296,6 +374,7 @@ def build_postgame_user_message(
     final_lc:                int = 0,
     level_completion_events: list[dict] | None = None,
     walls_learned:           list[tuple[int, int, str]] | None = None,
+    session_id:              str = "",
 ) -> str:
     effects_display = {
         a: {"dr": dr, "dc": dc}
@@ -311,6 +390,7 @@ def build_postgame_user_message(
         )
     return POSTGAME_TEMPLATE.format(
         game_id           = game_id,
+        session_id        = session_id or "(unset)",
         outcome           = outcome,
         turns             = turns,
         final_state       = final_state,

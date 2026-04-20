@@ -175,8 +175,11 @@ def test_build_postgame_user_message_includes_observed_facts():
         level_completion_events=[{"turn": 2, "from_level": 0, "to_level": 1,
                                   "win_levels": 7}],
         walls_learned=[(15, 36, "ACTION1")],
+        session_id="trial_TEST_play",
     )
-    assert "PRIOR_KNOWLEDGE_BASE" in msg
+    # Template renamed PRIOR_KNOWLEDGE_BASE -> PRIOR_KB when the postgame
+    # was restructured around the provenance-tagged KB format.
+    assert "PRIOR_KB" in msg
     assert "PRIOR KB TEXT" in msg
     assert "HARNESS_OBSERVED_FACTS" in msg
     assert "level_completion_events" in msg
@@ -185,6 +188,7 @@ def test_build_postgame_user_message_includes_observed_facts():
     assert "final_levels_completed:   1" in msg
     assert "win_levels_required:      7" in msg
     assert "ACTION1" in msg
+    assert "trial_TEST_play" in msg   # session_id passed through
 
 
 def test_build_postgame_user_message_blank_kb_is_marked():
@@ -225,6 +229,222 @@ def test_build_play_user_message_empty_prev_level_notes_marked():
 
 
 # ---------------------------------------------------------------------------
+# Raw state-variable vector
+# ---------------------------------------------------------------------------
+
+def test_query_state_vector_at_reset():
+    from run_play import _query_state_vector
+    env = _make_env()
+    env.reset()
+    sv = _query_state_vector(env)
+    assert sv is not None
+    # At reset: rotation index 3 (StartRotation=270°), 3 lives, step counter 42
+    assert sv.get("game.cklxociuu") == 3
+    assert sv.get("game.aqygnziho") == 3
+    assert sv.get("game.level_index") == 0
+    assert sv.get("step_counter_ui.current_steps") == 42
+    assert sv.get("step_counter_ui.osgviligwp") == 42
+
+
+def test_query_state_vector_tracks_rotation_and_budget():
+    """After cross visit: cklxociuu changes + step counter decreases."""
+    from run_play import _query_state_vector
+    from arcengine import GameAction
+    env = _make_env()
+    env.reset()
+    sv0 = _query_state_vector(env)
+    # Any action consumes step-counter budget (whether motion succeeds or not)
+    for a in [GameAction.ACTION3] * 3 + [GameAction.ACTION1] * 3:
+        env.step(a)
+    sv1 = _query_state_vector(env)
+    assert sv1["step_counter_ui.current_steps"] < sv0["step_counter_ui.current_steps"]
+    assert sv1["game.cklxociuu"] == 0, "cross visit should advance rotation 3->0"
+
+
+# ---------------------------------------------------------------------------
+# Predict-observe-diff
+# ---------------------------------------------------------------------------
+
+def test_prediction_error_matches_observed_cursor_pos():
+    from run_play import _compute_prediction_error
+    # Fake obs + cr: cursor ended at [30, 21]
+    class FakeObs:
+        levels_completed = 0
+        class state:
+            name = "NOT_FINISHED"
+    cr = {"cursor_pos_after": [30, 21],
+          "rotation_tracker": {"level_completed": False}}
+    pe = _compute_prediction_error(
+        predict={"cursor_pos_after": [30, 21]},
+        obs=FakeObs(),
+        cr=cr,
+        lstate={"level_index": 0},
+    )
+    assert pe["had_predictions"] is True
+    assert "cursor_pos_after" in pe["predicted_matched"]
+    assert pe["predicted_mismatch"] == {}
+
+
+def test_prediction_error_flags_mismatch():
+    from run_play import _compute_prediction_error
+    class FakeObs:
+        levels_completed = 0
+        class state:
+            name = "NOT_FINISHED"
+    cr = {"cursor_pos_after": [35, 21],
+          "rotation_tracker": {"level_completed": False}}
+    pe = _compute_prediction_error(
+        predict={"cursor_pos_after": [30, 21], "level_completed": True},
+        obs=FakeObs(),
+        cr=cr,
+        lstate={"level_index": 0},
+    )
+    assert "cursor_pos_after" in pe["predicted_mismatch"]
+    assert "level_completed" in pe["predicted_mismatch"]
+    assert pe["predicted_mismatch"]["cursor_pos_after"]["observed"] == [35, 21]
+
+
+def test_prediction_error_flags_unrecognized_field():
+    from run_play import _compute_prediction_error
+    class FakeObs:
+        levels_completed = 0
+        class state:
+            name = "NOT_FINISHED"
+    pe = _compute_prediction_error(
+        predict={"some_made_up_field": "value"},
+        obs=FakeObs(),
+        cr={"cursor_pos_after": [0, 0]},
+        lstate=None,
+    )
+    assert "some_made_up_field" in pe["unrecognized_fields"]
+
+
+def test_prediction_error_empty_when_no_predictions():
+    from run_play import _compute_prediction_error
+    class FakeObs:
+        levels_completed = 0
+    pe = _compute_prediction_error(
+        predict=None, obs=FakeObs(), cr={}, lstate=None,
+    )
+    assert pe["had_predictions"] is False
+    assert pe["predicted_matched"] == []
+    assert pe["predicted_mismatch"] == {}
+
+
+# ---------------------------------------------------------------------------
+# kb_tools: strip-authored and provenance-summary
+# ---------------------------------------------------------------------------
+
+_TEST_KB = """\
+# test KB
+
+prose goes here.
+
+```yaml
+version: 1
+game_id: test
+beliefs:
+  - id: B1
+    provenance: discovered
+    discovered_in: [session_A]
+    statement: TUTOR saw the action effects
+  - id: B2
+    provenance: authored-by-claude-code
+    statement: from source reading
+  - id: B3
+    provenance: corroborated
+    corroborating_sessions: [session_A, session_B]
+    statement: authored-then-verified twice
+  - id: B4
+    provenance: corroborated
+    corroborating_sessions: [session_A]
+    statement: authored-then-verified once (not enough)
+hypotheses:
+  - id: H1
+    provenance: discovered
+    status: proposed
+    statement: TUTOR raised this from an anomaly
+  - id: H2
+    provenance: authored-interpretation
+    status: supported
+    statement: claude-code interpretation of raw sensors
+traps:
+  - id: T1
+    provenance: discovered
+    description: TUTOR hit this
+  - id: T2
+    provenance: authored-by-claude-code
+    description: from source
+```
+
+trailing prose.
+"""
+
+
+def test_strip_authored_removes_authored_and_unconfirmed_corroborated():
+    from kb_tools import strip_authored
+    stripped = strip_authored(_TEST_KB)
+    # Kept (discovered): B1, H1, T1
+    assert "TUTOR saw the action effects" in stripped
+    assert "TUTOR raised this from an anomaly" in stripped
+    assert "TUTOR hit this" in stripped
+    # Kept (corroborated with >=2 sessions): B3
+    assert "authored-then-verified twice" in stripped
+    # Removed: B2, B4 (not enough corroboration), H2, T2
+    assert "from source reading" not in stripped
+    assert "authored-then-verified once" not in stripped
+    assert "claude-code interpretation" not in stripped
+    # Prose outside YAML block preserved
+    assert "prose goes here" in stripped
+    assert "trailing prose" in stripped
+
+
+def test_strip_authored_returns_unchanged_when_no_yaml_block():
+    from kb_tools import strip_authored
+    text = "just prose, no yaml"
+    assert strip_authored(text) == text
+
+
+def test_provenance_summary_counts_correctly():
+    from kb_tools import provenance_summary
+    summary = provenance_summary(_TEST_KB)
+    assert summary["beliefs"]["discovered"] == 1
+    assert summary["beliefs"]["authored-by-claude-code"] == 1
+    assert summary["beliefs"]["corroborated"] == 2
+    assert summary["hypotheses"]["discovered"] == 1
+    assert summary["hypotheses"]["authored-interpretation"] == 1
+    assert summary["traps"]["discovered"] == 1
+    assert summary["traps"]["authored-by-claude-code"] == 1
+
+
+def test_strip_authored_on_current_ls20_kb():
+    """Smoke test against the real shipped KB so format drift is caught."""
+    from kb_tools import strip_authored, provenance_summary
+    kb_path = PY_DIR.parent / "benchmarks" / "knowledge_base" / "ls20-9607627b.md"
+    if not kb_path.exists():
+        return   # don't fail if KB hasn't been authored yet
+    text = kb_path.read_text(encoding="utf-8")
+    summary_full = provenance_summary(text)
+    stripped = strip_authored(text)
+    summary_stripped = provenance_summary(stripped)
+    # After stripping, there should be strictly fewer authored entries
+    full_authored = sum(
+        counts.get("authored-by-claude-code", 0) + counts.get("authored-interpretation", 0)
+        for counts in summary_full.values()
+    )
+    stripped_authored = sum(
+        counts.get("authored-by-claude-code", 0) + counts.get("authored-interpretation", 0)
+        for counts in summary_stripped.values()
+    )
+    assert full_authored > 0, "current KB should have some authored items"
+    assert stripped_authored == 0, "stripped KB must have zero authored items"
+    # Discovered items should survive
+    full_discovered = sum(counts.get("discovered", 0) for counts in summary_full.values())
+    stripped_discovered = sum(counts.get("discovered", 0) for counts in summary_stripped.values())
+    assert stripped_discovered == full_discovered
+
+
+# ---------------------------------------------------------------------------
 # Direct-runner entry point
 # ---------------------------------------------------------------------------
 
@@ -240,6 +460,16 @@ if __name__ == "__main__":
         test_build_postgame_user_message_blank_kb_is_marked,
         test_build_play_user_message_prev_level_notes_roundtrip,
         test_build_play_user_message_empty_prev_level_notes_marked,
+        test_query_state_vector_at_reset,
+        test_query_state_vector_tracks_rotation_and_budget,
+        test_prediction_error_matches_observed_cursor_pos,
+        test_prediction_error_flags_mismatch,
+        test_prediction_error_flags_unrecognized_field,
+        test_prediction_error_empty_when_no_predictions,
+        test_strip_authored_removes_authored_and_unconfirmed_corroborated,
+        test_strip_authored_returns_unchanged_when_no_yaml_block,
+        test_provenance_summary_counts_correctly,
+        test_strip_authored_on_current_ls20_kb,
     ]
     passed = 0
     failed = 0

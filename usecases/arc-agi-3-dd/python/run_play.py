@@ -129,6 +129,47 @@ def _update_cursor_pos(
 # Authoritative game-state introspection
 # ---------------------------------------------------------------------------
 
+def _query_state_vector(env) -> dict[str, int] | None:
+    """Raw numeric state variables on env._game, one layer of abstraction
+    below the interpreted rotation_tracker signals.
+
+    These are given as opaque {name: value} pairs.  The names are the
+    game's own obfuscated identifiers (cklxociuu etc.) — we expose them
+    without labeling what they mean, so TUTOR has to correlate changes
+    with observed events to figure out what each one represents.  This
+    is the minimum primitive for mechanic-discovery: TUTOR sees a number
+    change and has to reason about what caused the change.
+
+    HUD readouts (step counter, lives) appear here too so TUTOR can
+    spot depletion patterns without being told "this is a budget".
+    """
+    if not hasattr(env, "_game"):
+        return None
+    g = env._game
+    out: dict[str, int] = {}
+    # Known-integer attributes we surface by name.  We don't rename or
+    # interpret them — TUTOR must correlate behavior.
+    for attr in ("cklxociuu", "fwckfzsyc", "hiaauhahz", "aqygnziho",
+                 "level_index", "ebfuxzbvn", "akoadfsur", "ofoahudlo"):
+        try:
+            v = getattr(g, attr, None)
+            if isinstance(v, (int, float)):
+                out[f"game.{attr}"] = int(v)
+            elif isinstance(v, list):
+                out[f"game.{attr}.len"] = len(v)
+        except Exception:  # noqa: BLE001
+            pass
+    try:
+        ui = g._step_counter_ui
+        for attr in ("current_steps", "osgviligwp"):
+            v = getattr(ui, attr, None)
+            if isinstance(v, (int, float)):
+                out[f"step_counter_ui.{attr}"] = int(v)
+    except Exception:  # noqa: BLE001
+        pass
+    return out
+
+
 def _query_level_state(env) -> dict | None:
     """Query per-level authoritative state from game internals.
 
@@ -168,6 +209,24 @@ def _query_level_state(env) -> dict | None:
             for s in sprites
             if s.tags and "rhsxkxzdjz" in s.tags
         ]
+        # Pickups (tag npxgalaybz): touching one refills the step counter to
+        # its max.  Critical for L1+ where the budget is too tight to solve
+        # without at least one refill.
+        pickup_positions = [
+            [int(s.y), int(s.x) + 2]
+            for s in sprites
+            if s.tags and "npxgalaybz" in s.tags
+        ]
+
+        # Step budget counter.
+        budget_current: int | None = None
+        budget_max:     int | None = None
+        try:
+            ui = g._step_counter_ui
+            budget_current = int(ui.current_steps)
+            budget_max     = int(ui.osgviligwp)
+        except Exception:  # noqa: BLE001
+            pass
 
         return {
             "agent_cursor":       agent_cursor,
@@ -179,6 +238,9 @@ def _query_level_state(env) -> dict | None:
             "aligned":            advances_remaining == 0,
             "win_positions":      win_positions,
             "cross_positions":    cross_positions,
+            "pickup_positions":   pickup_positions,
+            "budget_current":     budget_current,
+            "budget_max":         budget_max,
             "level_index":        int(g.level_index),
         }
     except (AttributeError, KeyError, ValueError, IndexError):
@@ -494,15 +556,131 @@ def _step_env(env, action_label: str):
     return env.step(GameAction[action_label])
 
 
+def _agent_cursor_from_game(env) -> tuple[int, int] | None:
+    """Read the game's own agent position — immune to pixel-tracker drift."""
+    if not hasattr(env, "_game"):
+        return None
+    try:
+        ag = env._game.gudziatsk
+        return (int(ag.y), int(ag.x) + 2)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+# ---------------------------------------------------------------------------
+# Predict-observe-diff
+# ---------------------------------------------------------------------------
+#
+# TUTOR emits a `predict` dict on every turn (e.g. {"cursor_pos_after":[r,c],
+# "level_completed": true}).  The harness compares it against what actually
+# happened and surfaces the diff to TUTOR on the next turn.  Unpredicted
+# changes are anomalies by definition — TUTOR must explain them before
+# proceeding.  This is the minimal primitive for letting TUTOR discover
+# mechanics it didn't know about (e.g. budget depletion, pickup refills).
+
+# Map of predict-field name -> getter over (obs, cr, lstate_before_cmd).
+# Each returns the observed value for that field, or None if the field
+# isn't observable.
+def _observe_predict_field(
+    name:   str,
+    obs,
+    cr:     dict,
+    lstate: dict | None,
+) -> object | None:
+    lc_after = int(obs.levels_completed) if obs is not None else None
+    if name in ("cursor_pos_after", "agent_pos_after"):
+        return cr.get("cursor_pos_after") or cr.get("agent_pos_after")
+    if name == "levels_completed_after":
+        return lc_after
+    if name == "level_index_after":
+        return lstate.get("level_index") if lstate else None
+    if name in ("level_completed", "level_completed_after"):
+        return (cr.get("rotation_tracker") or {}).get("level_completed")
+    if name in ("rotation_advanced", "rotation_advanced_after"):
+        return (cr.get("rotation_tracker") or {}).get("rotation_advanced")
+    if name in ("advances_remaining", "advances_remaining_after"):
+        return (cr.get("rotation_tracker") or {}).get("advances_remaining")
+    if name in ("aligned", "aligned_after"):
+        return (cr.get("rotation_tracker") or {}).get("aligned")
+    if name == "state":
+        return obs.state.name if obs and hasattr(obs.state, "name") else str(obs.state if obs else None)
+    return "UNRECOGNIZED_PREDICT_FIELD"
+
+
+def _compute_prediction_error(
+    predict: dict | None,
+    obs,
+    cr:      dict,
+    lstate:  dict | None,
+) -> dict:
+    """Compute the diff between TUTOR's `predict` from this turn and what
+    the harness actually observed after executing the command.  Also flag
+    unpredicted changes in the state-variable vector — those are anomalies
+    TUTOR should explain.
+
+    Returns a structured dict with:
+      predicted_matched  -- fields whose predicted value equals observed
+      predicted_mismatch -- {field: {predicted, observed}} for mismatches
+      unrecognized_fields -- prediction keys the harness cannot observe
+                             (TUTOR used a field name we don't understand)
+      had_predictions    -- bool, False if TUTOR's predict was empty
+    """
+    result: dict = {
+        "had_predictions":     bool(predict),
+        "predicted_matched":   [],
+        "predicted_mismatch":  {},
+        "unrecognized_fields": [],
+    }
+    if not predict:
+        return result
+    for name, predicted_val in predict.items():
+        observed = _observe_predict_field(name, obs, cr, lstate)
+        if observed == "UNRECOGNIZED_PREDICT_FIELD":
+            result["unrecognized_fields"].append(name)
+            continue
+        # Normalize types (predict may use lists; observed may be tuples)
+        if isinstance(predicted_val, list) and isinstance(observed, tuple):
+            observed = list(observed)
+        if isinstance(observed, list) and isinstance(predicted_val, tuple):
+            predicted_val = list(predicted_val)
+        if predicted_val == observed:
+            result["predicted_matched"].append(name)
+        else:
+            result["predicted_mismatch"][name] = {
+                "predicted": predicted_val,
+                "observed":  observed,
+            }
+    return result
+
+
 def exec_raw_action(
     env, action: str, prev_grid: np.ndarray, element_records: dict,
     action_effects: dict, cursor_pos,
 ):
-    """Execute one low-level action; return (obs, new_grid, cr, step_log_entry)."""
+    """Execute one low-level action; return (obs, new_grid, cr, step_log_entry).
+
+    Captures two independent measurements of the agent's displacement:
+      * primary_motion.dr/dc from the pixel change_report (useful but goes
+        unreliable when the agent enters visually-volatile cells like the
+        rotation cross — 'diff_cells' spikes and dr/dc come back as None).
+      * game_dr/dc from env._game.gudziatsk — immune to that noise.
+    Callers should prefer game_dr/dc whenever present; pixel motion is
+    kept for diagnostic continuity and as a fallback for envs without
+    a game-introspection hook.
+    """
+    pre_game = _agent_cursor_from_game(env)
     obs = _step_env(env, action)
     cur_grid = _normalise_frame(obs.frame)
     cr = _build_change_report(prev_grid, cur_grid, element_records)
     _update_action_effects(action_effects, action, cr)
+    post_game = _agent_cursor_from_game(env)
+    if pre_game is not None and post_game is not None:
+        game_dr: int | None = post_game[0] - pre_game[0]
+        game_dc: int | None = post_game[1] - pre_game[1]
+    else:
+        game_dr = None
+        game_dc = None
+
     pm = cr.get("primary_motion") or {}
     if not pm.get("tracker_unreliable"):
         actual_dr: int | None = pm.get("dr", 0)
@@ -510,13 +688,22 @@ def exec_raw_action(
     else:
         actual_dr = None
         actual_dc = None
-    new_cursor = _update_cursor_pos(cursor_pos, actual_dr, actual_dc, cr)
+    # Prefer game-authoritative delta for cursor update; fall back to pixel motion.
+    if game_dr is not None:
+        new_cursor = (
+            max(0, min(63, (cursor_pos[0] if cursor_pos else pre_game[0]) + game_dr)),
+            max(0, min(63, (cursor_pos[1] if cursor_pos else pre_game[1]) + game_dc)),
+        ) if cursor_pos else post_game
+    else:
+        new_cursor = _update_cursor_pos(cursor_pos, actual_dr, actual_dc, cr)
     entry = {
-        "action": action,
-        "dr": (cr.get("primary_motion") or {}).get("dr"),
-        "dc": (cr.get("primary_motion") or {}).get("dc"),
-        "reliable": not (cr.get("primary_motion") or {}).get("tracker_unreliable", True),
-        "diff_cells": (cr.get("totals") or {}).get("diff_cells"),
+        "action":      action,
+        "dr":          pm.get("dr"),
+        "dc":          pm.get("dc"),
+        "game_dr":     game_dr,
+        "game_dc":     game_dc,
+        "reliable":    not pm.get("tracker_unreliable", True),
+        "diff_cells":  (cr.get("totals") or {}).get("diff_cells"),
     }
     return obs, cur_grid, cr, new_cursor, entry
 
@@ -591,18 +778,27 @@ def exec_move_to(
         )
         motion_log.append(entry)
 
-        # Wall detection: planned move expected non-zero displacement but got zero
+        # Wall detection: planned a non-zero move, got zero displacement.
+        # Prefer game-authoritative delta (immune to pixel-tracker noise
+        # near rotation triggers); fall back to pixel motion only when
+        # the game hook isn't exposing position.
         if action != stamp_action:
             planned_dr, planned_dc = action_effects.get(action, (0, 0))
-            actual_dr = entry.get("dr") or 0
-            actual_dc = entry.get("dc") or 0
+            game_dr = entry.get("game_dr")
+            game_dc = entry.get("game_dc")
+            if game_dr is not None and game_dc is not None:
+                actual_dr = game_dr
+                actual_dc = game_dc
+            else:
+                actual_dr = entry.get("dr") or 0
+                actual_dc = entry.get("dc") or 0
             if (planned_dr != 0 or planned_dc != 0) and actual_dr == 0 and actual_dc == 0:
                 wall_key = (pos_before[0], pos_before[1], action) if pos_before else None
                 if wall_key and walls is not None:
                     walls.add(wall_key)
                 wall_info = {
-                    "action": action,
-                    "blocked_at": list(pos_before) if pos_before else None,
+                    "action":      action,
+                    "blocked_at":  list(pos_before) if pos_before else None,
                     "expected_dr": planned_dr,
                     "expected_dc": planned_dc,
                 }
@@ -902,6 +1098,10 @@ def main() -> None:
         if lstate_before and lstate_before.get("agent_cursor"):
             cursor_pos = tuple(lstate_before["agent_cursor"])
         rot_idx_before = lstate_before["cur_rot_idx"] if lstate_before else None
+        # Raw state-variable vector (no interpretation) — captures every
+        # change in per-level game state so TUTOR can correlate events
+        # with numeric changes and discover what they mean.
+        state_vector_before = _query_state_vector(env) or {}
 
         if command == "PROBE_DIRECTIONS":
             obs, cur_grid, motion_log, cursor_pos = exec_probe_directions(
@@ -974,6 +1174,13 @@ def main() -> None:
         if lstate_after and lstate_after.get("agent_cursor"):
             cursor_pos = tuple(lstate_after["agent_cursor"])
         rot_idx_after = lstate_after["cur_rot_idx"] if lstate_after else None
+        state_vector_after = _query_state_vector(env) or {}
+        state_vector_delta = {
+            k: {"before": state_vector_before.get(k),
+                "after":  state_vector_after.get(k)}
+            for k in set(state_vector_before) | set(state_vector_after)
+            if state_vector_before.get(k) != state_vector_after.get(k)
+        }
 
         # Detect level completion via observation (authoritative).
         new_lc = int(obs.levels_completed) if obs is not None else lc
@@ -986,6 +1193,13 @@ def main() -> None:
                 "win_levels":  int(obs.win_levels) if obs is not None else 0,
             })
             rotation_count = 0  # new level starts at its own StartRotation
+
+            # Walls learned during the previous sub-level don't apply to
+            # the new level's geometry.  Clear them to avoid poisoning
+            # BFS with stale (cursor-drift or false-positive) entries.
+            if walls:
+                print(f"         WALLS CLEARED ({len(walls)} stale entries from level {lc})")
+                walls.clear()
 
             # (a) Re-scan element_records for the new level so TUTOR-facing
             #     element_overlaps / nearby_elements / harness_note reflect
@@ -1161,6 +1375,17 @@ def main() -> None:
                 "note": "game-state introspection unavailable; use visual cues",
             }
 
+        # Predict-observe-diff: compare TUTOR's `predict` dict (from this
+        # turn) against what the harness actually observed.  Unpredicted
+        # changes are anomalies TUTOR should account for on the next turn.
+        prediction_error = _compute_prediction_error(
+            predict, obs, {
+                "cursor_pos_after": list(cursor_pos) if cursor_pos else None,
+                "agent_pos_after":  agent_pos_after,
+                "rotation_tracker": rotation_tracker,
+            }, lstate_after,
+        )
+
         command_result = {
             "command_executed":  command,
             "args":              args,
@@ -1173,6 +1398,9 @@ def main() -> None:
             "target_analysis":   target_analysis,
             "harness_note":      harness_note or None,
             "rotation_tracker":  rotation_tracker,
+            "state_vector":      state_vector_after,
+            "state_vector_delta": state_vector_delta,
+            "prediction_error":  prediction_error,
             "glyph_summary":     glyph_summary,
             "motion_log":        motion_log,
             "final_state":       obs.state.name if obs and hasattr(obs.state, "name") else state,
@@ -1191,6 +1419,16 @@ def main() -> None:
             ar = lstate_after["advances_remaining"] if lstate_after else "?"
             print(f"         ROTATION ADVANCED (rotation_count={rotation_count}, "
                   f"advances_remaining={ar})")
+        if prediction_error.get("predicted_mismatch"):
+            mm = prediction_error["predicted_mismatch"]
+            names = list(mm.keys())
+            print(f"         PREDICT MISMATCH: {names}")
+        if prediction_error.get("unrecognized_fields"):
+            print(f"         PREDICT UNRECOGNIZED: {prediction_error['unrecognized_fields']}")
+        if state_vector_delta:
+            # Short summary: just the var names that changed this turn
+            changed = sorted(state_vector_delta.keys())
+            print(f"         STATE DELTA: {changed}")
 
         # ---- Log -------------------------------------------------------
         log_entry = {
@@ -1260,6 +1498,7 @@ def main() -> None:
     else:
         outcome = final_state   # e.g. NOT_FINISHED with zero progress
 
+    session_id_str = f"trial_{trial_id}_play"
     try:
         rsp = backends.call_anthropic(
             model=TUTOR_MODEL, system=SYSTEM_POSTGAME,
@@ -1276,8 +1515,10 @@ def main() -> None:
                 final_lc=final_lc,
                 level_completion_events=level_completion_events,
                 walls_learned=[list(w) for w in sorted(walls)],
+                session_id=session_id_str,
             ),
-            image_b64=None, max_tokens=1500,
+            # The KB grows; give TUTOR enough headroom for a full rewrite.
+            image_b64=None, max_tokens=8000,
         )
         note = rsp["reply"].strip()
     except Exception as e:  # noqa: BLE001
@@ -1285,15 +1526,28 @@ def main() -> None:
     (session_dir / "post_game_knowledge.md").write_text(note, encoding="utf-8")
 
     # Save the updated knowledge note back to the cumulative per-game KB so
-    # future sessions of this game get it as GAME_KNOWLEDGE_BASE.  Only
-    # persist when the TUTOR call succeeded (avoid overwriting good KB with
-    # an error string).
+    # future sessions of this game get it as GAME_KNOWLEDGE_BASE.
+    # SAFEGUARDS:
+    #   1. Only persist if the TUTOR call succeeded.
+    #   2. If the output is meaningfully shorter than the prior KB, reject
+    #      it — TUTOR likely truncated and we'd be discarding known items.
+    #      The postgame prompt explicitly instructs "do NOT shrink the KB".
     kb_written = False
+    kb_rejection_reason: str | None = None
     if kb_path is not None and not note.startswith("(post-game call failed"):
-        kb_path.parent.mkdir(parents=True, exist_ok=True)
-        kb_path.write_text(note, encoding="utf-8")
-        kb_written = True
-        print(f"Knowledge base updated: {kb_path}")
+        prior_len = len(prior_kb_text.strip())
+        new_len   = len(note.strip())
+        if prior_len > 0 and new_len < prior_len * 0.7:
+            kb_rejection_reason = (
+                f"postgame output truncated: {new_len} chars vs prior "
+                f"{prior_len}; keeping prior KB"
+            )
+            print(f"WARNING: {kb_rejection_reason}")
+        else:
+            kb_path.parent.mkdir(parents=True, exist_ok=True)
+            kb_path.write_text(note, encoding="utf-8")
+            kb_written = True
+            print(f"Knowledge base updated: {kb_path}")
 
     # Runtime sidecar: action_effects + walls merged across runs.  Loaded
     # at session start to avoid re-probing the action grammar every time.
@@ -1325,6 +1579,7 @@ def main() -> None:
         "lessons_from": str(lessons_path) if lessons_path else None,
         "kb_loaded_chars": len(prior_kb_text),
         "kb_written": kb_written,
+        "kb_rejection_reason": kb_rejection_reason,
         "kb_path": str(kb_path) if kb_path else None,
         "tutor_model": TUTOR_MODEL,
         "max_turns": a.max_turns,
