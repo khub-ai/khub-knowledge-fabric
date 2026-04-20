@@ -75,9 +75,17 @@ def _format_frame_text(grid: np.ndarray) -> str:
     return "[\n" + ",\n".join(f"  [{r}]" for r in rows) + "\n]"
 
 
-def load_working_knowledge(round2_dir: Path) -> tuple[str, dict]:
+def load_working_knowledge(
+    round2_dir: Path, lessons_path: Path | None = None,
+) -> tuple[str, dict]:
     """Build a compact prose 'working_knowledge' string from a Round-2 TUTOR
-    reply, plus return the element records dict used for CHANGE_REPORT."""
+    reply, plus return the element records dict used for CHANGE_REPORT.
+
+    If `lessons_path` is given, its contents are prepended as a
+    LESSONS_FROM_LAST_RUN block that takes precedence over the Round-2
+    assessment — this is how post-game notes from a prior play feed back
+    into the next attempt.
+    """
     r2 = json.loads((round2_dir / "tutor_round2_reply.json").read_text(encoding="utf-8"))
     assess = r2.get("assessment") or {}
 
@@ -93,7 +101,17 @@ def load_working_knowledge(round2_dir: Path) -> tuple[str, dict]:
             "function": e.get("function", "unknown"),
         }
 
-    lines = ["ELEMENTS (from your Round-2 revised assessment):"]
+    lines: list[str] = []
+    if lessons_path is not None and lessons_path.exists():
+        lines.append("LESSONS_FROM_LAST_RUN (YOU wrote this at the end of your")
+        lines.append("previous play session.  It REPLACES any contradictory")
+        lines.append("claim below — trust it over the Round-2 assessment and")
+        lines.append("over any prior_knowledge):")
+        lines.append(lessons_path.read_text(encoding="utf-8").strip())
+        lines.append("")
+        lines.append("---")
+        lines.append("")
+    lines.append("ELEMENTS (from your Round-2 revised assessment):")
     for e in elements:
         lines.append(
             f"  #{e.get('id')} {e.get('name','?')} "
@@ -153,6 +171,9 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--round2-session", required=True,
                     help="Round-2 session dir (provides working_knowledge)")
+    ap.add_argument("--lessons",
+                    help="Path to a prior post_game_knowledge.md to inject as "
+                         "LESSONS_FROM_LAST_RUN (takes precedence over Round-2)")
     ap.add_argument("--game", default="ls20-9607627b")
     ap.add_argument("--max-steps", type=int, default=30)
     ap.add_argument("--sessions-dir", default=str(HERE.parent / "benchmarks" / "sessions"))
@@ -160,7 +181,10 @@ def main() -> None:
     a = ap.parse_args()
 
     round2_dir = Path(a.round2_session)
-    working_knowledge, element_records = load_working_knowledge(round2_dir)
+    lessons_path = Path(a.lessons) if a.lessons else None
+    working_knowledge, element_records = load_working_knowledge(
+        round2_dir, lessons_path=lessons_path,
+    )
 
     trial_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     session_dir = Path(a.sessions_dir) / f"trial_{trial_id}_play"
@@ -332,6 +356,7 @@ def main() -> None:
         "trial_id":    trial_id,
         "game_id":     a.game,
         "round2_session": str(round2_dir),
+        "lessons_from":   str(lessons_path) if lessons_path else None,
         "tutor_model": TUTOR_MODEL,
         "max_steps":   a.max_steps,
         "turns_played": len(action_trace),
