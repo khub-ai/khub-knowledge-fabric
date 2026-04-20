@@ -1,0 +1,16 @@
+{
+  "trial_id": "20260420T021618Z",
+  "game_id": "ls20-9607627b",
+  "used_image": true,
+  "tutor_model": "claude-sonnet-4-6",
+  "pupil_model": "google/gemma-4-26b-a4b-it",
+  "created_at": "2026-04-20T02:16:18.896654+00:00",
+  "files": [
+    "tutor_reply.json",
+    "pupil_reply.json",
+    "tutor_probe_results.json",
+    "pupil_probe_results.json",
+    "diff_report.json",
+    "diff_report.md"
+  ]
+}

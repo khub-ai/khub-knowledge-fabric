@@ -1,0 +1,374 @@
+{
+  "model": "claude-sonnet-4-6",
+  "latency_ms": 62940,
+  "raw_reply": "{\n  \"revision_notes\": [\n    {\n      \"change\": \"Retracted element 2 (player_cross) as the agent. The tracker found color-0 at [31,21,32,22] which did not move across any of the 4 actions tested. This is likely a static marker, not the agent.\",\n      \"reason\": \"P1, P2, P3, P5 all show player_cross (color 0) at the same bbox [31,21,32,22] with moved=false across all actions.\",\n      \"round1_ref\": \"element 2\"\n    },\n    {\n      \"change\": \"Noted that REGION_DELTA was nonzero for P1 (value=50), P4 (value=25 in target area), and P5 (value=52 globally), indicating something IS changing in the grid with actions, but the tracked element (color 0) is not the agent.\",\n      \"reason\": \"REGION_DELTA nonzero values across multiple probes confirm game state changes, but the color-0 cross is static.\",\n      \"round1_ref\": \"probe P1, P4, P5\"\n    },\n    {\n      \"change\": \"Revised agent identification: the actual agent is likely tracked by a color other than 0 or 1. The color-9 pattern in the top room (element 1) or another moving element may be the agent. Need to track color 9 or other distinctive colors.\",\n      \"reason\": \"No tracked element moved, but REGION_DELTA shows changes. The agent must be a different color not yet tracked.\",\n      \"round1_ref\": \"element 1, initial_strategy\"\n    },\n    {\n      \"change\": \"Revised element 5 (main_floor_area) function from 'wall' to 'floor' (keeping as 'wall' in schema but noting it is traversable floor, not a wall). The large gray region is the navigable area.\",\n      \"reason\": \"Consistent with game structure; gray (color 3) is the floor/ground, not a wall.\",\n      \"round1_ref\": \"element 5\"\n    },\n    {\n      \"change\": \"Revised element 1 (agent_icon_top) confidence upward - the top room with color-9 pattern may be the agent or a key object. The REGION_DELTA changes suggest something is moving in the map.\",\n      \"reason\": \"With color-0 cross being static, the top room glyph or another element is more likely the agent.\",\n      \"round1_ref\": \"element 1\"\n    },\n    {\n      \"change\": \"Revised initial_strategy first_action to ACTION1 and updated rationale to focus on identifying the agent by tracking color changes across the full grid.\",\n      \"reason\": \"Previous strategy assumed player_cross was the agent, which is now disproven. Need to find what actually moves.\",\n      \"round1_ref\": \"initial_strategy\"\n    },\n    {\n      \"change\": \"Noted that the bottom-left icon (element 10) at rows 54-63, cols 0-11 contains a bordered box with color-9 pattern (rows 56-59 show 9,9 patterns). This may be a UI display of the agent's state or inventory.\",\n      \"reason\": \"Grid rows 56-59 show color-9 blocks within the bottom-left bordered area, similar to the top room's color-9 pattern.\",\n      \"round1_ref\": \"element 10\"\n    }\n  ],\n  \"elements\": [\n    {\n      \"id\": 1,\n      \"name\": \"top_room_with_glyph\",\n      \"bbox\": [8, 32, 15, 40],\n      \"function\": \"portal\",\n      \"rationale\": \"Small bordered box (color 3 border, color 5 interior) with color-9 pattern inside. Connected via vertical corridor to main floor. May be entry portal or agent spawn. REGION_DELTA changes suggest something moves here.\",\n      \"confidence\": 0.55\n    },\n    {\n      \"id\": 2,\n      \"name\": \"static_cross_marker\",\n      \"bbox\": [29, 20, 32, 22],\n      \"function\": \"decor\",\n      \"rationale\": \"Color 0 and 1 cross/plus pattern at rows 29-31, cols 20-22. Confirmed static across all 4 actions tested. Not the agent. Likely a static map marker or decoration.\",\n      \"confidence\": 0.7\n    },\n    {\n      \"id\": 3,\n      \"name\": \"orange_block\",\n      \"bbox\": [46, 34, 47, 38],\n      \"function\": \"collectible\",\n      \"rationale\": \"Small color-12 (orange) rectangle in the main floor area. REGION_DELTA of 25 in nearby area during P4 suggests this region is active. Likely a collectible or goal marker.\",\n      \"confidence\": 0.6\n    },\n    {\n      \"id\": 4,\n      \"name\": \"blue_block\",\n      \"bbox\": [48, 50, 50, 38],\n      \"function\": \"collectible\",\n      \"rationale\": \"Small color-9 (blue) rectangle below the orange block in the main floor. Paired with orange block as a two-part collectible or goal.\",\n      \"confidence\": 0.55\n    },\n    {\n      \"id\": 5,\n      \"name\": \"main_floor_area\",\n      \"bbox\": [24, 14, 51, 53],\n      \"function\": \"wall\",\n      \"rationale\": \"Large gray (color 3) region forming the main navigable floor of the level. Contains sub-regions and special items.\",\n      \"confidence\": 0.75\n    },\n    {\n      \"id\": 6,\n      \"name\": \"vertical_corridor\",\n      \"bbox\": [16, 34, 23, 38],\n      \"function\": \"wall\",\n      \"rationale\": \"Narrow vertical gray strip connecting the top room to the main floor area.\",\n      \"confidence\": 0.7\n    },\n    {\n      \"id\": 7,\n      \"name\": \"left_side_panel\",\n      \"bbox\": [0, 0, 63, 3],\n      \"function\": \"decor\",\n      \"rationale\": \"Persistent color-5 column on the left edge, likely a UI border or decorative frame element.\",\n      \"confidence\": 0.6\n    },\n    {\n      \"id\": 8,\n      \"name\": \"bottom_ui_bar_yellow\",\n      \"bbox\": [62, 12, 63, 54],\n      \"function\": \"readout\",\n      \"rationale\": \"Color-11 (yellow) horizontal bar at the bottom of the screen, typical of a progress or health bar readout.\",\n      \"confidence\": 0.7\n    },\n    {\n      \"id\": 9,\n      \"name\": \"bottom_ui_red_dots\",\n      \"bbox\": [62, 56, 63, 63],\n      \"function\": \"readout\",\n      \"rationale\": \"Color-8 squares at the bottom right, likely a lives or score counter display.\",\n      \"confidence\": 0.65\n    },\n    {\n      \"id\": 10,\n      \"name\": \"corner_icon_bottom_left\",\n      \"bbox\": [54, 0, 63, 11],\n      \"function\": \"readout\",\n      \"rationale\": \"Small bordered icon in the bottom-left corner with color-9 pattern (rows 56-59). May display agent state or inventory. Similar visual structure to top room glyph.\",\n      \"confidence\": 0.6\n    },\n    {\n      \"id\": 12,\n      \"name\": \"inner_pit_left\",\n      \"bbox\": [29, 19, 37, 28],\n      \"function\": \"hazard\",\n      \"rationale\": \"Recessed area (color 4 background) within the main floor containing the static cross marker. The gap in the floor suggests a pit or hazard zone.\",\n      \"confidence\": 0.5\n    },\n    {\n      \"id\": 13,\n      \"name\": \"target_area_colored_blocks\",\n      \"bbox\": [44, 34, 51, 38],\n      \"function\": \"target\",\n      \"rationale\": \"Area containing orange (color 12) and blue (color 9) blocks. REGION_DELTA of 25 observed here during P4 multi-action sequence, suggesting this area responds to agent proximity or actions.\",\n      \"confidence\": 0.6\n    },\n    {\n      \"id\": 14,\n      \"name\": \"agent_unknown\",\n      \"bbox\": [24, 14, 51, 53],\n      \"function\": \"agent\",\n      \"rationale\": \"The actual agent has not been visually identified yet. REGION_DELTA changes across multiple actions confirm something is moving, but the tracked colors (0, 1) are static. Agent is likely a color not yet isolated - possibly color 5 or another color moving within the floor area.\",\n      \"confidence\": 0.3\n    }\n  ],\n  \"similar_groups\": [\n    {\n      \"group_id\": \"G1\",\n      \"member_ids\": [3, 4],\n      \"similarity_axes\": [\"shape\", \"colour\", \"location\"],\n      \"note\": \"Orange (color 12) and blue (color 9) blocks are similarly sized rectangles stacked vertically in the target area, likely paired collectibles or a two-part goal\"\n    },\n    {\n      \"group_id\": \"G2\",\n      \"member_ids\": [1, 10],\n      \"similarity_axes\": [\"shape\", \"scale\", \"colour_pattern\"],\n      \"note\": \"Both are small bordered boxes with color-9 internal patterns. Top room has color-9 glyph; bottom-left icon also shows color-9. May share a thematic role.\"\n    },\n    {\n      \"group_id\": \"G3\",\n      \"member_ids\": [8, 9],\n      \"similarity_axes\": [\"location\", \"function\"],\n      \"note\": \"Both are UI readout elements at the bottom of the screen, forming the HUD display\"\n    },\n    {\n      \"group_id\": \"G4\",\n      \"member_ids\": [12, 13],\n      \"similarity_axes\": [\"shape\", \"scale\"],\n      \"note\": \"Both are sub-regions within the main floor with special content - one a pit/hazard, one a target area\"\n    }\n  ],\n  \"initial_strategy\": {\n    \"primary_goal\": \"Identify the agent's actual visual representation and movement controls, then navigate to the orange/blue target blocks\",\n    \"first_action\": \"ACTION1\",\n    \"rationale\": \"The color-0 cross is confirmed static. Need to track what actually changes with each action. REGION_DELTA shows changes occur, so the agent exists but uses a different color. Try tracking color 5 or 9 movement across the full grid to find the agent.\",\n    \"open_questions\": [\n      \"What color/element represents the actual player agent?\",\n      \"Which ACTION corresponds to which direction (up/down/left/right)?\",\n      \"Are the orange (color 12) and blue (color 9) blocks collectibles to pick up or a destination to reach?\",\n      \"What causes the REGION_DELTA changes observed in P1 (value=50) and P5 (value=52)?\",\n      \"Is the top room (element 1) a spawn point, portal, or something else?\"\n    ]\n  },\n  \"probes\": [\n    {\n      \"probe_id\": \"P6\",\n      \"hypothesis\": \"The agent is represented by color 5 moving within the floor area\",\n      \"instructions\": [\"DO ACTION1\"],\n      \"observe\": [\n        \"ELEMENT_MOVED 14\",\n        \"REGION_DELTA [24,14,51,53]\"\n      ],\n      \"outcome_map\": {\n        \"element_14_moved\": \"Color 5 is the agent and ACTION1 moves it\",\n        \"element_14_unchanged_region_delta_nonzero\": \"Color 5 is not the agent or ACTION1 doesn't move it visibly\",\n        \"region_delta_zero\": \"ACTION1 causes no change in the main floor\"\n      }\n    },\n    {\n      \"probe_id\": \"P7\",\n      \"hypothesis\": \"ACTION1 and ACTION2 are vertical movement keys; tracking the full grid will reveal agent position change\",\n      \"instructions\": [\"DO ACTION1\", \"DO ACTION1\", \"DO ACTION2\", \"DO ACTION2\"],\n      \"observe\": [\n        \"REGION_DELTA [0,0,63,63]\",\n        \"REGION_DELTA [24,14,51,53]\",\n        \"STATE\"\n      ],\n      \"outcome_map\": {\n        \"region_delta_large\": \"Multiple actions cause significant state changes, agent is moving\",\n        \"region_delta_zero\": \"Actions have no cumulative effect, may be wrong action mapping\",\n        \"state_FINISHED\": \"Level completed unexpectedly\"\n      }\n    },\n    {\n      \"probe_id\": \"P8\",\n      \"hypothesis\": \"The agent starts in the top room and ACTION1 moves it down through the corridor\",\n      \"instructions\": [\"DO ACTION1\"],\n      \"observe\": [\n        \"REGION_DELTA [8,32,23,40]\",\n        \"REGION_DELTA [24,14,51,53]\"\n      ],\n      \"outcome_map\": {\n        \"top_region_delta_nonzero\": \"Something changed in the top room/corridor area, agent may have moved from there\",\n        \"floor_region_delta_nonzero\": \"Agent entered the main floor area\",\n        \"both_zero\": \"ACTION1 does not move agent through this path\"\n      }\n    },\n    {\n      \"probe_id\": \"P9\",\n      \"hypothesis\": \"Repeated ACTION3 moves the agent toward the target area and changes the target region\",\n      \"instructions\": [\"DO ACTION3\", \"DO ACTION3\", \"DO ACTION3\", \"DO ACTION3\", \"DO ACTION3\"],\n      \"observe\": [\n        \"REGION_DELTA [44,34,51,38]\",\n        \"SCORE_DELTA\",\n        \"STATE\"\n      ],\n      \"outcome_map\": {\n        \"target_region_delta_nonzero\": \"ACTION3 moves agent toward or into the target area\",\n        \"score_delta_positive\": \"Reaching target area scores points\",\n        \"both_zero\": \"ACTION3 does not affect the target area\"\n      }\n    },\n    {\n      \"probe_id\": \"P10\",\n      \"hypothesis\": \"ACTION4 is an interact/use action that activates something when near a special object\",\n      \"instructions\": [\"DO ACTION1\", \"DO ACTION1\", \"DO ACTION4\"],\n      \"observe\": [\n        \"REGION_DELTA [0,0,63,63]\",\n        \"SCORE_DELTA\",\n        \"STATE\"\n      ],\n      \"outcome_map\": {\n        \"score_delta_positive\": \"ACTION4 interacts with something after movement, scoring points\",\n        \"region_delta_large\": \"ACTION4 causes a significant visual change after movement\",\n        \"no_change\": \"ACTION4 has no effect in this context\"\n      }\n    }\n  ]\n}",
+  "parse_error": null,
+  "assessment": {
+    "revision_notes": [
+      {
+        "change": "Retracted element 2 (player_cross) as the agent. The tracker found color-0 at [31,21,32,22] which did not move across any of the 4 actions tested. This is likely a static marker, not the agent.",
+        "reason": "P1, P2, P3, P5 all show player_cross (color 0) at the same bbox [31,21,32,22] with moved=false across all actions.",
+        "round1_ref": "element 2"
+      },
+      {
+        "change": "Noted that REGION_DELTA was nonzero for P1 (value=50), P4 (value=25 in target area), and P5 (value=52 globally), indicating something IS changing in the grid with actions, but the tracked element (color 0) is not the agent.",
+        "reason": "REGION_DELTA nonzero values across multiple probes confirm game state changes, but the color-0 cross is static.",
+        "round1_ref": "probe P1, P4, P5"
+      },
+      {
+        "change": "Revised agent identification: the actual agent is likely tracked by a color other than 0 or 1. The color-9 pattern in the top room (element 1) or another moving element may be the agent. Need to track color 9 or other distinctive colors.",
+        "reason": "No tracked element moved, but REGION_DELTA shows changes. The agent must be a different color not yet tracked.",
+        "round1_ref": "element 1, initial_strategy"
+      },
+      {
+        "change": "Revised element 5 (main_floor_area) function from 'wall' to 'floor' (keeping as 'wall' in schema but noting it is traversable floor, not a wall). The large gray region is the navigable area.",
+        "reason": "Consistent with game structure; gray (color 3) is the floor/ground, not a wall.",
+        "round1_ref": "element 5"
+      },
+      {
+        "change": "Revised element 1 (agent_icon_top) confidence upward - the top room with color-9 pattern may be the agent or a key object. The REGION_DELTA changes suggest something is moving in the map.",
+        "reason": "With color-0 cross being static, the top room glyph or another element is more likely the agent.",
+        "round1_ref": "element 1"
+      },
+      {
+        "change": "Revised initial_strategy first_action to ACTION1 and updated rationale to focus on identifying the agent by tracking color changes across the full grid.",
+        "reason": "Previous strategy assumed player_cross was the agent, which is now disproven. Need to find what actually moves.",
+        "round1_ref": "initial_strategy"
+      },
+      {
+        "change": "Noted that the bottom-left icon (element 10) at rows 54-63, cols 0-11 contains a bordered box with color-9 pattern (rows 56-59 show 9,9 patterns). This may be a UI display of the agent's state or inventory.",
+        "reason": "Grid rows 56-59 show color-9 blocks within the bottom-left bordered area, similar to the top room's color-9 pattern.",
+        "round1_ref": "element 10"
+      }
+    ],
+    "elements": [
+      {
+        "id": 1,
+        "name": "top_room_with_glyph",
+        "bbox": [
+          8,
+          32,
+          15,
+          40
+        ],
+        "function": "portal",
+        "rationale": "Small bordered box (color 3 border, color 5 interior) with color-9 pattern inside. Connected via vertical corridor to main floor. May be entry portal or agent spawn. REGION_DELTA changes suggest something moves here.",
+        "confidence": 0.55
+      },
+      {
+        "id": 2,
+        "name": "static_cross_marker",
+        "bbox": [
+          29,
+          20,
+          32,
+          22
+        ],
+        "function": "decor",
+        "rationale": "Color 0 and 1 cross/plus pattern at rows 29-31, cols 20-22. Confirmed static across all 4 actions tested. Not the agent. Likely a static map marker or decoration.",
+        "confidence": 0.7
+      },
+      {
+        "id": 3,
+        "name": "orange_block",
+        "bbox": [
+          46,
+          34,
+          47,
+          38
+        ],
+        "function": "collectible",
+        "rationale": "Small color-12 (orange) rectangle in the main floor area. REGION_DELTA of 25 in nearby area during P4 suggests this region is active. Likely a collectible or goal marker.",
+        "confidence": 0.6
+      },
+      {
+        "id": 4,
+        "name": "blue_block",
+        "bbox": [
+          48,
+          50,
+          50,
+          38
+        ],
+        "function": "collectible",
+        "rationale": "Small color-9 (blue) rectangle below the orange block in the main floor. Paired with orange block as a two-part collectible or goal.",
+        "confidence": 0.55
+      },
+      {
+        "id": 5,
+        "name": "main_floor_area",
+        "bbox": [
+          24,
+          14,
+          51,
+          53
+        ],
+        "function": "wall",
+        "rationale": "Large gray (color 3) region forming the main navigable floor of the level. Contains sub-regions and special items.",
+        "confidence": 0.75
+      },
+      {
+        "id": 6,
+        "name": "vertical_corridor",
+        "bbox": [
+          16,
+          34,
+          23,
+          38
+        ],
+        "function": "wall",
+        "rationale": "Narrow vertical gray strip connecting the top room to the main floor area.",
+        "confidence": 0.7
+      },
+      {
+        "id": 7,
+        "name": "left_side_panel",
+        "bbox": [
+          0,
+          0,
+          63,
+          3
+        ],
+        "function": "decor",
+        "rationale": "Persistent color-5 column on the left edge, likely a UI border or decorative frame element.",
+        "confidence": 0.6
+      },
+      {
+        "id": 8,
+        "name": "bottom_ui_bar_yellow",
+        "bbox": [
+          62,
+          12,
+          63,
+          54
+        ],
+        "function": "readout",
+        "rationale": "Color-11 (yellow) horizontal bar at the bottom of the screen, typical of a progress or health bar readout.",
+        "confidence": 0.7
+      },
+      {
+        "id": 9,
+        "name": "bottom_ui_red_dots",
+        "bbox": [
+          62,
+          56,
+          63,
+          63
+        ],
+        "function": "readout",
+        "rationale": "Color-8 squares at the bottom right, likely a lives or score counter display.",
+        "confidence": 0.65
+      },
+      {
+        "id": 10,
+        "name": "corner_icon_bottom_left",
+        "bbox": [
+          54,
+          0,
+          63,
+          11
+        ],
+        "function": "readout",
+        "rationale": "Small bordered icon in the bottom-left corner with color-9 pattern (rows 56-59). May display agent state or inventory. Similar visual structure to top room glyph.",
+        "confidence": 0.6
+      },
+      {
+        "id": 12,
+        "name": "inner_pit_left",
+        "bbox": [
+          29,
+          19,
+          37,
+          28
+        ],
+        "function": "hazard",
+        "rationale": "Recessed area (color 4 background) within the main floor containing the static cross marker. The gap in the floor suggests a pit or hazard zone.",
+        "confidence": 0.5
+      },
+      {
+        "id": 13,
+        "name": "target_area_colored_blocks",
+        "bbox": [
+          44,
+          34,
+          51,
+          38
+        ],
+        "function": "target",
+        "rationale": "Area containing orange (color 12) and blue (color 9) blocks. REGION_DELTA of 25 observed here during P4 multi-action sequence, suggesting this area responds to agent proximity or actions.",
+        "confidence": 0.6
+      },
+      {
+        "id": 14,
+        "name": "agent_unknown",
+        "bbox": [
+          24,
+          14,
+          51,
+          53
+        ],
+        "function": "agent",
+        "rationale": "The actual agent has not been visually identified yet. REGION_DELTA changes across multiple actions confirm something is moving, but the tracked colors (0, 1) are static. Agent is likely a color not yet isolated - possibly color 5 or another color moving within the floor area.",
+        "confidence": 0.3
+      }
+    ],
+    "similar_groups": [
+      {
+        "group_id": "G1",
+        "member_ids": [
+          3,
+          4
+        ],
+        "similarity_axes": [
+          "shape",
+          "colour",
+          "location"
+        ],
+        "note": "Orange (color 12) and blue (color 9) blocks are similarly sized rectangles stacked vertically in the target area, likely paired collectibles or a two-part goal"
+      },
+      {
+        "group_id": "G2",
+        "member_ids": [
+          1,
+          10
+        ],
+        "similarity_axes": [
+          "shape",
+          "scale",
+          "colour_pattern"
+        ],
+        "note": "Both are small bordered boxes with color-9 internal patterns. Top room has color-9 glyph; bottom-left icon also shows color-9. May share a thematic role."
+      },
+      {
+        "group_id": "G3",
+        "member_ids": [
+          8,
+          9
+        ],
+        "similarity_axes": [
+          "location",
+          "function"
+        ],
+        "note": "Both are UI readout elements at the bottom of the screen, forming the HUD display"
+      },
+      {
+        "group_id": "G4",
+        "member_ids": [
+          12,
+          13
+        ],
+        "similarity_axes": [
+          "shape",
+          "scale"
+        ],
+        "note": "Both are sub-regions within the main floor with special content - one a pit/hazard, one a target area"
+      }
+    ],
+    "initial_strategy": {
+      "primary_goal": "Identify the agent's actual visual representation and movement controls, then navigate to the orange/blue target blocks",
+      "first_action": "ACTION1",
+      "rationale": "The color-0 cross is confirmed static. Need to track what actually changes with each action. REGION_DELTA shows changes occur, so the agent exists but uses a different color. Try tracking color 5 or 9 movement across the full grid to find the agent.",
+      "open_questions": [
+        "What color/element represents the actual player agent?",
+        "Which ACTION corresponds to which direction (up/down/left/right)?",
+        "Are the orange (color 12) and blue (color 9) blocks collectibles to pick up or a destination to reach?",
+        "What causes the REGION_DELTA changes observed in P1 (value=50) and P5 (value=52)?",
+        "Is the top room (element 1) a spawn point, portal, or something else?"
+      ]
+    },
+    "probes": [
+      {
+        "probe_id": "P6",
+        "hypothesis": "The agent is represented by color 5 moving within the floor area",
+        "instructions": [
+          "DO ACTION1"
+        ],
+        "observe": [
+          "ELEMENT_MOVED 14",
+          "REGION_DELTA [24,14,51,53]"
+        ],
+        "outcome_map": {
+          "element_14_moved": "Color 5 is the agent and ACTION1 moves it",
+          "element_14_unchanged_region_delta_nonzero": "Color 5 is not the agent or ACTION1 doesn't move it visibly",
+          "region_delta_zero": "ACTION1 causes no change in the main floor"
+        }
+      },
+      {
+        "probe_id": "P7",
+        "hypothesis": "ACTION1 and ACTION2 are vertical movement keys; tracking the full grid will reveal agent position change",
+        "instructions": [
+          "DO ACTION1",
+          "DO ACTION1",
+          "DO ACTION2",
+          "DO ACTION2"
+        ],
+        "observe": [
+          "REGION_DELTA [0,0,63,63]",
+          "REGION_DELTA [24,14,51,53]",
+          "STATE"
+        ],
+        "outcome_map": {
+          "region_delta_large": "Multiple actions cause significant state changes, agent is moving",
+          "region_delta_zero": "Actions have no cumulative effect, may be wrong action mapping",
+          "state_FINISHED": "Level completed unexpectedly"
+        }
+      },
+      {
+        "probe_id": "P8",
+        "hypothesis": "The agent starts in the top room and ACTION1 moves it down through the corridor",
+        "instructions": [
+          "DO ACTION1"
+        ],
+        "observe": [
+          "REGION_DELTA [8,32,23,40]",
+          "REGION_DELTA [24,14,51,53]"
+        ],
+        "outcome_map": {
+          "top_region_delta_nonzero": "Something changed in the top room/corridor area, agent may have moved from there",
+          "floor_region_delta_nonzero": "Agent entered the main floor area",
+          "both_zero": "ACTION1 does not move agent through this path"
+        }
+      },
+      {
+        "probe_id": "P9",
+        "hypothesis": "Repeated ACTION3 moves the agent toward the target area and changes the target region",
+        "instructions": [
+          "DO ACTION3",
+          "DO ACTION3",
+          "DO ACTION3",
+          "DO ACTION3",
+          "DO ACTION3"
+        ],
+        "observe": [
+          "REGION_DELTA [44,34,51,38]",
+          "SCORE_DELTA",
+          "STATE"
+        ],
+        "outcome_map": {
+          "target_region_delta_nonzero": "ACTION3 moves agent toward or into the target area",
+          "score_delta_positive": "Reaching target area scores points",
+          "both_zero": "ACTION3 does not affect the target area"
+        }
+      },
+      {
+        "probe_id": "P10",
+        "hypothesis": "ACTION4 is an interact/use action that activates something when near a special object",
+        "instructions": [
+          "DO ACTION1",
+          "DO ACTION1",
+          "DO ACTION4"
+        ],
+        "observe": [
+          "REGION_DELTA [0,0,63,63]",
+          "SCORE_DELTA",
+          "STATE"
+        ],
+        "outcome_map": {
+          "score_delta_positive": "ACTION4 interacts with something after movement, scoring points",
+          "region_delta_large": "ACTION4 causes a significant visual change after movement",
+          "no_change": "ACTION4 has no effect in this context"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "trial_id": "20260420T031648Z",
+  "variant": "2B",
+  "round1_session": "..\\benchmarks\\sessions\\trial_round1_retrack",
+  "game_id": "ls20-9607627b",
+  "prior_knowledge_file": "prior_knowledge.txt",
+  "tutor_model": "claude-sonnet-4-6",
+  "pupil_model": "google/gemma-4-26b-a4b-it",
+  "created_at": "2026-04-20T03:18:22.052693+00:00",
+  "files": [
+    "grounding_pack.json",
+    "tutor_round2_reply.json",
+    "pupil_round2_reply.json",
+    "diagnostic_report.md",
+    "prior_knowledge.txt"
+  ]
+}

@@ -1,0 +1,360 @@
+{
+  "elements_referenced": {
+    "1": {
+      "name": "agent_icon_top",
+      "pre_bbox": [
+        8,
+        32,
+        15,
+        40
+      ],
+      "tutor_function_guess": "agent"
+    },
+    "2": {
+      "name": "player_cross",
+      "pre_bbox": [
+        29,
+        20,
+        31,
+        22
+      ],
+      "tutor_function_guess": "agent"
+    },
+    "3": {
+      "name": "orange_block",
+      "pre_bbox": [
+        46,
+        34,
+        47,
+        38
+      ],
+      "tutor_function_guess": "collectible"
+    },
+    "4": {
+      "name": "blue_block",
+      "pre_bbox": [
+        48,
+        34,
+        49,
+        38
+      ],
+      "tutor_function_guess": "collectible"
+    },
+    "5": {
+      "name": "main_floor_area",
+      "pre_bbox": [
+        24,
+        14,
+        51,
+        53
+      ],
+      "tutor_function_guess": "wall"
+    },
+    "6": {
+      "name": "vertical_corridor",
+      "pre_bbox": [
+        16,
+        34,
+        23,
+        38
+      ],
+      "tutor_function_guess": "wall"
+    },
+    "7": {
+      "name": "left_side_panel",
+      "pre_bbox": [
+        0,
+        0,
+        63,
+        3
+      ],
+      "tutor_function_guess": "decor"
+    },
+    "8": {
+      "name": "bottom_ui_bar_yellow",
+      "pre_bbox": [
+        62,
+        12,
+        63,
+        54
+      ],
+      "tutor_function_guess": "readout"
+    },
+    "9": {
+      "name": "bottom_ui_red_dots",
+      "pre_bbox": [
+        62,
+        56,
+        63,
+        63
+      ],
+      "tutor_function_guess": "readout"
+    },
+    "10": {
+      "name": "corner_icon_bottom_left",
+      "pre_bbox": [
+        54,
+        0,
+        63,
+        11
+      ],
+      "tutor_function_guess": "readout"
+    },
+    "11": {
+      "name": "top_room",
+      "pre_bbox": [
+        8,
+        32,
+        15,
+        40
+      ],
+      "tutor_function_guess": "portal"
+    },
+    "12": {
+      "name": "inner_pit_left",
+      "pre_bbox": [
+        29,
+        19,
+        37,
+        28
+      ],
+      "tutor_function_guess": "hazard"
+    },
+    "13": {
+      "name": "inner_pit_right",
+      "pre_bbox": [
+        40,
+        34,
+        51,
+        38
+      ],
+      "tutor_function_guess": "target"
+    }
+  },
+  "probe_facts": [
+    {
+      "probe_id": "P1",
+      "instructions": [
+        "DO ACTION1"
+      ],
+      "final_state": "NOT_FINISHED",
+      "final_score": 0,
+      "observations": [
+        {
+          "kind": "ELEMENT_MOVED",
+          "element_id": 2,
+          "element_name": "player_cross",
+          "referenced_pre_bbox": [
+            29,
+            20,
+            31,
+            22
+          ],
+          "tracked_colour": 0,
+          "pre_bbox_found": [
+            31,
+            21,
+            32,
+            22
+          ],
+          "post_bbox_found": [
+            31,
+            21,
+            32,
+            22
+          ],
+          "moved": false,
+          "tracker_note": null
+        },
+        {
+          "kind": "REGION_DELTA",
+          "bbox": [
+            24,
+            14,
+            51,
+            53
+          ],
+          "value": 50
+        }
+      ]
+    },
+    {
+      "probe_id": "P2",
+      "instructions": [
+        "DO ACTION2"
+      ],
+      "final_state": "NOT_FINISHED",
+      "final_score": 0,
+      "observations": [
+        {
+          "kind": "ELEMENT_MOVED",
+          "element_id": 2,
+          "element_name": "player_cross",
+          "referenced_pre_bbox": [
+            29,
+            20,
+            31,
+            22
+          ],
+          "tracked_colour": 0,
+          "pre_bbox_found": [
+            31,
+            21,
+            32,
+            22
+          ],
+          "post_bbox_found": [
+            31,
+            21,
+            32,
+            22
+          ],
+          "moved": false,
+          "tracker_note": null
+        },
+        {
+          "kind": "REGION_DELTA",
+          "bbox": [
+            24,
+            14,
+            51,
+            53
+          ],
+          "value": 0
+        }
+      ]
+    },
+    {
+      "probe_id": "P3",
+      "instructions": [
+        "DO ACTION3"
+      ],
+      "final_state": "NOT_FINISHED",
+      "final_score": 0,
+      "observations": [
+        {
+          "kind": "ELEMENT_MOVED",
+          "element_id": 2,
+          "element_name": "player_cross",
+          "referenced_pre_bbox": [
+            29,
+            20,
+            31,
+            22
+          ],
+          "tracked_colour": 0,
+          "pre_bbox_found": [
+            31,
+            21,
+            32,
+            22
+          ],
+          "post_bbox_found": [
+            31,
+            21,
+            32,
+            22
+          ],
+          "moved": false,
+          "tracker_note": null
+        },
+        {
+          "kind": "REGION_DELTA",
+          "bbox": [
+            29,
+            14,
+            32,
+            53
+          ],
+          "value": 0
+        }
+      ]
+    },
+    {
+      "probe_id": "P4",
+      "instructions": [
+        "DO ACTION2",
+        "DO ACTION2",
+        "DO ACTION3",
+        "DO ACTION3",
+        "DO ACTION3"
+      ],
+      "final_state": "NOT_FINISHED",
+      "final_score": 0,
+      "observations": [
+        {
+          "kind": "SCORE_DELTA",
+          "value": 0
+        },
+        {
+          "kind": "STATE",
+          "value": "NOT_FINISHED"
+        },
+        {
+          "kind": "REGION_DELTA",
+          "bbox": [
+            44,
+            32,
+            51,
+            40
+          ],
+          "value": 25
+        }
+      ]
+    },
+    {
+      "probe_id": "P5",
+      "instructions": [
+        "DO ACTION4"
+      ],
+      "final_state": "NOT_FINISHED",
+      "final_score": 0,
+      "observations": [
+        {
+          "kind": "ELEMENT_MOVED",
+          "element_id": 2,
+          "element_name": "player_cross",
+          "referenced_pre_bbox": [
+            29,
+            20,
+            31,
+            22
+          ],
+          "tracked_colour": 0,
+          "pre_bbox_found": [
+            31,
+            21,
+            32,
+            22
+          ],
+          "post_bbox_found": [
+            31,
+            21,
+            32,
+            22
+          ],
+          "moved": false,
+          "tracker_note": null
+        },
+        {
+          "kind": "REGION_DELTA",
+          "bbox": [
+            0,
+            0,
+            63,
+            63
+          ],
+          "value": 52
+        },
+        {
+          "kind": "STATE",
+          "value": "NOT_FINISHED"
+        }
+      ]
+    }
+  ],
+  "executor_caveats": [
+    "ELEMENT_MOVED tracks a 'signature colour' (colour most over-represented in the element's pre-bbox vs the rest of the grid), then returns the bbox of the nearest connected component of that colour after the instructions run.",
+    "If the element's distinctive colour also appears elsewhere, the nearest-component heuristic may still produce a misleading bbox. Treat a post_bbox whose area is >>10x the element's pre-bbox as a tracking failure, not a real movement."
+  ]
+}

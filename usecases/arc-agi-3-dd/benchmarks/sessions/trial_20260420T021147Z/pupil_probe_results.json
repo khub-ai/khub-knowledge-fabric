@@ -1,0 +1,47 @@
+[
+  {
+    "probe_id": "P1",
+    "executed": false,
+    "parse_errors": [
+      "observation 'REGION_DELTA [124,505,241,638]': REGION_DELTA bbox out of bounds for 64x64: 'REGION_DELTA [124,505,241,638]'"
+    ],
+    "hypothesis": "ACTION1 moves the top agent right."
+  },
+  {
+    "probe_id": "P2",
+    "hypothesis": "The agents are controlled by different actions.",
+    "executed": true,
+    "trace": [
+      {
+        "instr": "DO ACTION1",
+        "state_after": "NOT_FINISHED"
+      }
+    ],
+    "observations": [
+      {
+        "kind": "ELEMENT_MOVED",
+        "element_id": 1,
+        "pre_bbox": null,
+        "post_bbox": null,
+        "moved": null,
+        "tracked_colour": null
+      },
+      {
+        "kind": "ELEMENT_MOVED",
+        "element_id": 2,
+        "pre_bbox": null,
+        "post_bbox": null,
+        "moved": null,
+        "tracked_colour": null
+      }
+    ],
+    "final_state": "NOT_FINISHED",
+    "final_score": 0,
+    "final_actions": [
+      "ACTION1",
+      "ACTION2",
+      "ACTION3",
+      "ACTION4"
+    ]
+  }
+]

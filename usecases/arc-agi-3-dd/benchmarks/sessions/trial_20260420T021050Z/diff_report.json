@@ -1,0 +1,23 @@
+{
+  "parse_ok_both": false,
+  "parse_ok_tutor": true,
+  "parse_ok_pupil": false,
+  "section_summaries": {
+    "elements": {
+      "TUTOR": "14 (agent:3, collectible:2, counter:1, readout:1, unknown:4, wall:3)",
+      "PUPIL": "\u2014"
+    },
+    "similar_groups": {
+      "TUTOR": "3 groups",
+      "PUPIL": "\u2014"
+    },
+    "initial_strategy": {
+      "TUTOR": "first_action='ACTION3', goal=Navigate the agent (white cross) through the maze-like floor",
+      "PUPIL": "\u2014"
+    },
+    "probes": {
+      "TUTOR": "5 probes",
+      "PUPIL": "\u2014"
+    }
+  }
+}

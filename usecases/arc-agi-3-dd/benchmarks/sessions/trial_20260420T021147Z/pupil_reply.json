@@ -1,0 +1,169 @@
+{
+  "model": "google/gemma-4-26b-a4b-it",
+  "latency_ms": 42232,
+  "raw_reply": "```json\n{\n  \"elements\": [\n    {\n      \"id\": 1,\n      \"name\": \"agent_top\",\n      \"bbox\": [124, 505, 241, 638],\n      \"function\": \"agent\",\n      \"rationale\": \"A small square with a blue glyph, likely a controllable character.\",\n      \"confidence\": 0.8\n    },\n    {\n      \"id\": 2,\n      \"name\": \"agent_bottom_left\",\n      \"bbox\": [817, 12, 984, 179],\n      \"function\": \"agent\",\n      \"rationale\": \"A small square with a blue glyph, similar to the top agent.\",\n      \"confidence\": 0.8\n    },\n    {\n      \"id\": 3,\n      \"name\": \"maze_walls\",\n      \"bbox\": [387, 213, 784, 847],\n      \"function\": \"wall\",\n      \"rationale\": \"Grey structures forming paths and boundaries.\",\n      \"confidence\": 0.9\n    },\n    {\n      \"id\": 4,\n      \"name\": \"target_area_1\",\n      \"bbox\": [88, 328, 216, 411],\n      \"function\": \"target\",\n      \"rationale\": \"A cluster of colored pixels (9s) within a boundary.\",\n      \"confidence\": 0.7\n    },\n    {\n      \"id\": 5,\n      \"name\": \"target_area_2\",\n      \"bbox\": [841, 34, 914, 108],\n      \"function\": \"target\",\n      \"rationale\": \"A cluster of colored pixels (9s) in the bottom left.\",\n      \"confidence\": 0.7\n    },\n    {\n      \"id\": 6,\n      \"name\": \"target_area_3\",\n      \"bbox\": [817, 353, 890, 426],\n      \"function\": \"target\",\n      \"rationale\": \"A cluster of colored pixels (12s) in the bottom right.\",\n      \"confidence\": 0.7\n    },\n    {\n      \"id\": 7,\n      \"name\": \"ui_bar\",\n      \"bbox\": [953, 204, 984, 847],\n      \"function\": \"readout\",\n      \"rationale\": \"A yellow bar at the bottom, likely a progress or health bar.\",\n      \"confidence\": 0.9\n    }\n  ],\n  \"similar_groups\": [\n    {\n      \"group_id\": \"G1\",\n      \"member_ids\": [1, 2],\n      \"similarity_axes\": [\"shape\", \"colour\"],\n      \"note\": \"Both are small squares containing a blue L-shaped glyph.\"\n    },\n    {\n      \"group_id\": \"G2\",\n      \"member_ids\": [4, 5, 6],\n      \"similarity_axes\": [\"shape\"],\n      \"note\": \"Clusters of colored pixels representing objectives.\"\n    }\n  ],\n  \"initial_strategy\": {\n    \"primary_goal\": \"Navigate the agent through the maze to reach the target areas.\",\n    \"first_action\": null,\n    \"rationale\": \"The exact controls (ACTION1-4) are unknown, but they likely correspond to directional movement or rotation.\",\n    \"open_questions\": [\n      \"Which action corresponds to which direction?\",\n      \"Is there only one agent or are both agents controlled simultaneously?\",\n      \"What is the relationship between the agents and the target areas?\"\n    ]\n  },\n  \"probes\": [\n    {\n      \"probe_id\": \"P1\",\n      \"hypothesis\": \"ACTION1 moves the top agent right.\",\n      \"instructions\": [\n        \"DO ACTION1\"\n      ],\n      \"observe\": [\n        \"ELEMENT_MOVED 1\",\n        \"REGION_DELTA [124,505,241,638]\"\n      ],\n      \"outcome_map\": {\n        \"element_1_moved\": \"ACTION1 is a movement command for agent 1\",\n        \"no_element_moved\": \"ACTION1 is not a movement command for agent 1\"\n      }\n    },\n    {\n      \"probe_id\": \"P2\",\n      \"hypothesis\": \"The agents are controlled by different actions.\",\n      \"instructions\": [\n        \"DO ACTION1\"\n      ],\n      \"observe\": [\n        \"ELEMENT_MOVED 1\",\n        \"ELEMENT_MOVED 2\"\n      ],\n      \"outcome_map\": {\n        \"both_moved\": \"Both agents are controlled by the same action\",\n        \"only_one_moved\": \"Agents have independent controls\"\n      }\n    }\n  ]\n}\n```",
+  "parse_error": null,
+  "assessment": {
+    "elements": [
+      {
+        "id": 1,
+        "name": "agent_top",
+        "bbox": [
+          124,
+          505,
+          241,
+          638
+        ],
+        "function": "agent",
+        "rationale": "A small square with a blue glyph, likely a controllable character.",
+        "confidence": 0.8
+      },
+      {
+        "id": 2,
+        "name": "agent_bottom_left",
+        "bbox": [
+          817,
+          12,
+          984,
+          179
+        ],
+        "function": "agent",
+        "rationale": "A small square with a blue glyph, similar to the top agent.",
+        "confidence": 0.8
+      },
+      {
+        "id": 3,
+        "name": "maze_walls",
+        "bbox": [
+          387,
+          213,
+          784,
+          847
+        ],
+        "function": "wall",
+        "rationale": "Grey structures forming paths and boundaries.",
+        "confidence": 0.9
+      },
+      {
+        "id": 4,
+        "name": "target_area_1",
+        "bbox": [
+          88,
+          328,
+          216,
+          411
+        ],
+        "function": "target",
+        "rationale": "A cluster of colored pixels (9s) within a boundary.",
+        "confidence": 0.7
+      },
+      {
+        "id": 5,
+        "name": "target_area_2",
+        "bbox": [
+          841,
+          34,
+          914,
+          108
+        ],
+        "function": "target",
+        "rationale": "A cluster of colored pixels (9s) in the bottom left.",
+        "confidence": 0.7
+      },
+      {
+        "id": 6,
+        "name": "target_area_3",
+        "bbox": [
+          817,
+          353,
+          890,
+          426
+        ],
+        "function": "target",
+        "rationale": "A cluster of colored pixels (12s) in the bottom right.",
+        "confidence": 0.7
+      },
+      {
+        "id": 7,
+        "name": "ui_bar",
+        "bbox": [
+          953,
+          204,
+          984,
+          847
+        ],
+        "function": "readout",
+        "rationale": "A yellow bar at the bottom, likely a progress or health bar.",
+        "confidence": 0.9
+      }
+    ],
+    "similar_groups": [
+      {
+        "group_id": "G1",
+        "member_ids": [
+          1,
+          2
+        ],
+        "similarity_axes": [
+          "shape",
+          "colour"
+        ],
+        "note": "Both are small squares containing a blue L-shaped glyph."
+      },
+      {
+        "group_id": "G2",
+        "member_ids": [
+          4,
+          5,
+          6
+        ],
+        "similarity_axes": [
+          "shape"
+        ],
+        "note": "Clusters of colored pixels representing objectives."
+      }
+    ],
+    "initial_strategy": {
+      "primary_goal": "Navigate the agent through the maze to reach the target areas.",
+      "first_action": null,
+      "rationale": "The exact controls (ACTION1-4) are unknown, but they likely correspond to directional movement or rotation.",
+      "open_questions": [
+        "Which action corresponds to which direction?",
+        "Is there only one agent or are both agents controlled simultaneously?",
+        "What is the relationship between the agents and the target areas?"
+      ]
+    },
+    "probes": [
+      {
+        "probe_id": "P1",
+        "hypothesis": "ACTION1 moves the top agent right.",
+        "instructions": [
+          "DO ACTION1"
+        ],
+        "observe": [
+          "ELEMENT_MOVED 1",
+          "REGION_DELTA [124,505,241,638]"
+        ],
+        "outcome_map": {
+          "element_1_moved": "ACTION1 is a movement command for agent 1",
+          "no_element_moved": "ACTION1 is not a movement command for agent 1"
+        }
+      },
+      {
+        "probe_id": "P2",
+        "hypothesis": "The agents are controlled by different actions.",
+        "instructions": [
+          "DO ACTION1"
+        ],
+        "observe": [
+          "ELEMENT_MOVED 1",
+          "ELEMENT_MOVED 2"
+        ],
+        "outcome_map": {
+          "both_moved": "Both agents are controlled by the same action",
+          "only_one_moved": "Agents have independent controls"
+        }
+      }
+    ]
+  }
+}

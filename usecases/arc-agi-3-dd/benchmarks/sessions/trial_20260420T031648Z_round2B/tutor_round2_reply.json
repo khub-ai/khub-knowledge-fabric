@@ -1,0 +1,394 @@
+{
+  "model": "claude-sonnet-4-6",
+  "latency_ms": 61578,
+  "raw_reply": "{\n  \"revision_notes\": [\n    {\n      \"change\": \"Retracted 'player_cross' (element 2) as agent. It is now classified as a 'change indicator' / switch marker per prior knowledge.\",\n      \"reason\": \"ELEMENT_MOVED tracker confirmed the color-0 cluster stays at [31,21,32,22] across all probes \u2014 it never moved. Prior knowledge explicitly states the white cross is NOT the agent but a 'change indicator' marking where the next state transition fires.\",\n      \"round1_ref\": \"element 2\"\n    },\n    {\n      \"change\": \"Retracted 'agent_icon_top' (element 1) as agent. The top bordered room is now reclassified as a 'reference glyph' (target pattern to recreate).\",\n      \"reason\": \"Prior knowledge states small bordered boxes with internal glyphs are reference glyphs encoding the target state. The top room (rows 8-15, cols 32-40) contains a 9-pattern glyph inside a color-3 border \u2014 matches the reference glyph description exactly.\",\n      \"round1_ref\": \"element 1\"\n    },\n    {\n      \"change\": \"Reclassified 'top_room' (element 11) from portal to target/reference glyph.\",\n      \"reason\": \"Same as above \u2014 prior knowledge and grid inspection confirm this is a reference pattern, not a portal.\",\n      \"round1_ref\": \"element 11\"\n    },\n    {\n      \"change\": \"Reclassified 'main_floor_area' (element 5) from wall to target (the playing field where state mutations occur).\",\n      \"reason\": \"Prior knowledge: the large gray area is the playing field. REGION_DELTA values of 50 (P1) and 52 (P5) confirm actions are changing cells within this region. The goal is to make this field match the reference glyph.\",\n      \"round1_ref\": \"element 5\"\n    },\n    {\n      \"change\": \"Reclassified 'orange_block' (element 3, color 12) and 'blue_block' (element 4, color 9) from collectible to switch/target markers embedded in the playing field.\",\n      \"reason\": \"REGION_DELTA on [44,32,51,40] = 25 in P4 confirms this sub-region is changing. These colored blocks are part of the mutable playing field state, not separate collectibles to pick up.\",\n      \"round1_ref\": \"elements 3, 4\"\n    },\n    {\n      \"change\": \"Reclassified 'inner_pit_left' (element 12) from hazard to switch \u2014 it contains the white cross (change indicator) and color-0/1 pixels that are the current mutation point.\",\n      \"reason\": \"The color-0 cluster tracked at [31,21,32,22] sits inside this region. Per prior knowledge, the cross marks where the next action fires. The 1-pixel (color 1) nearby is likely a second glyph component.\",\n      \"round1_ref\": \"element 12\"\n    },\n    {\n      \"change\": \"Updated initial_strategy: goal is to use ACTION1-4 to mutate the playing field cells (guided by the change indicator cross) to match the reference glyph pattern in the top bordered room.\",\n      \"reason\": \"Prior knowledge items 2, 3, 5, 6 combined with REGION_DELTA evidence showing actions do change the floor area.\",\n      \"round1_ref\": \"initial_strategy\"\n    },\n    {\n      \"change\": \"Corrected 'player_cross' bbox to [31,21,32,22] based on tracker finding.\",\n      \"reason\": \"Pre-probe tracker found the color-0 cluster at [31,21,32,22], not [29,20,31,22] as I estimated in Round 1.\",\n      \"round1_ref\": \"element 2\"\n    },\n    {\n      \"change\": \"Added new element: 'bottom_left_icon' as a second reference glyph (the bottom-left bordered box at rows 54-63, cols 0-11), forming a matched pair with the top room reference glyph.\",\n      \"reason\": \"Prior knowledge item 5: reference glyphs appear in matched pairs. The bottom-left corner icon (element 10) likely encodes a second reference or the write-target.\",\n      \"round1_ref\": \"element 10\"\n    }\n  ],\n  \"elements\": [\n    {\n      \"id\": 1,\n      \"name\": \"reference_glyph_top\",\n      \"bbox\": [8, 32, 15, 40],\n      \"function\": \"target\",\n      \"rationale\": \"Small bordered box (color-3 border, color-5 interior) with a color-9 glyph pattern inside. Per prior knowledge, this encodes the target state the player must recreate on the playing field using state-mutation actions.\",\n      \"confidence\": 0.82\n    },\n    {\n      \"id\": 2,\n      \"name\": \"change_indicator_cross\",\n      \"bbox\": [31, 21, 32, 22],\n      \"function\": \"switch\",\n      \"rationale\": \"Color-0/1 pixel cluster confirmed at [31,21,32,22] by tracker. Per prior knowledge, this is NOT the agent but a 'change indicator' marking the cell where the next ACTION fires a state mutation.\",\n      \"confidence\": 0.85\n    },\n    {\n      \"id\": 3,\n      \"name\": \"playing_field_color12_block\",\n      \"bbox\": [46, 34, 47, 38],\n      \"function\": \"target\",\n      \"rationale\": \"Color-12 (orange) cells embedded in the playing field. Part of the mutable state that must be configured to match the reference glyph. REGION_DELTA confirms this area changes with actions.\",\n      \"confidence\": 0.65\n    },\n    {\n      \"id\": 4,\n      \"name\": \"playing_field_color9_block\",\n      \"bbox\": [48, 50, 50, 38],\n      \"function\": \"target\",\n      \"rationale\": \"Color-9 (blue) cells in the playing field. Part of the mutable state. The reference glyph also contains color-9, suggesting these must be arranged to match.\",\n      \"confidence\": 0.65\n    },\n    {\n      \"id\": 5,\n      \"name\": \"main_playing_field\",\n      \"bbox\": [24, 14, 51, 53],\n      \"function\": \"target\",\n      \"rationale\": \"Large color-3 region forming the playing field. REGION_DELTA values (50, 52) confirm actions mutate cells here. Goal is to configure this field to match the reference glyph.\",\n      \"confidence\": 0.8\n    },\n    {\n      \"id\": 6,\n      \"name\": \"vertical_corridor\",\n      \"bbox\": [16, 34, 23, 38],\n      \"function\": \"wall\",\n      \"rationale\": \"Narrow vertical color-3 strip connecting the top reference room to the main playing field. Likely a structural/navigational element or part of the level layout.\",\n      \"confidence\": 0.65\n    },\n    {\n      \"id\": 7,\n      \"name\": \"left_side_panel\",\n      \"bbox\": [0, 0, 51, 3],\n      \"function\": \"decor\",\n      \"rationale\": \"Persistent color-5 column on the left edge of the playing area, likely a UI border or decorative frame element.\",\n      \"confidence\": 0.55\n    },\n    {\n      \"id\": 8,\n      \"name\": \"progress_bar\",\n      \"bbox\": [62, 12, 63, 54],\n      \"function\": \"readout\",\n      \"rationale\": \"Yellow (color-11) horizontal bar at the bottom. Per prior knowledge, this is a progress counter tracking how close the playing field is to matching the reference pattern. Win condition = fill completely.\",\n      \"confidence\": 0.85\n    },\n    {\n      \"id\": 9,\n      \"name\": \"remaining_attempts\",\n      \"bbox\": [62, 56, 63, 63],\n      \"function\": \"readout\",\n      \"rationale\": \"Color-8 squares at bottom right. Per prior knowledge, these are remaining attempts (lives) \u2014 each failed episode reduces them by one.\",\n      \"confidence\": 0.82\n    },\n    {\n      \"id\": 10,\n      \"name\": \"reference_glyph_bottom_left\",\n      \"bbox\": [54, 0, 63, 11],\n      \"function\": \"target\",\n      \"rationale\": \"Small bordered icon in the bottom-left corner with an internal glyph (color-9 pattern). Per prior knowledge, reference glyphs appear in matched pairs \u2014 this pairs with the top room reference glyph (element 1).\",\n      \"confidence\": 0.72\n    },\n    {\n      \"id\": 12,\n      \"name\": \"change_indicator_region\",\n      \"bbox\": [29, 19, 37, 28],\n      \"function\": \"switch\",\n      \"rationale\": \"Sub-region of the playing field containing the change indicator cross (color-0/1 pixels at [31,21,32,22]). This is where current state mutations are targeted. The gap in the floor (rows 29-37, cols 29-33) may be a pit or boundary.\",\n      \"confidence\": 0.7\n    },\n    {\n      \"id\": 13,\n      \"name\": \"colored_block_target_zone\",\n      \"bbox\": [44, 34, 50, 38],\n      \"function\": \"target\",\n      \"rationale\": \"Zone containing color-12 and color-9 blocks within the playing field. REGION_DELTA=25 in P4 confirms this area is mutable. Likely needs to be configured to match the reference glyph.\",\n      \"confidence\": 0.68\n    },\n    {\n      \"id\": 14,\n      \"name\": \"floor_gap_left\",\n      \"bbox\": [29, 29, 37, 33],\n      \"function\": \"hazard\",\n      \"rationale\": \"Color-4 (background) cells within the otherwise color-3 playing field, forming a gap/hole. Could be a pit hazard or simply a structural gap in the floor layout.\",\n      \"confidence\": 0.6\n    },\n    {\n      \"id\": 15,\n      \"name\": \"bottom_player_icon\",\n      \"bbox\": [54, 0, 63, 11],\n      \"function\": \"readout\",\n      \"rationale\": \"The bottom-left bordered box (rows 54-63, cols 0-11) shows a color-9 glyph pattern inside a color-5 bordered frame \u2014 this is the player's current 'tool' or selected action indicator, or a second reference glyph.\",\n      \"confidence\": 0.6\n    }\n  ],\n  \"similar_groups\": [\n    {\n      \"group_id\": \"G1\",\n      \"member_ids\": [1, 10],\n      \"similarity_axes\": [\"shape\", \"scale\", \"colour\", \"function\"],\n      \"note\": \"Both are small bordered boxes with internal color-9 glyph patterns. Per prior knowledge, reference glyphs appear in matched pairs \u2014 one encodes the target, the other may be the write-target or a second reference.\"\n    },\n    {\n      \"group_id\": \"G2\",\n      \"member_ids\": [3, 4, 13],\n      \"similarity_axes\": [\"location\", \"function\"],\n      \"note\": \"Color-12 and color-9 blocks in the playing field target zone \u2014 all part of the mutable state that must match the reference glyph. REGION_DELTA confirms they change with actions.\"\n    },\n    {\n      \"group_id\": \"G3\",\n      \"member_ids\": [8, 9],\n      \"similarity_axes\": [\"location\", \"function\"],\n      \"note\": \"Both are bottom-of-screen UI readouts: progress bar (color-11) and remaining attempts (color-8). Both are non-interactive display elements.\"\n    },\n    {\n      \"group_id\": \"G4\",\n      \"member_ids\": [5, 6],\n      \"similarity_axes\": [\"colour\", \"shape\"],\n      \"note\": \"Both are color-3 regions forming the navigable/mutable playing field and its connecting corridor.\"\n    }\n  ],\n  \"initial_strategy\": {\n    \"primary_goal\": \"Use ACTION1-4 to mutate cells in the playing field (guided by the change indicator cross position) until the field configuration matches the reference glyph pattern shown in the top bordered room. The progress bar fills as the match improves.\",\n    \"first_action\": \"ACTION1\",\n    \"rationale\": \"REGION_DELTA=50 on P1 (ACTION1) vs 0 on P2 (ACTION2) shows ACTION1 causes changes while ACTION2 does not (in the current cross position). ACTION1 and ACTION4 are the active mutation keys. Need to determine what each action does to the cell state, then navigate the cross to the correct positions and apply the right mutations to recreate the reference glyph.\",\n    \"open_questions\": [\n      \"How does the change indicator cross move to different cells \u2014 is it controlled by actions, or does it auto-advance after each mutation?\",\n      \"What exactly does each ACTION do to the cell under the cross (toggle color, cycle through colors, etc.)?\",\n      \"What is the exact reference pattern in the top bordered room that must be recreated?\",\n      \"Does the bottom-left icon (element 10/15) show the current tool/color being applied, or is it a second reference pattern?\",\n      \"Why did P1 (ACTION1) show REGION_DELTA=50 but P2 (ACTION2) showed 0 \u2014 does ACTION2 have no effect, or does it undo ACTION1's change?\"\n    ]\n  },\n  \"probes\": [\n    {\n      \"probe_id\": \"P6\",\n      \"hypothesis\": \"ACTION1 toggles/changes the cell under the change indicator cross, and the cross then moves to a new position\",\n      \"instructions\": [\n        \"DO ACTION1\",\n        \"DO ACTION1\"\n      ],\n      \"observe\": [\n        \"REGION_DELTA [29,19,37,28]\",\n        \"REGION_DELTA [24,14,51,53]\"\n      ],\n      \"outcome_map\": {\n        \"region_delta_nonzero_first_zero_second\": \"ACTION1 toggles a cell and cross moves; second ACTION1 at new position has no effect\",\n        \"both_nonzero\": \"ACTION1 always mutates, cross may not move or moves to another mutable cell\",\n        \"both_zero\": \"ACTION1 effect was already undone or cross is stuck\"\n      }\n    },\n    {\n      \"probe_id\": \"P7\",\n      \"hypothesis\": \"ACTION3 and ACTION4 move the change indicator cross to different cells in the playing field\",\n      \"instructions\": [\n        \"DO ACTION3\",\n        \"DO ACTION4\"\n      ],\n      \"observe\": [\n        \"REGION_DELTA [24,14,51,53]\",\n        \"REGION_DELTA [29,19,37,28]\"\n      ],\n      \"outcome_map\": {\n        \"region_delta_nonzero\": \"ACTION3 or ACTION4 moves the cross or mutates a cell\",\n        \"region_delta_zero\": \"Neither action affects the playing field in this state\",\n        \"cross_moved\": \"The change indicator cross relocated to a new cell\"\n      }\n    },\n    {\n      \"probe_id\": \"P8\",\n      \"hypothesis\": \"The progress bar (element 8) value increases when a cell is correctly mutated to match the reference pattern\",\n      \"instructions\": [\n        \"DO ACTION1\",\n        \"DO ACTION1\",\n        \"DO ACTION1\"\n      ],\n      \"observe\": [\n        \"SCORE_DELTA\",\n        \"REGION_DELTA [62,12,63,54]\",\n        \"STATE\"\n      ],\n      \"outcome_map\": {\n        \"score_delta_positive\": \"Correct mutations increase score/progress\",\n        \"region_delta_nonzero\": \"Progress bar visual changed, confirming progress tracking\",\n        \"score_delta_zero\": \"These mutations did not match the reference pattern\"\n      }\n    },\n    {\n      \"probe_id\": \"P9\",\n      \"hypothesis\": \"ACTION2 moves the change indicator cross (it showed 0 REGION_DELTA in P2 but may move the cross without changing cell color)\",\n      \"instructions\": [\n        \"DO ACTION2\"\n      ],\n      \"observe\": [\n        \"REGION_DELTA [29,19,37,28]\",\n        \"REGION_DELTA [24,14,51,53]\"\n      ],\n      \"outcome_map\": {\n        \"region_delta_nonzero_in_cross_region\": \"ACTION2 moves the cross within its current region\",\n        \"region_delta_nonzero_elsewhere\": \"ACTION2 moves the cross to a different part of the field\",\n        \"both_zero\": \"ACTION2 truly has no effect in current state\"\n      }\n    },\n    {\n      \"probe_id\": \"P10\",\n      \"hypothesis\": \"Repeated ACTION1 presses cycle through color states at the cross position, eventually returning to original\",\n      \"instructions\": [\n        \"DO ACTION1\",\n        \"DO ACTION1\",\n        \"DO ACTION1\",\n        \"DO ACTION1\"\n      ],\n      \"observe\": [\n        \"REGION_DELTA [29,19,37,28]\",\n        \"SCORE_DELTA\"\n      ],\n      \"outcome_map\": {\n        \"region_delta_oscillates\": \"ACTION1 toggles between two states (even presses return to start)\",\n        \"region_delta_accumulates\": \"ACTION1 cycles through multiple states\",\n        \"score_delta_positive\": \"Some of the mutations matched the reference pattern\"\n      }\n    }\n  ]\n}",
+  "parse_error": null,
+  "assessment": {
+    "revision_notes": [
+      {
+        "change": "Retracted 'player_cross' (element 2) as agent. It is now classified as a 'change indicator' / switch marker per prior knowledge.",
+        "reason": "ELEMENT_MOVED tracker confirmed the color-0 cluster stays at [31,21,32,22] across all probes \u2014 it never moved. Prior knowledge explicitly states the white cross is NOT the agent but a 'change indicator' marking where the next state transition fires.",
+        "round1_ref": "element 2"
+      },
+      {
+        "change": "Retracted 'agent_icon_top' (element 1) as agent. The top bordered room is now reclassified as a 'reference glyph' (target pattern to recreate).",
+        "reason": "Prior knowledge states small bordered boxes with internal glyphs are reference glyphs encoding the target state. The top room (rows 8-15, cols 32-40) contains a 9-pattern glyph inside a color-3 border \u2014 matches the reference glyph description exactly.",
+        "round1_ref": "element 1"
+      },
+      {
+        "change": "Reclassified 'top_room' (element 11) from portal to target/reference glyph.",
+        "reason": "Same as above \u2014 prior knowledge and grid inspection confirm this is a reference pattern, not a portal.",
+        "round1_ref": "element 11"
+      },
+      {
+        "change": "Reclassified 'main_floor_area' (element 5) from wall to target (the playing field where state mutations occur).",
+        "reason": "Prior knowledge: the large gray area is the playing field. REGION_DELTA values of 50 (P1) and 52 (P5) confirm actions are changing cells within this region. The goal is to make this field match the reference glyph.",
+        "round1_ref": "element 5"
+      },
+      {
+        "change": "Reclassified 'orange_block' (element 3, color 12) and 'blue_block' (element 4, color 9) from collectible to switch/target markers embedded in the playing field.",
+        "reason": "REGION_DELTA on [44,32,51,40] = 25 in P4 confirms this sub-region is changing. These colored blocks are part of the mutable playing field state, not separate collectibles to pick up.",
+        "round1_ref": "elements 3, 4"
+      },
+      {
+        "change": "Reclassified 'inner_pit_left' (element 12) from hazard to switch \u2014 it contains the white cross (change indicator) and color-0/1 pixels that are the current mutation point.",
+        "reason": "The color-0 cluster tracked at [31,21,32,22] sits inside this region. Per prior knowledge, the cross marks where the next action fires. The 1-pixel (color 1) nearby is likely a second glyph component.",
+        "round1_ref": "element 12"
+      },
+      {
+        "change": "Updated initial_strategy: goal is to use ACTION1-4 to mutate the playing field cells (guided by the change indicator cross) to match the reference glyph pattern in the top bordered room.",
+        "reason": "Prior knowledge items 2, 3, 5, 6 combined with REGION_DELTA evidence showing actions do change the floor area.",
+        "round1_ref": "initial_strategy"
+      },
+      {
+        "change": "Corrected 'player_cross' bbox to [31,21,32,22] based on tracker finding.",
+        "reason": "Pre-probe tracker found the color-0 cluster at [31,21,32,22], not [29,20,31,22] as I estimated in Round 1.",
+        "round1_ref": "element 2"
+      },
+      {
+        "change": "Added new element: 'bottom_left_icon' as a second reference glyph (the bottom-left bordered box at rows 54-63, cols 0-11), forming a matched pair with the top room reference glyph.",
+        "reason": "Prior knowledge item 5: reference glyphs appear in matched pairs. The bottom-left corner icon (element 10) likely encodes a second reference or the write-target.",
+        "round1_ref": "element 10"
+      }
+    ],
+    "elements": [
+      {
+        "id": 1,
+        "name": "reference_glyph_top",
+        "bbox": [
+          8,
+          32,
+          15,
+          40
+        ],
+        "function": "target",
+        "rationale": "Small bordered box (color-3 border, color-5 interior) with a color-9 glyph pattern inside. Per prior knowledge, this encodes the target state the player must recreate on the playing field using state-mutation actions.",
+        "confidence": 0.82
+      },
+      {
+        "id": 2,
+        "name": "change_indicator_cross",
+        "bbox": [
+          31,
+          21,
+          32,
+          22
+        ],
+        "function": "switch",
+        "rationale": "Color-0/1 pixel cluster confirmed at [31,21,32,22] by tracker. Per prior knowledge, this is NOT the agent but a 'change indicator' marking the cell where the next ACTION fires a state mutation.",
+        "confidence": 0.85
+      },
+      {
+        "id": 3,
+        "name": "playing_field_color12_block",
+        "bbox": [
+          46,
+          34,
+          47,
+          38
+        ],
+        "function": "target",
+        "rationale": "Color-12 (orange) cells embedded in the playing field. Part of the mutable state that must be configured to match the reference glyph. REGION_DELTA confirms this area changes with actions.",
+        "confidence": 0.65
+      },
+      {
+        "id": 4,
+        "name": "playing_field_color9_block",
+        "bbox": [
+          48,
+          50,
+          50,
+          38
+        ],
+        "function": "target",
+        "rationale": "Color-9 (blue) cells in the playing field. Part of the mutable state. The reference glyph also contains color-9, suggesting these must be arranged to match.",
+        "confidence": 0.65
+      },
+      {
+        "id": 5,
+        "name": "main_playing_field",
+        "bbox": [
+          24,
+          14,
+          51,
+          53
+        ],
+        "function": "target",
+        "rationale": "Large color-3 region forming the playing field. REGION_DELTA values (50, 52) confirm actions mutate cells here. Goal is to configure this field to match the reference glyph.",
+        "confidence": 0.8
+      },
+      {
+        "id": 6,
+        "name": "vertical_corridor",
+        "bbox": [
+          16,
+          34,
+          23,
+          38
+        ],
+        "function": "wall",
+        "rationale": "Narrow vertical color-3 strip connecting the top reference room to the main playing field. Likely a structural/navigational element or part of the level layout.",
+        "confidence": 0.65
+      },
+      {
+        "id": 7,
+        "name": "left_side_panel",
+        "bbox": [
+          0,
+          0,
+          51,
+          3
+        ],
+        "function": "decor",
+        "rationale": "Persistent color-5 column on the left edge of the playing area, likely a UI border or decorative frame element.",
+        "confidence": 0.55
+      },
+      {
+        "id": 8,
+        "name": "progress_bar",
+        "bbox": [
+          62,
+          12,
+          63,
+          54
+        ],
+        "function": "readout",
+        "rationale": "Yellow (color-11) horizontal bar at the bottom. Per prior knowledge, this is a progress counter tracking how close the playing field is to matching the reference pattern. Win condition = fill completely.",
+        "confidence": 0.85
+      },
+      {
+        "id": 9,
+        "name": "remaining_attempts",
+        "bbox": [
+          62,
+          56,
+          63,
+          63
+        ],
+        "function": "readout",
+        "rationale": "Color-8 squares at bottom right. Per prior knowledge, these are remaining attempts (lives) \u2014 each failed episode reduces them by one.",
+        "confidence": 0.82
+      },
+      {
+        "id": 10,
+        "name": "reference_glyph_bottom_left",
+        "bbox": [
+          54,
+          0,
+          63,
+          11
+        ],
+        "function": "target",
+        "rationale": "Small bordered icon in the bottom-left corner with an internal glyph (color-9 pattern). Per prior knowledge, reference glyphs appear in matched pairs \u2014 this pairs with the top room reference glyph (element 1).",
+        "confidence": 0.72
+      },
+      {
+        "id": 12,
+        "name": "change_indicator_region",
+        "bbox": [
+          29,
+          19,
+          37,
+          28
+        ],
+        "function": "switch",
+        "rationale": "Sub-region of the playing field containing the change indicator cross (color-0/1 pixels at [31,21,32,22]). This is where current state mutations are targeted. The gap in the floor (rows 29-37, cols 29-33) may be a pit or boundary.",
+        "confidence": 0.7
+      },
+      {
+        "id": 13,
+        "name": "colored_block_target_zone",
+        "bbox": [
+          44,
+          34,
+          50,
+          38
+        ],
+        "function": "target",
+        "rationale": "Zone containing color-12 and color-9 blocks within the playing field. REGION_DELTA=25 in P4 confirms this area is mutable. Likely needs to be configured to match the reference glyph.",
+        "confidence": 0.68
+      },
+      {
+        "id": 14,
+        "name": "floor_gap_left",
+        "bbox": [
+          29,
+          29,
+          37,
+          33
+        ],
+        "function": "hazard",
+        "rationale": "Color-4 (background) cells within the otherwise color-3 playing field, forming a gap/hole. Could be a pit hazard or simply a structural gap in the floor layout.",
+        "confidence": 0.6
+      },
+      {
+        "id": 15,
+        "name": "bottom_player_icon",
+        "bbox": [
+          54,
+          0,
+          63,
+          11
+        ],
+        "function": "readout",
+        "rationale": "The bottom-left bordered box (rows 54-63, cols 0-11) shows a color-9 glyph pattern inside a color-5 bordered frame \u2014 this is the player's current 'tool' or selected action indicator, or a second reference glyph.",
+        "confidence": 0.6
+      }
+    ],
+    "similar_groups": [
+      {
+        "group_id": "G1",
+        "member_ids": [
+          1,
+          10
+        ],
+        "similarity_axes": [
+          "shape",
+          "scale",
+          "colour",
+          "function"
+        ],
+        "note": "Both are small bordered boxes with internal color-9 glyph patterns. Per prior knowledge, reference glyphs appear in matched pairs \u2014 one encodes the target, the other may be the write-target or a second reference."
+      },
+      {
+        "group_id": "G2",
+        "member_ids": [
+          3,
+          4,
+          13
+        ],
+        "similarity_axes": [
+          "location",
+          "function"
+        ],
+        "note": "Color-12 and color-9 blocks in the playing field target zone \u2014 all part of the mutable state that must match the reference glyph. REGION_DELTA confirms they change with actions."
+      },
+      {
+        "group_id": "G3",
+        "member_ids": [
+          8,
+          9
+        ],
+        "similarity_axes": [
+          "location",
+          "function"
+        ],
+        "note": "Both are bottom-of-screen UI readouts: progress bar (color-11) and remaining attempts (color-8). Both are non-interactive display elements."
+      },
+      {
+        "group_id": "G4",
+        "member_ids": [
+          5,
+          6
+        ],
+        "similarity_axes": [
+          "colour",
+          "shape"
+        ],
+        "note": "Both are color-3 regions forming the navigable/mutable playing field and its connecting corridor."
+      }
+    ],
+    "initial_strategy": {
+      "primary_goal": "Use ACTION1-4 to mutate cells in the playing field (guided by the change indicator cross position) until the field configuration matches the reference glyph pattern shown in the top bordered room. The progress bar fills as the match improves.",
+      "first_action": "ACTION1",
+      "rationale": "REGION_DELTA=50 on P1 (ACTION1) vs 0 on P2 (ACTION2) shows ACTION1 causes changes while ACTION2 does not (in the current cross position). ACTION1 and ACTION4 are the active mutation keys. Need to determine what each action does to the cell state, then navigate the cross to the correct positions and apply the right mutations to recreate the reference glyph.",
+      "open_questions": [
+        "How does the change indicator cross move to different cells \u2014 is it controlled by actions, or does it auto-advance after each mutation?",
+        "What exactly does each ACTION do to the cell under the cross (toggle color, cycle through colors, etc.)?",
+        "What is the exact reference pattern in the top bordered room that must be recreated?",
+        "Does the bottom-left icon (element 10/15) show the current tool/color being applied, or is it a second reference pattern?",
+        "Why did P1 (ACTION1) show REGION_DELTA=50 but P2 (ACTION2) showed 0 \u2014 does ACTION2 have no effect, or does it undo ACTION1's change?"
+      ]
+    },
+    "probes": [
+      {
+        "probe_id": "P6",
+        "hypothesis": "ACTION1 toggles/changes the cell under the change indicator cross, and the cross then moves to a new position",
+        "instructions": [
+          "DO ACTION1",
+          "DO ACTION1"
+        ],
+        "observe": [
+          "REGION_DELTA [29,19,37,28]",
+          "REGION_DELTA [24,14,51,53]"
+        ],
+        "outcome_map": {
+          "region_delta_nonzero_first_zero_second": "ACTION1 toggles a cell and cross moves; second ACTION1 at new position has no effect",
+          "both_nonzero": "ACTION1 always mutates, cross may not move or moves to another mutable cell",
+          "both_zero": "ACTION1 effect was already undone or cross is stuck"
+        }
+      },
+      {
+        "probe_id": "P7",
+        "hypothesis": "ACTION3 and ACTION4 move the change indicator cross to different cells in the playing field",
+        "instructions": [
+          "DO ACTION3",
+          "DO ACTION4"
+        ],
+        "observe": [
+          "REGION_DELTA [24,14,51,53]",
+          "REGION_DELTA [29,19,37,28]"
+        ],
+        "outcome_map": {
+          "region_delta_nonzero": "ACTION3 or ACTION4 moves the cross or mutates a cell",
+          "region_delta_zero": "Neither action affects the playing field in this state",
+          "cross_moved": "The change indicator cross relocated to a new cell"
+        }
+      },
+      {
+        "probe_id": "P8",
+        "hypothesis": "The progress bar (element 8) value increases when a cell is correctly mutated to match the reference pattern",
+        "instructions": [
+          "DO ACTION1",
+          "DO ACTION1",
+          "DO ACTION1"
+        ],
+        "observe": [
+          "SCORE_DELTA",
+          "REGION_DELTA [62,12,63,54]",
+          "STATE"
+        ],
+        "outcome_map": {
+          "score_delta_positive": "Correct mutations increase score/progress",
+          "region_delta_nonzero": "Progress bar visual changed, confirming progress tracking",
+          "score_delta_zero": "These mutations did not match the reference pattern"
+        }
+      },
+      {
+        "probe_id": "P9",
+        "hypothesis": "ACTION2 moves the change indicator cross (it showed 0 REGION_DELTA in P2 but may move the cross without changing cell color)",
+        "instructions": [
+          "DO ACTION2"
+        ],
+        "observe": [
+          "REGION_DELTA [29,19,37,28]",
+          "REGION_DELTA [24,14,51,53]"
+        ],
+        "outcome_map": {
+          "region_delta_nonzero_in_cross_region": "ACTION2 moves the cross within its current region",
+          "region_delta_nonzero_elsewhere": "ACTION2 moves the cross to a different part of the field",
+          "both_zero": "ACTION2 truly has no effect in current state"
+        }
+      },
+      {
+        "probe_id": "P10",
+        "hypothesis": "Repeated ACTION1 presses cycle through color states at the cross position, eventually returning to original",
+        "instructions": [
+          "DO ACTION1",
+          "DO ACTION1",
+          "DO ACTION1",
+          "DO ACTION1"
+        ],
+        "observe": [
+          "REGION_DELTA [29,19,37,28]",
+          "SCORE_DELTA"
+        ],
+        "outcome_map": {
+          "region_delta_oscillates": "ACTION1 toggles between two states (even presses return to start)",
+          "region_delta_accumulates": "ACTION1 cycles through multiple states",
+          "score_delta_positive": "Some of the mutations matched the reference pattern"
+        }
+      }
+    ]
+  }
+}

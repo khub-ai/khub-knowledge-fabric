@@ -1,0 +1,35 @@
+Prior knowledge from previous plays of the ls* game family (ls20, ls21, ...).
+
+Treat these as strong priors — learned from other levels and other ls-series
+games — but still subject to per-level evidence from the grounding pack.
+
+1. The white cross (color 0 pixel cluster in the main floor area) is NOT
+   the agent.  In ls-family games it is a "change indicator": it marks the
+   cell where the next state transition will happen when an action fires.
+
+2. ACTION1..ACTION4 are NOT directional movement keys.  They are
+   "state-mutation" actions: each one attempts to change a property of the
+   cell under the cross (or a neighbouring cell) — for example, toggling a
+   floor tile, activating a switch, or imprinting a glyph.
+
+3. The yellow horizontal bar at the bottom of the frame is a PROGRESS
+   counter.  The level win condition is to fill it completely, usually by
+   making the playing-field state match a reference pattern encoded
+   somewhere on the frame.
+
+4. The three red squares at the bottom-right are REMAINING ATTEMPTS (lives).
+   Each failed episode reduces them by one.
+
+5. Small bordered boxes with an internal glyph (here: the top-centre
+   bordered room and the bottom-left corner icon) are USUALLY
+   "reference glyphs" — they encode the target state the player must
+   recreate on the playing field.  They often appear in matched PAIRS:
+   one serves as the reference, the other as a write-target.
+
+6. A win in ls-family games typically requires recreating the reference
+   glyph (item 5) on the playing field using the state-mutation actions
+   (item 2), tracked by the progress bar (item 3).
+
+These priors come from other levels — they may still be wrong for this
+specific level.  If the grounding pack directly contradicts any of them,
+trust the grounding pack.

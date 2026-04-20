@@ -1,0 +1,169 @@
+{
+  "model": "google/gemma-4-26b-a4b-it",
+  "latency_ms": 15245,
+  "raw_reply": "```json\n{\n  \"elements\": [\n    {\n      \"id\": 1,\n      \"name\": \"agent_top\",\n      \"bbox\": [122, 506, 241, 641],\n      \"function\": \"agent\",\n      \"rationale\": \"A small square with a blue glyph, likely the player-controlled character.\",\n      \"confidence\": 0.8\n    },\n    {\n      \"id\": 2,\n      \"name\": \"agent_bottom\",\n      \"bbox\": [816, 16, 985, 175],\n      \"function\": \"agent\",\n      \"rationale\": \"A small square with a blue glyph, similar to agent_top, possibly a second agent or a reference.\",\n      \"confidence\": 0.7\n    },\n    {\n      \"id\": 3,\n      \"name\": \"maze_walls\",\n      \"bbox\": [386, 213, 783, 847],\n      \"function\": \"wall\",\n      \"rationale\": \"Grey structures forming a path or enclosure.\",\n      \"confidence\": 0.9\n    },\n    {\n      \"id\": 4,\n      \"name\": \"target_area_1\",\n      \"bbox\": [88, 325, 215, 411],\n      \"function\": \"target\",\n      \"rationale\": \"A rectangular region of color (3, 5, 9) that might be a goal or a puzzle component.\",\n      \"confidence\": 0.6\n    },\n    {\n      \"id\": 5,\n      \"name\": \"target_area_2\",\n      \"bbox\": [838, 3, 905, 108],\n      \"function\": \"target\",\n      \"rationale\": \"A rectangular region of color (9) in the bottom left.\",\n      \"confidence\": 0.6\n    },\n    {\n      \"id\": 6,\n      \"name\": \"target_area_3\",\n      \"bbox\": [840, 134, 905, 511],\n      \"function\": \"target\",\n      \"rationale\": \"A large rectangular region of color (11) in the bottom center.\",\n      \"confidence\": 0.6\n    },\n    {\n      \"id\": 7,\n      \"name\": \"ui_bar\",\n      \"bbox\": [953, 205, 985, 847],\n      \"function\": \"readout\",\n      \"rationale\": \"A yellow bar at the bottom, likely a progress or health bar.\",\n      \"confidence\": 0.9\n    }\n  ],\n  \"similar_groups\": [\n    {\n      \"group_id\": \"G1\",\n      \"member_ids\": [1, 2],\n      \"similarity_axes\": [\"shape\", \"colour\"],\n      \"note\": \"Both are small squares containing a blue L-shaped glyph.\"\n    },\n    {\n      \"group_id\": \"G2\",\n      \"member_ids\": [4, 5, 6],\n      \"similarity_axes\": [\"shape\"],\n      \"note\": \"Rectangular colored regions that appear to be objectives or zones.\"\n    }\n  ],\n  \"initial_strategy\": {\n    \"primary_goal\": \"Navigate the agent through the maze to interact with the target areas.\",\n    \"first_action\": null,\n    \"rationale\": \"The exact controls (ACTION1-4) are unknown, but they likely correspond to directional movement or interaction.\",\n    \"open_questions\": [\n      \"Which action corresponds to which direction?\",\n      \"Is the agent at the top or bottom the one being controlled?\",\n      \"What is the relationship between the colored zones and the agents?\"\n    ]\n  },\n  \"probes\": [\n    {\n      \"probe_id\": \"P1\",\n      \"hypothesis\": \"ACTION1 moves the top agent down.\",\n      \"instructions\": [\"DO ACTION1\"],\n      \"observe\": [\"ELEMENT_MOVED 1\", \"REGION_DELTA [122,506,241,641]\"],\n      \"outcome_map\": {\n        \"element_1_moved\": \"ACTION1 moves agent 1\",\n        \"no_movement\": \"ACTION1 does not move agent 1\"\n      }\n    },\n    {\n      \"probe_id\": \"P2\",\n      \"hypothesis\": \"The agent is controlled by keyboard inputs mapped to actions.\",\n      \"instructions\": [\"DO ACTION2\"],\n      \"observe\": [\"ELEMENT_MOVED 1\", \"ELEMENT_MOVED 2\"],\n      \"outcome_map\": {\n        \"both_moved\": \"Actions control both agents simultaneously\",\n        \"one_moved\": \"Actions control a specific agent\"\n      }\n    }\n  ]\n}\n```",
+  "parse_error": null,
+  "assessment": {
+    "elements": [
+      {
+        "id": 1,
+        "name": "agent_top",
+        "bbox": [
+          122,
+          506,
+          241,
+          641
+        ],
+        "function": "agent",
+        "rationale": "A small square with a blue glyph, likely the player-controlled character.",
+        "confidence": 0.8
+      },
+      {
+        "id": 2,
+        "name": "agent_bottom",
+        "bbox": [
+          816,
+          16,
+          985,
+          175
+        ],
+        "function": "agent",
+        "rationale": "A small square with a blue glyph, similar to agent_top, possibly a second agent or a reference.",
+        "confidence": 0.7
+      },
+      {
+        "id": 3,
+        "name": "maze_walls",
+        "bbox": [
+          386,
+          213,
+          783,
+          847
+        ],
+        "function": "wall",
+        "rationale": "Grey structures forming a path or enclosure.",
+        "confidence": 0.9
+      },
+      {
+        "id": 4,
+        "name": "target_area_1",
+        "bbox": [
+          88,
+          325,
+          215,
+          411
+        ],
+        "function": "target",
+        "rationale": "A rectangular region of color (3, 5, 9) that might be a goal or a puzzle component.",
+        "confidence": 0.6
+      },
+      {
+        "id": 5,
+        "name": "target_area_2",
+        "bbox": [
+          838,
+          3,
+          905,
+          108
+        ],
+        "function": "target",
+        "rationale": "A rectangular region of color (9) in the bottom left.",
+        "confidence": 0.6
+      },
+      {
+        "id": 6,
+        "name": "target_area_3",
+        "bbox": [
+          840,
+          134,
+          905,
+          511
+        ],
+        "function": "target",
+        "rationale": "A large rectangular region of color (11) in the bottom center.",
+        "confidence": 0.6
+      },
+      {
+        "id": 7,
+        "name": "ui_bar",
+        "bbox": [
+          953,
+          205,
+          985,
+          847
+        ],
+        "function": "readout",
+        "rationale": "A yellow bar at the bottom, likely a progress or health bar.",
+        "confidence": 0.9
+      }
+    ],
+    "similar_groups": [
+      {
+        "group_id": "G1",
+        "member_ids": [
+          1,
+          2
+        ],
+        "similarity_axes": [
+          "shape",
+          "colour"
+        ],
+        "note": "Both are small squares containing a blue L-shaped glyph."
+      },
+      {
+        "group_id": "G2",
+        "member_ids": [
+          4,
+          5,
+          6
+        ],
+        "similarity_axes": [
+          "shape"
+        ],
+        "note": "Rectangular colored regions that appear to be objectives or zones."
+      }
+    ],
+    "initial_strategy": {
+      "primary_goal": "Navigate the agent through the maze to interact with the target areas.",
+      "first_action": null,
+      "rationale": "The exact controls (ACTION1-4) are unknown, but they likely correspond to directional movement or interaction.",
+      "open_questions": [
+        "Which action corresponds to which direction?",
+        "Is the agent at the top or bottom the one being controlled?",
+        "What is the relationship between the colored zones and the agents?"
+      ]
+    },
+    "probes": [
+      {
+        "probe_id": "P1",
+        "hypothesis": "ACTION1 moves the top agent down.",
+        "instructions": [
+          "DO ACTION1"
+        ],
+        "observe": [
+          "ELEMENT_MOVED 1",
+          "REGION_DELTA [122,506,241,641]"
+        ],
+        "outcome_map": {
+          "element_1_moved": "ACTION1 moves agent 1",
+          "no_movement": "ACTION1 does not move agent 1"
+        }
+      },
+      {
+        "probe_id": "P2",
+        "hypothesis": "The agent is controlled by keyboard inputs mapped to actions.",
+        "instructions": [
+          "DO ACTION2"
+        ],
+        "observe": [
+          "ELEMENT_MOVED 1",
+          "ELEMENT_MOVED 2"
+        ],
+        "outcome_map": {
+          "both_moved": "Actions control both agents simultaneously",
+          "one_moved": "Actions control a specific agent"
+        }
+      }
+    ]
+  }
+}

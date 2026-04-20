@@ -1,0 +1,314 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<title>ls20-9607627b preview</title>
+<style>
+body { font-family: system-ui, sans-serif; padding: 16px; background:#111; color:#eee; max-width: 1100px; }
+h1 { font-size: 16px; margin: 0 0 8px; }
+h2 { font-size: 14px; margin: 24px 0 8px; border-bottom: 1px solid #333; padding-bottom: 4px; }
+h2 .sub { color: #888; font-weight: normal; font-size: 11px; margin-left: 8px; }
+.meta { font-size: 12px; color: #bbb; margin-bottom: 12px; }
+img { image-rendering: pixelated; border: 1px solid #444; display: block; }
+table.palette { border-collapse: collapse; margin-top: 12px; font-size: 12px; }
+table.palette td { border: 1px solid #444; padding: 2px 6px; }
+.section { margin-top: 16px; }
+.exchange { border: 1px solid #2a2a2a; border-radius: 4px; margin: 12px 0; padding: 8px; background: #181818; }
+.exchange-header { font-size: 12px; font-weight: bold; color: #ddd; margin-bottom: 6px; }
+.exchange-header .hypo { color: #bbb; font-weight: normal; }
+.row { display: flex; gap: 8px; margin: 4px 0; }
+.who { flex: 0 0 68px; font-size: 11px; font-weight: bold; padding: 2px 4px; border-radius: 3px; text-align: center; height: fit-content; }
+.who.tutor   { background:#264653; color:#fff; }
+.who.harness { background:#2a9d8f; color:#fff; }
+.msg { flex: 1; background: #0e0e0e; padding: 6px; border-radius: 3px; font-size: 11px; }
+.label { color: #888; font-size: 10px; text-transform: uppercase; margin-top: 4px; }
+.label.error { color: #ff8b6d; }
+pre { margin: 2px 0 6px; white-space: pre-wrap; word-break: break-word; background: transparent; color: #ddd; font-size: 11px; }
+.revnotes { font-size: 12px; color: #ddd; }
+.revnotes li { margin: 6px 0; }
+.revnotes .reason { color: #aaa; font-size: 11px; }
+</style>
+</head><body>
+<h1>ls20-9607627b — level 1 / 7</h1><div class="meta">state=NOT_FINISHED · available_actions=[&#x27;ACTION1&#x27;, &#x27;ACTION2&#x27;, &#x27;ACTION3&#x27;, &#x27;ACTION4&#x27;] · palette=[0, 1, 3, 4, 5, 8, 9, 11, 12] · shape=[64, 64]</div>
+<img src="ls20-9607627b_L1_init.png" width="512" height="512">
+<div class="section">
+<h2>Round 1 — TUTOR ↔ harness exchanges <span class="sub">(trial_round1_retrack)</span></h2>
+<div class="exchanges">
+<div class="exchange">
+<div class="exchange-header">P1 — <span class="hypo">ACTION1 moves the agent upward</span></div>
+<div class="row"><div class="who tutor">TUTOR</div><div class="msg">
+<div class="label">instructions</div>
+<pre>DO ACTION1</pre>
+<div class="label">observe</div>
+<pre>ELEMENT_MOVED 2
+REGION_DELTA [24,14,51,53]</pre>
+<div class="label">outcome_map</div>
+<pre>{
+  &quot;element_2_moved_up&quot;: &quot;ACTION1 is the up movement key&quot;,
+  &quot;element_2_unchanged&quot;: &quot;ACTION1 does not move the agent vertically upward&quot;,
+  &quot;region_delta_nonzero&quot;: &quot;Some change occurred in the main floor area&quot;
+}</pre>
+</div></div>
+<div class="row"><div class="who harness">HARNESS</div><div class="msg">
+<div class="label">trace</div>
+<pre>DO ACTION1  → NOT_FINISHED</pre>
+<div class="label">observations</div>
+<pre>[
+  {
+    &quot;kind&quot;: &quot;ELEMENT_MOVED&quot;,
+    &quot;element_id&quot;: 2,
+    &quot;pre_bbox&quot;: [
+      31,
+      21,
+      32,
+      22
+    ],
+    &quot;post_bbox&quot;: [
+      31,
+      21,
+      32,
+      22
+    ],
+    &quot;moved&quot;: false,
+    &quot;tracked_colour&quot;: 0
+  },
+  {
+    &quot;kind&quot;: &quot;REGION_DELTA&quot;,
+    &quot;bbox&quot;: [
+      24,
+      14,
+      51,
+      53
+    ],
+    &quot;value&quot;: 50
+  }
+]</pre>
+<div class="label">final_state</div><pre>NOT_FINISHED</pre>
+</div></div>
+</div>
+<div class="exchange">
+<div class="exchange-header">P2 — <span class="hypo">ACTION2 moves the agent downward</span></div>
+<div class="row"><div class="who tutor">TUTOR</div><div class="msg">
+<div class="label">instructions</div>
+<pre>DO ACTION2</pre>
+<div class="label">observe</div>
+<pre>ELEMENT_MOVED 2
+REGION_DELTA [24,14,51,53]</pre>
+<div class="label">outcome_map</div>
+<pre>{
+  &quot;element_2_moved_down&quot;: &quot;ACTION2 is the down movement key&quot;,
+  &quot;element_2_unchanged&quot;: &quot;ACTION2 does not move the agent downward&quot;,
+  &quot;region_delta_nonzero&quot;: &quot;Some change occurred suggesting movement&quot;
+}</pre>
+</div></div>
+<div class="row"><div class="who harness">HARNESS</div><div class="msg">
+<div class="label">trace</div>
+<pre>DO ACTION2  → NOT_FINISHED</pre>
+<div class="label">observations</div>
+<pre>[
+  {
+    &quot;kind&quot;: &quot;ELEMENT_MOVED&quot;,
+    &quot;element_id&quot;: 2,
+    &quot;pre_bbox&quot;: [
+      31,
+      21,
+      32,
+      22
+    ],
+    &quot;post_bbox&quot;: [
+      31,
+      21,
+      32,
+      22
+    ],
+    &quot;moved&quot;: false,
+    &quot;tracked_colour&quot;: 0
+  },
+  {
+    &quot;kind&quot;: &quot;REGION_DELTA&quot;,
+    &quot;bbox&quot;: [
+      24,
+      14,
+      51,
+      53
+    ],
+    &quot;value&quot;: 0
+  }
+]</pre>
+<div class="label">final_state</div><pre>NOT_FINISHED</pre>
+</div></div>
+</div>
+<div class="exchange">
+<div class="exchange-header">P3 — <span class="hypo">ACTION3 moves the agent left or right</span></div>
+<div class="row"><div class="who tutor">TUTOR</div><div class="msg">
+<div class="label">instructions</div>
+<pre>DO ACTION3</pre>
+<div class="label">observe</div>
+<pre>ELEMENT_MOVED 2
+REGION_DELTA [29,14,32,53]</pre>
+<div class="label">outcome_map</div>
+<pre>{
+  &quot;element_2_moved_horizontally&quot;: &quot;ACTION3 is a horizontal movement key&quot;,
+  &quot;element_2_unchanged&quot;: &quot;ACTION3 is not a horizontal movement key&quot;,
+  &quot;region_delta_zero&quot;: &quot;No visible change, ACTION3 may be a non-movement action&quot;
+}</pre>
+</div></div>
+<div class="row"><div class="who harness">HARNESS</div><div class="msg">
+<div class="label">trace</div>
+<pre>DO ACTION3  → NOT_FINISHED</pre>
+<div class="label">observations</div>
+<pre>[
+  {
+    &quot;kind&quot;: &quot;ELEMENT_MOVED&quot;,
+    &quot;element_id&quot;: 2,
+    &quot;pre_bbox&quot;: [
+      31,
+      21,
+      32,
+      22
+    ],
+    &quot;post_bbox&quot;: [
+      31,
+      21,
+      32,
+      22
+    ],
+    &quot;moved&quot;: false,
+    &quot;tracked_colour&quot;: 0
+  },
+  {
+    &quot;kind&quot;: &quot;REGION_DELTA&quot;,
+    &quot;bbox&quot;: [
+      29,
+      14,
+      32,
+      53
+    ],
+    &quot;value&quot;: 0
+  }
+]</pre>
+<div class="label">final_state</div><pre>NOT_FINISHED</pre>
+</div></div>
+</div>
+<div class="exchange">
+<div class="exchange-header">P4 — <span class="hypo">Reaching the orange/blue blocks completes the level</span></div>
+<div class="row"><div class="who tutor">TUTOR</div><div class="msg">
+<div class="label">instructions</div>
+<pre>DO ACTION2
+DO ACTION2
+DO ACTION3
+DO ACTION3
+DO ACTION3</pre>
+<div class="label">observe</div>
+<pre>SCORE_DELTA
+STATE
+REGION_DELTA [44,32,51,40]</pre>
+<div class="label">outcome_map</div>
+<pre>{
+  &quot;score_delta_positive&quot;: &quot;Moving toward the colored blocks scores points or completes a sub-goal&quot;,
+  &quot;state_FINISHED&quot;: &quot;The level was completed by reaching the target area&quot;,
+  &quot;score_delta_zero&quot;: &quot;The colored blocks are not the immediate goal or agent did not reach them&quot;
+}</pre>
+</div></div>
+<div class="row"><div class="who harness">HARNESS</div><div class="msg">
+<div class="label">trace</div>
+<pre>DO ACTION2  → NOT_FINISHED
+DO ACTION2  → NOT_FINISHED
+DO ACTION3  → NOT_FINISHED
+DO ACTION3  → NOT_FINISHED
+DO ACTION3  → NOT_FINISHED</pre>
+<div class="label">observations</div>
+<pre>[
+  {
+    &quot;kind&quot;: &quot;SCORE_DELTA&quot;,
+    &quot;value&quot;: 0
+  },
+  {
+    &quot;kind&quot;: &quot;STATE&quot;,
+    &quot;value&quot;: &quot;NOT_FINISHED&quot;
+  },
+  {
+    &quot;kind&quot;: &quot;REGION_DELTA&quot;,
+    &quot;bbox&quot;: [
+      44,
+      32,
+      51,
+      40
+    ],
+    &quot;value&quot;: 25
+  }
+]</pre>
+<div class="label">final_state</div><pre>NOT_FINISHED</pre>
+</div></div>
+</div>
+<div class="exchange">
+<div class="exchange-header">P5 — <span class="hypo">ACTION4 is a non-movement action (e.g., interact or jump)</span></div>
+<div class="row"><div class="who tutor">TUTOR</div><div class="msg">
+<div class="label">instructions</div>
+<pre>DO ACTION4</pre>
+<div class="label">observe</div>
+<pre>ELEMENT_MOVED 2
+REGION_DELTA [0,0,63,63]
+STATE</pre>
+<div class="label">outcome_map</div>
+<pre>{
+  &quot;region_delta_large&quot;: &quot;ACTION4 causes a significant state change, likely an interaction&quot;,
+  &quot;element_2_unchanged_state_unchanged&quot;: &quot;ACTION4 has no immediate visible effect&quot;,
+  &quot;state_changed&quot;: &quot;ACTION4 triggered a game state transition&quot;
+}</pre>
+</div></div>
+<div class="row"><div class="who harness">HARNESS</div><div class="msg">
+<div class="label">trace</div>
+<pre>DO ACTION4  → NOT_FINISHED</pre>
+<div class="label">observations</div>
+<pre>[
+  {
+    &quot;kind&quot;: &quot;ELEMENT_MOVED&quot;,
+    &quot;element_id&quot;: 2,
+    &quot;pre_bbox&quot;: [
+      31,
+      21,
+      32,
+      22
+    ],
+    &quot;post_bbox&quot;: [
+      31,
+      21,
+      32,
+      22
+    ],
+    &quot;moved&quot;: false,
+    &quot;tracked_colour&quot;: 0
+  },
+  {
+    &quot;kind&quot;: &quot;REGION_DELTA&quot;,
+    &quot;bbox&quot;: [
+      0,
+      0,
+      63,
+      63
+    ],
+    &quot;value&quot;: 52
+  },
+  {
+    &quot;kind&quot;: &quot;STATE&quot;,
+    &quot;value&quot;: &quot;NOT_FINISHED&quot;
+  }
+]</pre>
+<div class="label">final_state</div><pre>NOT_FINISHED</pre>
+</div></div>
+</div>
+</div></div>
+<div class="section">
+<h2>Round 2B — TUTOR revision notes <span class="sub">(trial_20260420T031648Z_round2B)</span></h2>
+<ul class="revnotes">
+<li><b>element 2</b>: Retracted &#x27;player_cross&#x27; (element 2) as agent. It is now classified as a &#x27;change indicator&#x27; / switch marker per prior knowledge.<br><span class="reason">because: ELEMENT_MOVED tracker confirmed the color-0 cluster stays at [31,21,32,22] across all probes — it never moved. Prior knowledge explicitly states the white cross is NOT the agent but a &#x27;change indicator&#x27; marking where the next state transition fires.</span></li>
+<li><b>element 1</b>: Retracted &#x27;agent_icon_top&#x27; (element 1) as agent. The top bordered room is now reclassified as a &#x27;reference glyph&#x27; (target pattern to recreate).<br><span class="reason">because: Prior knowledge states small bordered boxes with internal glyphs are reference glyphs encoding the target state. The top room (rows 8-15, cols 32-40) contains a 9-pattern glyph inside a color-3 border — matches the reference glyph description exactly.</span></li>
+<li><b>element 11</b>: Reclassified &#x27;top_room&#x27; (element 11) from portal to target/reference glyph.<br><span class="reason">because: Same as above — prior knowledge and grid inspection confirm this is a reference pattern, not a portal.</span></li>
+<li><b>element 5</b>: Reclassified &#x27;main_floor_area&#x27; (element 5) from wall to target (the playing field where state mutations occur).<br><span class="reason">because: Prior knowledge: the large gray area is the playing field. REGION_DELTA values of 50 (P1) and 52 (P5) confirm actions are changing cells within this region. The goal is to make this field match the reference glyph.</span></li>
+<li><b>elements 3, 4</b>: Reclassified &#x27;orange_block&#x27; (element 3, color 12) and &#x27;blue_block&#x27; (element 4, color 9) from collectible to switch/target markers embedded in the playing field.<br><span class="reason">because: REGION_DELTA on [44,32,51,40] = 25 in P4 confirms this sub-region is changing. These colored blocks are part of the mutable playing field state, not separate collectibles to pick up.</span></li>
+<li><b>element 12</b>: Reclassified &#x27;inner_pit_left&#x27; (element 12) from hazard to switch — it contains the white cross (change indicator) and color-0/1 pixels that are the current mutation point.<br><span class="reason">because: The color-0 cluster tracked at [31,21,32,22] sits inside this region. Per prior knowledge, the cross marks where the next action fires. The 1-pixel (color 1) nearby is likely a second glyph component.</span></li>
+<li><b>initial_strategy</b>: Updated initial_strategy: goal is to use ACTION1-4 to mutate the playing field cells (guided by the change indicator cross) to match the reference glyph pattern in the top bordered room.<br><span class="reason">because: Prior knowledge items 2, 3, 5, 6 combined with REGION_DELTA evidence showing actions do change the floor area.</span></li>
+<li><b>element 2</b>: Corrected &#x27;player_cross&#x27; bbox to [31,21,32,22] based on tracker finding.<br><span class="reason">because: Pre-probe tracker found the color-0 cluster at [31,21,32,22], not [29,20,31,22] as I estimated in Round 1.</span></li>
+<li><b>element 10</b>: Added new element: &#x27;bottom_left_icon&#x27; as a second reference glyph (the bottom-left bordered box at rows 54-63, cols 0-11), forming a matched pair with the top room reference glyph.<br><span class="reason">because: Prior knowledge item 5: reference glyphs appear in matched pairs. The bottom-left corner icon (element 10) likely encodes a second reference or the write-target.</span></li>
+</ul></div>
+<div class="section"><h2>Palette</h2><table class="palette"><tr><th>colour</th><th>palette id</th></tr><tr><td style="background:#FFFFFFFF;width:24px"></td><td>0</td></tr><tr><td style="background:#CCCCCCFF;width:24px"></td><td>1</td></tr><tr><td style="background:#666666FF;width:24px"></td><td>3</td></tr><tr><td style="background:#333333FF;width:24px"></td><td>4</td></tr><tr><td style="background:#000000FF;width:24px"></td><td>5</td></tr><tr><td style="background:#F93C31FF;width:24px"></td><td>8</td></tr><tr><td style="background:#1E93FFFF;width:24px"></td><td>9</td></tr><tr><td style="background:#FFDC00FF;width:24px"></td><td>11</td></tr><tr><td style="background:#FF851BFF;width:24px"></td><td>12</td></tr></table></div>
+</body></html>

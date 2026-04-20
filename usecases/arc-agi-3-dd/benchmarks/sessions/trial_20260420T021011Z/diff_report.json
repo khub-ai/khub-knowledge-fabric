@@ -1,0 +1,23 @@
+{
+  "parse_ok_both": false,
+  "parse_ok_tutor": false,
+  "parse_ok_pupil": true,
+  "section_summaries": {
+    "elements": {
+      "TUTOR": "\u2014",
+      "PUPIL": "7 (agent:2, readout:1, target:3, wall:1)"
+    },
+    "similar_groups": {
+      "TUTOR": "\u2014",
+      "PUPIL": "2 groups"
+    },
+    "initial_strategy": {
+      "TUTOR": "\u2014",
+      "PUPIL": "first_action=None, goal=Navigate the agent through the maze to interact with the tar"
+    },
+    "probes": {
+      "TUTOR": "\u2014",
+      "PUPIL": "2 probes"
+    }
+  }
+}

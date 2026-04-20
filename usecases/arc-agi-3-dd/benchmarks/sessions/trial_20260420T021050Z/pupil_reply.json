@@ -1,0 +1,4 @@
+{
+  "model": "??",
+  "call_error": "URLError: <urlopen error [Errno 11001] getaddrinfo failed>"
+}

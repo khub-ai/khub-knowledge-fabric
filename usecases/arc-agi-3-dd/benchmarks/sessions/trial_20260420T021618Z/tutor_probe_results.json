@@ -1,0 +1,257 @@
+[
+  {
+    "probe_id": "P1",
+    "hypothesis": "ACTION1 moves the agent upward",
+    "executed": true,
+    "trace": [
+      {
+        "instr": "DO ACTION1",
+        "state_after": "NOT_FINISHED"
+      }
+    ],
+    "observations": [
+      {
+        "kind": "ELEMENT_MOVED",
+        "element_id": 2,
+        "pre_bbox": [
+          8,
+          14,
+          49,
+          53
+        ],
+        "post_bbox": [
+          8,
+          13,
+          62,
+          53
+        ],
+        "moved": true,
+        "tracked_colour": 3
+      },
+      {
+        "kind": "REGION_DELTA",
+        "bbox": [
+          24,
+          14,
+          51,
+          53
+        ],
+        "value": 50
+      }
+    ],
+    "final_state": "NOT_FINISHED",
+    "final_score": 0,
+    "final_actions": [
+      "ACTION1",
+      "ACTION2",
+      "ACTION3",
+      "ACTION4"
+    ]
+  },
+  {
+    "probe_id": "P2",
+    "hypothesis": "ACTION2 moves the agent downward",
+    "executed": true,
+    "trace": [
+      {
+        "instr": "DO ACTION2",
+        "state_after": "NOT_FINISHED"
+      }
+    ],
+    "observations": [
+      {
+        "kind": "ELEMENT_MOVED",
+        "element_id": 2,
+        "pre_bbox": [
+          8,
+          14,
+          49,
+          53
+        ],
+        "post_bbox": [
+          8,
+          13,
+          62,
+          53
+        ],
+        "moved": true,
+        "tracked_colour": 3
+      },
+      {
+        "kind": "REGION_DELTA",
+        "bbox": [
+          24,
+          14,
+          51,
+          53
+        ],
+        "value": 0
+      }
+    ],
+    "final_state": "NOT_FINISHED",
+    "final_score": 0,
+    "final_actions": [
+      "ACTION1",
+      "ACTION2",
+      "ACTION3",
+      "ACTION4"
+    ]
+  },
+  {
+    "probe_id": "P3",
+    "hypothesis": "ACTION3 moves the agent left or right",
+    "executed": true,
+    "trace": [
+      {
+        "instr": "DO ACTION3",
+        "state_after": "NOT_FINISHED"
+      }
+    ],
+    "observations": [
+      {
+        "kind": "ELEMENT_MOVED",
+        "element_id": 2,
+        "pre_bbox": [
+          8,
+          14,
+          49,
+          53
+        ],
+        "post_bbox": [
+          8,
+          13,
+          62,
+          53
+        ],
+        "moved": true,
+        "tracked_colour": 3
+      },
+      {
+        "kind": "REGION_DELTA",
+        "bbox": [
+          29,
+          14,
+          32,
+          53
+        ],
+        "value": 0
+      }
+    ],
+    "final_state": "NOT_FINISHED",
+    "final_score": 0,
+    "final_actions": [
+      "ACTION1",
+      "ACTION2",
+      "ACTION3",
+      "ACTION4"
+    ]
+  },
+  {
+    "probe_id": "P4",
+    "hypothesis": "Reaching the orange/blue blocks completes the level",
+    "executed": true,
+    "trace": [
+      {
+        "instr": "DO ACTION2",
+        "state_after": "NOT_FINISHED"
+      },
+      {
+        "instr": "DO ACTION2",
+        "state_after": "NOT_FINISHED"
+      },
+      {
+        "instr": "DO ACTION3",
+        "state_after": "NOT_FINISHED"
+      },
+      {
+        "instr": "DO ACTION3",
+        "state_after": "NOT_FINISHED"
+      },
+      {
+        "instr": "DO ACTION3",
+        "state_after": "NOT_FINISHED"
+      }
+    ],
+    "observations": [
+      {
+        "kind": "SCORE_DELTA",
+        "value": 0
+      },
+      {
+        "kind": "STATE",
+        "value": "NOT_FINISHED"
+      },
+      {
+        "kind": "REGION_DELTA",
+        "bbox": [
+          44,
+          32,
+          51,
+          40
+        ],
+        "value": 25
+      }
+    ],
+    "final_state": "NOT_FINISHED",
+    "final_score": 0,
+    "final_actions": [
+      "ACTION1",
+      "ACTION2",
+      "ACTION3",
+      "ACTION4"
+    ]
+  },
+  {
+    "probe_id": "P5",
+    "hypothesis": "ACTION4 is a non-movement action (e.g., interact or jump)",
+    "executed": true,
+    "trace": [
+      {
+        "instr": "DO ACTION4",
+        "state_after": "NOT_FINISHED"
+      }
+    ],
+    "observations": [
+      {
+        "kind": "ELEMENT_MOVED",
+        "element_id": 2,
+        "pre_bbox": [
+          8,
+          14,
+          49,
+          53
+        ],
+        "post_bbox": [
+          8,
+          13,
+          62,
+          53
+        ],
+        "moved": true,
+        "tracked_colour": 3
+      },
+      {
+        "kind": "REGION_DELTA",
+        "bbox": [
+          0,
+          0,
+          63,
+          63
+        ],
+        "value": 52
+      },
+      {
+        "kind": "STATE",
+        "value": "NOT_FINISHED"
+      }
+    ],
+    "final_state": "NOT_FINISHED",
+    "final_score": 0,
+    "final_actions": [
+      "ACTION1",
+      "ACTION2",
+      "ACTION3",
+      "ACTION4"
+    ]
+  }
+]

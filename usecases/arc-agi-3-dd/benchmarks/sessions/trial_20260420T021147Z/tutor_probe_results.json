@@ -1,0 +1,279 @@
+[
+  {
+    "probe_id": "P1",
+    "hypothesis": "ACTION1 moves the agent (white cross) upward",
+    "executed": true,
+    "trace": [
+      {
+        "instr": "DO ACTION1",
+        "state_after": "NOT_FINISHED"
+      }
+    ],
+    "observations": [
+      {
+        "kind": "ELEMENT_MOVED",
+        "element_id": 2,
+        "pre_bbox": [
+          8,
+          14,
+          49,
+          53
+        ],
+        "post_bbox": [
+          8,
+          13,
+          62,
+          53
+        ],
+        "moved": true,
+        "tracked_colour": 3
+      },
+      {
+        "kind": "REGION_DELTA",
+        "bbox": [
+          28,
+          18,
+          34,
+          24
+        ],
+        "value": 0
+      }
+    ],
+    "final_state": "NOT_FINISHED",
+    "final_score": 0,
+    "final_actions": [
+      "ACTION1",
+      "ACTION2",
+      "ACTION3",
+      "ACTION4"
+    ]
+  },
+  {
+    "probe_id": "P2",
+    "hypothesis": "ACTION2 moves the agent downward",
+    "executed": true,
+    "trace": [
+      {
+        "instr": "DO ACTION2",
+        "state_after": "NOT_FINISHED"
+      }
+    ],
+    "observations": [
+      {
+        "kind": "ELEMENT_MOVED",
+        "element_id": 2,
+        "pre_bbox": [
+          8,
+          14,
+          49,
+          53
+        ],
+        "post_bbox": [
+          8,
+          13,
+          62,
+          53
+        ],
+        "moved": true,
+        "tracked_colour": 3
+      },
+      {
+        "kind": "REGION_DELTA",
+        "bbox": [
+          28,
+          18,
+          36,
+          24
+        ],
+        "value": 0
+      }
+    ],
+    "final_state": "NOT_FINISHED",
+    "final_score": 0,
+    "final_actions": [
+      "ACTION1",
+      "ACTION2",
+      "ACTION3",
+      "ACTION4"
+    ]
+  },
+  {
+    "probe_id": "P3",
+    "hypothesis": "Moving the agent onto the orange/blue blocks collects them and changes the score or HUD",
+    "executed": true,
+    "trace": [
+      {
+        "instr": "DO ACTION1",
+        "state_after": "NOT_FINISHED"
+      },
+      {
+        "instr": "DO ACTION1",
+        "state_after": "NOT_FINISHED"
+      },
+      {
+        "instr": "DO ACTION3",
+        "state_after": "NOT_FINISHED"
+      },
+      {
+        "instr": "DO ACTION3",
+        "state_after": "NOT_FINISHED"
+      },
+      {
+        "instr": "DO ACTION3",
+        "state_after": "NOT_FINISHED"
+      },
+      {
+        "instr": "DO ACTION3",
+        "state_after": "NOT_FINISHED"
+      }
+    ],
+    "observations": [
+      {
+        "kind": "REGION_DELTA",
+        "bbox": [
+          44,
+          32,
+          48,
+          40
+        ],
+        "value": 20
+      },
+      {
+        "kind": "SCORE_DELTA",
+        "value": 0
+      },
+      {
+        "kind": "REGION_DELTA",
+        "bbox": [
+          62,
+          12,
+          63,
+          63
+        ],
+        "value": 6
+      }
+    ],
+    "final_state": "NOT_FINISHED",
+    "final_score": 0,
+    "final_actions": [
+      "ACTION1",
+      "ACTION2",
+      "ACTION3",
+      "ACTION4"
+    ]
+  },
+  {
+    "probe_id": "P4",
+    "hypothesis": "The gap in the floor (element 13) is a hazard pit that resets the level",
+    "executed": true,
+    "trace": [
+      {
+        "instr": "DO ACTION3",
+        "state_after": "NOT_FINISHED"
+      },
+      {
+        "instr": "DO ACTION3",
+        "state_after": "NOT_FINISHED"
+      },
+      {
+        "instr": "DO ACTION3",
+        "state_after": "NOT_FINISHED"
+      },
+      {
+        "instr": "DO ACTION3",
+        "state_after": "NOT_FINISHED"
+      }
+    ],
+    "observations": [
+      {
+        "kind": "STATE",
+        "value": "NOT_FINISHED"
+      },
+      {
+        "kind": "ELEMENT_MOVED",
+        "element_id": 2,
+        "pre_bbox": [
+          8,
+          14,
+          49,
+          53
+        ],
+        "post_bbox": [
+          8,
+          13,
+          62,
+          53
+        ],
+        "moved": true,
+        "tracked_colour": 3
+      },
+      {
+        "kind": "REGION_DELTA",
+        "bbox": [
+          29,
+          29,
+          37,
+          33
+        ],
+        "value": 0
+      }
+    ],
+    "final_state": "NOT_FINISHED",
+    "final_score": 0,
+    "final_actions": [
+      "ACTION1",
+      "ACTION2",
+      "ACTION3",
+      "ACTION4"
+    ]
+  },
+  {
+    "probe_id": "P5",
+    "hypothesis": "ACTION3 and ACTION4 are the left/right movement keys",
+    "executed": true,
+    "trace": [
+      {
+        "instr": "DO ACTION3",
+        "state_after": "NOT_FINISHED"
+      }
+    ],
+    "observations": [
+      {
+        "kind": "ELEMENT_MOVED",
+        "element_id": 2,
+        "pre_bbox": [
+          8,
+          14,
+          49,
+          53
+        ],
+        "post_bbox": [
+          8,
+          13,
+          62,
+          53
+        ],
+        "moved": true,
+        "tracked_colour": 3
+      },
+      {
+        "kind": "REGION_DELTA",
+        "bbox": [
+          28,
+          18,
+          34,
+          26
+        ],
+        "value": 0
+      }
+    ],
+    "final_state": "NOT_FINISHED",
+    "final_score": 0,
+    "final_actions": [
+      "ACTION1",
+      "ACTION2",
+      "ACTION3",
+      "ACTION4"
+    ]
+  }
+]

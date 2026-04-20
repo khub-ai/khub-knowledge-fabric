@@ -1,0 +1,159 @@
+{
+  "model": "google/gemma-4-26b-a4b-it",
+  "latency_ms": 67837,
+  "raw_reply": "```json\n{\n  \"elements\": [\n    {\n      \"id\": 1,\n      \"name\": \"agent_top\",\n      \"bbox\": [122, 505, 241, 641],\n      \"function\": \"agent\",\n      \"rationale\": \"A small square containing a blue glyph, likely the player-controlled entity.\",\n      \"confidence\": 0.8\n    },\n    {\n      \"id\": 2,\n      \"name\": \"agent_bottom_left\",\n      \"bbox\": [816, 12, 985, 178],\n      \"function\": \"agent\",\n      \"rationale\": \"A small square containing a blue glyph, similar to agent_top.\",\n      \"confidence\": 0.8\n    },\n    {\n      \"id\": 3,\n      \"name\": \"maze_walls\",\n      \"bbox\": [386, 213, 784, 847],\n      \"function\": \"wall\",\n      \"rationale\": \"Grey structures forming paths and boundaries within the grid.\",\n      \"confidence\": 0.9\n    },\n    {\n      \"id\": 4,\n      \"name\": \"target_area_blue_orange\",\n      \"bbox\": [704, 528, 784, 625],\n      \"function\": \"target\",\n      \"rationale\": \"A blue and orange block at the end of a path, likely a goal or checkpoint.\",\n      \"confidence\": 0.7\n    },\n    {\n      \"id\": 5,\n      \"name\": \"target_area_blue_red\",\n      \"bbox\": [945, 875, 985, 999],\n      \"function\": \"target\",\n      \"rationale\": \"Red blocks at the bottom right, possibly targets.\",\n      \"confidence\": 0.6\n    },\n    {\n      \"id\": 6,\n      \"name\": \"yellow_bar\",\n      \"bbox\": [955, 205, 985, 850],\n      \"function\": \"readout\",\n      \"rationale\": \"A long yellow bar at the bottom, likely a progress or health meter.\",\n      \"confidence\": 0.8\n    },\n    {\n      \"id\": 7,\n      \"name\": \"pattern_blocks\",\n      \"bbox\": [840, 350, 900, 500],\n      \"function\": \"decor\",\n      \"rationale\": \"Groups of colored pixels (blue, light blue, etc.) forming patterns.\",\n      \"confidence\": 0.5\n    }\n  ],\n  \"similar_groups\": [\n    {\n      \"group_id\": \"G1\",\n      \"member_ids\": [1, 2],\n      \"similarity_axes\": [\"shape\", \"colour\"],\n      \"note\": \"Both are small squares with a blue L-shaped glyph.\"\n    }\n  ],\n  \"initial_strategy\": {\n    \"primary_goal\": \"Navigate the agent through the maze to reach the target areas.\",\n    \"first_action\": null,\n    \"rationale\": \"The exact controls (keyboard) and how the agents interact with the maze are unknown.\",\n    \"open_questions\": [\n      \"Which agent is the primary player?\",\n      \"Do the actions correspond to directional movement or something else?\",\n      \"What is the relationship between the agents and the maze structure?\"\n    ]\n  },\n  \"probes\": [\n    {\n      \"probe_id\": \"P1\",\n      \"hypothesis\": \"ACTION1 moves the top agent.\",\n      \"instructions\": [\n        \"DO ACTION1\"\n      ],\n      \"observe\": [\n        \"ELEMENT_MOVED 1\",\n        \"REGION_DELTA [0,0,63,63]\"\n      ],\n      \"outcome_map\": {\n        \"element_1_moved\": \"ACTION1 moves agent_top\",\n        \"no_movement\": \"ACTION1 does not move agent_top\"\n      }\n    },\n    {\n      \"probe_id\": \"P2\",\n      \"hypothesis\": \"The yellow bar represents level progress.\",\n      \"instructions\": [\n        \"DO ACTION1\",\n        \"DO ACTION1\",\n        \"DO ACTION1\"\n      ],\n      \"observe\": [\n        \"SCORE_DELTA\",\n        \"REGION_DELTA [955,205,985,850]\"\n      ],\n      \"outcome_map\": {\n        \"score_increased\": \"Actions lead to progress/scoring\",\n        \"bar_changed\": \"The yellow bar is a dynamic readout\"\n      }\n    }\n  ]\n}\n```",
+  "parse_error": null,
+  "assessment": {
+    "elements": [
+      {
+        "id": 1,
+        "name": "agent_top",
+        "bbox": [
+          122,
+          505,
+          241,
+          641
+        ],
+        "function": "agent",
+        "rationale": "A small square containing a blue glyph, likely the player-controlled entity.",
+        "confidence": 0.8
+      },
+      {
+        "id": 2,
+        "name": "agent_bottom_left",
+        "bbox": [
+          816,
+          12,
+          985,
+          178
+        ],
+        "function": "agent",
+        "rationale": "A small square containing a blue glyph, similar to agent_top.",
+        "confidence": 0.8
+      },
+      {
+        "id": 3,
+        "name": "maze_walls",
+        "bbox": [
+          386,
+          213,
+          784,
+          847
+        ],
+        "function": "wall",
+        "rationale": "Grey structures forming paths and boundaries within the grid.",
+        "confidence": 0.9
+      },
+      {
+        "id": 4,
+        "name": "target_area_blue_orange",
+        "bbox": [
+          704,
+          528,
+          784,
+          625
+        ],
+        "function": "target",
+        "rationale": "A blue and orange block at the end of a path, likely a goal or checkpoint.",
+        "confidence": 0.7
+      },
+      {
+        "id": 5,
+        "name": "target_area_blue_red",
+        "bbox": [
+          945,
+          875,
+          985,
+          999
+        ],
+        "function": "target",
+        "rationale": "Red blocks at the bottom right, possibly targets.",
+        "confidence": 0.6
+      },
+      {
+        "id": 6,
+        "name": "yellow_bar",
+        "bbox": [
+          955,
+          205,
+          985,
+          850
+        ],
+        "function": "readout",
+        "rationale": "A long yellow bar at the bottom, likely a progress or health meter.",
+        "confidence": 0.8
+      },
+      {
+        "id": 7,
+        "name": "pattern_blocks",
+        "bbox": [
+          840,
+          350,
+          900,
+          500
+        ],
+        "function": "decor",
+        "rationale": "Groups of colored pixels (blue, light blue, etc.) forming patterns.",
+        "confidence": 0.5
+      }
+    ],
+    "similar_groups": [
+      {
+        "group_id": "G1",
+        "member_ids": [
+          1,
+          2
+        ],
+        "similarity_axes": [
+          "shape",
+          "colour"
+        ],
+        "note": "Both are small squares with a blue L-shaped glyph."
+      }
+    ],
+    "initial_strategy": {
+      "primary_goal": "Navigate the agent through the maze to reach the target areas.",
+      "first_action": null,
+      "rationale": "The exact controls (keyboard) and how the agents interact with the maze are unknown.",
+      "open_questions": [
+        "Which agent is the primary player?",
+        "Do the actions correspond to directional movement or something else?",
+        "What is the relationship between the agents and the maze structure?"
+      ]
+    },
+    "probes": [
+      {
+        "probe_id": "P1",
+        "hypothesis": "ACTION1 moves the top agent.",
+        "instructions": [
+          "DO ACTION1"
+        ],
+        "observe": [
+          "ELEMENT_MOVED 1",
+          "REGION_DELTA [0,0,63,63]"
+        ],
+        "outcome_map": {
+          "element_1_moved": "ACTION1 moves agent_top",
+          "no_movement": "ACTION1 does not move agent_top"
+        }
+      },
+      {
+        "probe_id": "P2",
+        "hypothesis": "The yellow bar represents level progress.",
+        "instructions": [
+          "DO ACTION1",
+          "DO ACTION1",
+          "DO ACTION1"
+        ],
+        "observe": [
+          "SCORE_DELTA",
+          "REGION_DELTA [955,205,985,850]"
+        ],
+        "outcome_map": {
+          "score_increased": "Actions lead to progress/scoring",
+          "bar_changed": "The yellow bar is a dynamic readout"
+        }
+      }
+    ]
+  }
+}
