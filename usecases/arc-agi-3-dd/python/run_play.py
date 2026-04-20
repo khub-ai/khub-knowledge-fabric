@@ -68,6 +68,78 @@ def _format_frame_text(grid: np.ndarray) -> str:
     return "[\n" + ",\n".join(f"  [{r}]" for r in rows) + "\n]"
 
 
+def _frame_hash(grid: np.ndarray) -> str:
+    """16-char hex fingerprint of a 64×64 palette grid — used as level-identity key."""
+    import hashlib
+    return hashlib.sha256(np.asarray(grid, dtype=np.int8).tobytes()).hexdigest()[:16]
+
+
+def _exec_replay(env, game_steps: list[str], entry_lc: int):
+    """Execute a compiled solution without calling TUTOR.
+
+    Drives env.step() directly with the recorded raw action sequence.
+    Returns (success, final_obs, steps_executed) where success=True means
+    the level completed (obs.levels_completed > entry_lc).
+    """
+    obs = None
+    executed: list[str] = []
+    for action_name in game_steps:
+        try:
+            action_idx = int(action_name.replace("ACTION", "")) - 1
+            obs = env.step(action_idx)
+            executed.append(action_name)
+            state_str = obs.state.name if hasattr(obs.state, "name") else str(obs.state)
+            if state_str not in ("NOT_FINISHED",):
+                return False, obs, executed   # game over mid-replay
+            if int(obs.levels_completed) > entry_lc:
+                return True, obs, executed    # level done
+        except Exception as exc:
+            print(f"  [replay] env.step error on {action_name}: {exc}")
+            return False, obs, executed
+    return False, obs, executed
+
+
+def _load_solutions(path) -> dict:
+    """Load per-level compiled solutions from JSON; returns {} if missing/corrupt."""
+    try:
+        if path and Path(path).exists():
+            return json.loads(Path(path).read_text(encoding="utf-8")).get("levels", {})
+    except Exception:
+        pass
+    return {}
+
+
+def _save_solution(path, game_id: str, level_idx: int,
+                   game_steps: list[str], entry_hash: str | None,
+                   budget_cost: int) -> None:
+    """Persist a compiled solution for level_idx.
+
+    Only overwrites if the new solution uses fewer steps than the stored one.
+    """
+    if not path or not game_steps:
+        return
+    path = Path(path)
+    try:
+        data = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    except Exception:
+        data = {}
+    data.setdefault("game_id", game_id)
+    levels: dict = data.setdefault("levels", {})
+    key = str(level_idx)
+    existing = levels.get(key, {})
+    existing_cost = existing.get("budget_cost", 10**9)
+    if budget_cost < existing_cost:
+        levels[key] = {
+            "game_steps":          game_steps,
+            "budget_cost":         budget_cost,
+            "frame_hash_on_entry": entry_hash,
+            "step_count":          len(game_steps),
+        }
+        path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        print(f"  [solution] L{level_idx} recorded: {len(game_steps)} steps "
+              f"(prev best: {existing_cost if existing_cost < 10**9 else 'none'})")
+
+
 def _bbox_centre_int(bbox) -> tuple[int, int]:
     r0, c0, r1, c1 = bbox
     return (round((r0 + r1) / 2), round((c0 + c1) / 2))
@@ -965,6 +1037,12 @@ def main() -> None:
                     help="Directory of cumulative per-game knowledge notes")
     ap.add_argument("--no-kb", action="store_true",
                     help="Do not load or write the cumulative knowledge base")
+    ap.add_argument("--record-solution", action="store_true",
+                    help="After each level completion record the game-step sequence "
+                         "to <kb-dir>/<game>_solutions.json (training mode only)")
+    ap.add_argument("--replay-solved", action="store_true",
+                    help="Replay compiled solutions for already-solved levels without "
+                         "calling TUTOR (training mode only — disable in competition)")
     ap.add_argument("--max-tokens",   type=int, default=1500)
     a = ap.parse_args()
 
@@ -981,7 +1059,12 @@ def main() -> None:
     # Runtime companion: action_effects and walls learned across runs.  Kept
     # as a side-car JSON (not prose) so the harness can load them without
     # asking TUTOR to re-discover the action grammar every session.
-    kb_runtime_path = (kb_dir / f"{a.game}_runtime.json") if kb_dir else None
+    kb_runtime_path  = (kb_dir / f"{a.game}_runtime.json")  if kb_dir else None
+    solutions_path   = (kb_dir / f"{a.game}_solutions.json") if kb_dir else None
+    # Load compiled solutions (only used when --replay-solved is set).
+    solutions: dict = _load_solutions(solutions_path) if a.replay_solved else {}
+    if solutions:
+        print(f"Loaded compiled solutions for levels: {sorted(int(k) for k in solutions)}")
     prior_kb_text = (
         kb_path.read_text(encoding="utf-8")
         if kb_path and kb_path.exists() else ""
@@ -1079,11 +1162,72 @@ def main() -> None:
     cur_level_trace: list[dict] = []
     prev_level_notes: str = ""
 
+    # Compiled-solution tracking.
+    # cur_level_game_steps: raw ACTION names executed this sub-level (excludes RESET).
+    # level_entry_hash: frame fingerprint on first entry to each level index (used to
+    #   verify a stored solution still matches the level's initial state).
+    # Future extension: partial-replay checkpoints so TUTOR can "zip" the avatar to
+    #   a known waypoint state mid-level without replaying from scratch.
+    cur_level_game_steps: list[str] = []
+    level_entry_hash: dict[int, str] = {}
+    # Safety default so postgame (which uses lstate_before.get("level_index"))
+    # is safe even when every turn was a compiled-solution replay (no TUTOR calls).
+    lstate_before = None
+
     for turn in range(1, a.max_turns + 1):
         cur_grid = _normalise_frame(obs.frame)
         state    = obs.state.name if hasattr(obs.state, "name") else str(obs.state)
         avail    = [f"ACTION{int(x)}" for x in obs.available_actions]
         lc       = int(obs.levels_completed)
+
+        # Record frame fingerprint on first entry to this level.
+        if lc not in level_entry_hash:
+            level_entry_hash[lc] = _frame_hash(cur_grid)
+
+        # ---- Compiled-solution replay (--replay-solved only) ----------------
+        # If we have a recorded solution for the current level AND the stored
+        # frame hash matches the current frame (or no hash was stored), replay
+        # the raw game-step sequence without calling TUTOR.
+        if a.replay_solved and solutions and str(lc) in solutions:
+            sol = solutions[str(lc)]
+            stored_hash = sol.get("frame_hash_on_entry")
+            hash_ok = stored_hash is None or stored_hash == level_entry_hash.get(lc)
+            if hash_ok:
+                print(f"turn {turn:2d} [REPLAY] L{lc}: replaying compiled solution "
+                      f"({sol['step_count']} steps, budget_cost={sol.get('budget_cost','?')})...")
+                rep_success, rep_obs, rep_steps = _exec_replay(env, sol["game_steps"], lc)
+                if rep_success and rep_obs is not None:
+                    obs = rep_obs
+                    new_lc = int(obs.levels_completed)
+                    cur_grid = _normalise_frame(obs.frame)
+                    # Mirror the level-transition bookkeeping that the normal path does.
+                    walls_by_level.setdefault(lc, set()).update(walls)
+                    walls.clear()
+                    incoming = walls_by_level.get(new_lc, set())
+                    walls.update(incoming)
+                    new_records = _auto_scan_level(env)
+                    if new_records:
+                        element_records.clear()
+                        element_records.update(new_records)
+                    level_completion_events.append({
+                        "turn":       turn,
+                        "from_level": lc,
+                        "to_level":   new_lc,
+                        "win_levels": int(obs.win_levels) if obs else 0,
+                        "replayed":   True,
+                    })
+                    cur_level_game_steps = []
+                    print(f"         [REPLAY] L{lc}→{new_lc} completed in "
+                          f"{len(rep_steps)} steps (no TUTOR call)")
+                    continue   # skip TUTOR this turn
+                else:
+                    print(f"         [REPLAY] L{lc}: replay failed after "
+                          f"{len(rep_steps)} steps — falling back to TUTOR")
+            else:
+                print(f"         [REPLAY] L{lc}: frame hash mismatch "
+                      f"(stored={stored_hash[:8]}, current={level_entry_hash[lc][:8]}) "
+                      f"— falling back to TUTOR")
+        # ---- End replay block -----------------------------------------------
 
         frame_b64 = grid_to_png_b64(cur_grid)
         user_msg  = build_play_user_message(
@@ -1235,6 +1379,14 @@ def main() -> None:
 
         steps_taken  = len(motion_log)
         budget_spent = sum(1 for e in motion_log if e.get("action") != "RESET")
+
+        # Accumulate raw game steps for compiled-solution recording.
+        # Exclude RESET (which resets level state; replaying through a RESET is
+        # not useful). Also exclude None/missing actions.
+        cur_level_game_steps.extend(
+            e["action"] for e in motion_log
+            if e.get("action") and e["action"] not in ("RESET",)
+        )
         _G2 = np.asarray(cur_grid, dtype=np.int32)
 
         # Authoritative post-command game state.
@@ -1309,6 +1461,20 @@ def main() -> None:
             )
             prev_level_notes = "\n".join(lines)
             cur_level_trace = []
+
+            # Compiled-solution recording (--record-solution only).
+            # Save the raw game-step sequence so future runs can replay it.
+            # Only records if --record-solution is active; a RESET inside the
+            # level sequence poisons reproducibility, so RESET-containing runs
+            # are stored but flagged (replayer will skip if they contain RESETs).
+            if a.record_solution and cur_level_game_steps:
+                _save_solution(
+                    solutions_path, a.game, lc,
+                    cur_level_game_steps,
+                    level_entry_hash.get(lc),
+                    len(cur_level_game_steps),
+                )
+            cur_level_game_steps = []
 
         # Rotation-advance detection via game-state delta (level-agnostic).
         rotation_advanced = (
