@@ -85,8 +85,12 @@ def _exec_replay(env, game_steps: list[str], entry_lc: int):
     executed: list[str] = []
     for action_name in game_steps:
         try:
-            action_idx = int(action_name.replace("ACTION", "")) - 1
-            obs = env.step(action_idx)
+            # env.step accepts the GameAction integer directly (verified:
+            # ACTION1=1, ACTION2=2, ACTION3=3, ACTION4=4).  Don't import the
+            # GameAction enum here — Python imports have shown it can resolve
+            # to a stale class on some paths, causing "3 is not a valid
+            # GameAction" at runtime even though value 3 IS ACTION3.
+            obs = env.step(int(action_name.replace("ACTION", "")))
             executed.append(action_name)
             state_str = obs.state.name if hasattr(obs.state, "name") else str(obs.state)
             if state_str not in ("NOT_FINISHED",):
@@ -1217,16 +1221,16 @@ def main() -> None:
                         "replayed":   True,
                     })
                     cur_level_game_steps = []
-                    print(f"         [REPLAY] L{lc}→{new_lc} completed in "
+                    print(f"         [REPLAY] L{lc}->{new_lc} completed in "
                           f"{len(rep_steps)} steps (no TUTOR call)")
                     continue   # skip TUTOR this turn
                 else:
                     print(f"         [REPLAY] L{lc}: replay failed after "
-                          f"{len(rep_steps)} steps — falling back to TUTOR")
+                          f"{len(rep_steps)} steps -- falling back to TUTOR")
             else:
                 print(f"         [REPLAY] L{lc}: frame hash mismatch "
                       f"(stored={stored_hash[:8]}, current={level_entry_hash[lc][:8]}) "
-                      f"— falling back to TUTOR")
+                      f"-- falling back to TUTOR")
         # ---- End replay block -----------------------------------------------
 
         frame_b64 = grid_to_png_b64(cur_grid)
@@ -1277,9 +1281,9 @@ def main() -> None:
         print(f"turn {turn:>2} state={state:<12} cmd={command:<20} "
               f"({latency_ms} ms, ${cost_usd:.4f})")
         if rationale:
-            print(f"         {rationale[:100]}")
+            print(f"         {rationale[:100]}".encode("ascii", errors="replace").decode("ascii"))
         if revise:
-            print(f"         REVISE: {revise[:100]}")
+            print(f"         REVISE: {revise[:100]}".encode("ascii", errors="replace").decode("ascii"))
 
         # ---- Execute command ------------------------------------------------
         motion_log: list[dict] = []

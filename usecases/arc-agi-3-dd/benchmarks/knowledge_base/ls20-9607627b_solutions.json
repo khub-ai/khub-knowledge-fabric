@@ -1,0 +1,25 @@
+{
+  "game_id": "ls20-9607627b",
+  "levels": {
+    "0": {
+      "game_steps": [
+        "ACTION3",
+        "ACTION3",
+        "ACTION3",
+        "ACTION1",
+        "ACTION1",
+        "ACTION1",
+        "ACTION1",
+        "ACTION4",
+        "ACTION4",
+        "ACTION4",
+        "ACTION1",
+        "ACTION1",
+        "ACTION1"
+      ],
+      "budget_cost": 13,
+      "frame_hash_on_entry": "cfe5196fb75182bb",
+      "step_count": 13
+    }
+  }
+}
