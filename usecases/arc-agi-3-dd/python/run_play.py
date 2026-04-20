@@ -231,10 +231,18 @@ def _harness_coordinate_note(
     tr, tc = target_pos
     for rec in element_records.values():
         bbox = rec.get("bbox")
-        if bbox and len(bbox) == 4:
-            r0, c0, r1, c1 = bbox
-            if r0 <= tr <= r1 and c0 <= tc <= c1:
-                return ""   # target IS inside a known element
+        if not bbox or len(bbox) != 4:
+            continue
+        r0, c0, r1, c1 = bbox
+        if r0 <= tr <= r1 and c0 <= tc <= c1:
+            fn = (rec.get("function") or "").lower()
+            if "hazard" in fn or "trap" in fn or "death" in fn:
+                return (
+                    f"HARNESS WARNING: target {list(target_pos)} is inside "
+                    f"'{rec.get('name','?')}' (function={rec.get('function','?')}). "
+                    f"This element may reset the level or cost a life."
+                )
+            return ""   # target IS inside a known (non-hazard) element
     nearby = _find_nearby_elements(target_pos, element_records, radius=20)
     if not nearby:
         return f"HARNESS: target {list(target_pos)} is not inside any known element (no nearby element found within radius 20)."
