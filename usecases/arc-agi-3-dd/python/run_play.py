@@ -1009,6 +1009,12 @@ def main() -> None:
     walls: set[tuple[int, int, str]] = set()   # (row, col, action) → blocked
     budget_remaining = 84  # will be updated from counter_changes
 
+    # Per-level wall cache: populated from the runtime KB at session start.
+    # On each level transition we save the departing level's walls here and
+    # re-seed `walls` from the new level's bucket — so BFS always starts a
+    # sub-level with whatever walls were previously learned for THAT level.
+    walls_by_level: dict[int, set[tuple[int, int, str]]] = {}
+
     # Pre-populate action_effects and walls.  Two sources, in precedence:
     #   1) The KB runtime sidecar (<kb_dir>/<game>_runtime.json) — survives
     #      across sessions and is updated on every run end.
@@ -1016,13 +1022,26 @@ def main() -> None:
     def _seed_from_runtime_dict(pm_data: dict) -> None:
         for a_name, a_effect in (pm_data.get("action_effects_learned") or {}).items():
             action_effects[a_name] = (int(a_effect[0]), int(a_effect[1]))
+        # New per-level format: {"walls_by_level": {"0": [...], "1": [...], ...}}
+        wbl = pm_data.get("walls_by_level") or {}
+        for lv_str, wlist in wbl.items():
+            lv = int(lv_str)
+            bucket = walls_by_level.setdefault(lv, set())
+            for w in wlist:
+                bucket.add((int(w[0]), int(w[1]), str(w[2])))
+        # Legacy flat format: treat all as level 0 (backward compat).
         for w in (pm_data.get("walls_learned") or []):
-            walls.add((int(w[0]), int(w[1]), str(w[2])))
+            walls_by_level.setdefault(0, set()).add(
+                (int(w[0]), int(w[1]), str(w[2]))
+            )
+        # Seed current (level-0) walls into the active `walls` set.
+        walls.update(walls_by_level.get(0, set()))
 
     if kb_runtime_path is not None and kb_runtime_path.exists():
         try:
             _seed_from_runtime_dict(json.loads(kb_runtime_path.read_text(encoding="utf-8")))
-            print(f"Pre-loaded from KB runtime: action_effects={action_effects}, walls={len(walls)}")
+            print(f"Pre-loaded from KB runtime: action_effects={action_effects}, "
+                  f"walls_by_level={{{', '.join(f'{k}:{len(v)}' for k,v in walls_by_level.items())}}}")
         except Exception as e:  # noqa: BLE001
             print(f"Could not load KB runtime data: {e}")
 
@@ -1244,11 +1263,16 @@ def main() -> None:
             rotation_count = 0  # new level starts at its own StartRotation
 
             # Walls learned during the previous sub-level don't apply to
-            # the new level's geometry.  Clear them to avoid poisoning
-            # BFS with stale (cursor-drift or false-positive) entries.
-            if walls:
-                print(f"         WALLS CLEARED ({len(walls)} stale entries from level {lc})")
-                walls.clear()
+            # the new level's geometry.  Save them to the per-level cache,
+            # clear `walls`, then re-seed with any previously learned walls
+            # for the incoming level (from the runtime KB loaded at startup).
+            walls_by_level.setdefault(lc, set()).update(walls)
+            n_cleared = len(walls)
+            walls.clear()
+            incoming = walls_by_level.get(new_lc, set())
+            walls.update(incoming)
+            print(f"         WALLS: cleared {n_cleared} from level {lc}, "
+                  f"seeded {len(incoming)} known walls for level {new_lc}")
 
             # (a) Re-scan element_records for the new level so TUTOR-facing
             #     element_overlaps / nearby_elements / harness_note reflect
@@ -1573,7 +1597,8 @@ def main() -> None:
                 initial_lc=initial_levels_completed,
                 final_lc=final_lc,
                 level_completion_events=level_completion_events,
-                walls_learned=[list(w) for w in sorted(walls)],
+                walls_learned=[list(w) for lv_walls in walls_by_level.values()
+                               for w in lv_walls] + [list(w) for w in sorted(walls)],
                 session_id=session_id_str,
             ),
             # Patch output is small — 2000 tokens is generous headroom.
@@ -1620,13 +1645,27 @@ def main() -> None:
                 existing = json.loads(kb_runtime_path.read_text(encoding="utf-8"))
             merged_effects = {**(existing.get("action_effects_learned") or {}),
                               **{k: list(v) for k, v in action_effects.items()}}
-            merged_walls = {tuple(w) for w in (existing.get("walls_learned") or [])}
-            merged_walls.update(walls)
+            # Merge per-level wall caches.  Flush the active `walls` set into
+            # the current level's bucket before merging so nothing is lost.
+            cur_lv = int((lstate_before or {}).get("level_index") or 0)
+            walls_by_level.setdefault(cur_lv, set()).update(walls)
+            # Merge with whatever was already in the runtime KB for each level.
+            existing_wbl = existing.get("walls_by_level") or {}
+            # Also import any legacy flat walls_learned as level-0.
+            for w in (existing.get("walls_learned") or []):
+                existing_wbl.setdefault("0", []).append(w)
+            merged_wbl: dict[str, list] = {}
+            all_levels = {int(k) for k in existing_wbl} | set(walls_by_level.keys())
+            for lv in sorted(all_levels):
+                bucket: set[tuple] = {tuple(w) for w in (existing_wbl.get(str(lv)) or [])}
+                bucket.update(walls_by_level.get(lv, set()))
+                if bucket:
+                    merged_wbl[str(lv)] = sorted([list(w) for w in bucket])
             kb_runtime_path.parent.mkdir(parents=True, exist_ok=True)
             kb_runtime_path.write_text(json.dumps({
                 "game_id": a.game,
                 "action_effects_learned": merged_effects,
-                "walls_learned": sorted([list(w) for w in merged_walls]),
+                "walls_by_level": merged_wbl,
                 "last_updated": datetime.now(timezone.utc).isoformat(),
             }, indent=2), encoding="utf-8")
             runtime_written = True
@@ -1651,6 +1690,8 @@ def main() -> None:
         "win_levels":               win_lvls,
         "level_completion_events":  level_completion_events,
         "action_effects_learned": {k: list(v) for k, v in action_effects.items()},
+        "walls_by_level": {str(lv): sorted([list(w) for w in lv_walls])
+                           for lv, lv_walls in walls_by_level.items() if lv_walls},
         "walls_learned": [list(w) for w in sorted(walls)],
         "wall_time_s": round(time.time() - t0, 1),
         "created_at": datetime.now(timezone.utc).isoformat(),
