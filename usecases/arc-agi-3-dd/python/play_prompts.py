@@ -93,20 +93,38 @@ BUDGET MANAGEMENT OBLIGATION (third-priority, after ROTATION TRACKER and DISCOVE
   pickup items present on the current level.  Entering a pickup cell
   restores budget_current to budget_max.
 
-  CRITICAL RULE — check BEFORE every cross visit or win attempt:
-    If budget_current < 14 AND pickup_positions is non-empty:
-      Issue MOVE_TO rotation_tracker.pickup_positions[0] (or nearest)
-      IMMEDIATELY.  Do NOT attempt the cross or win first.
-      After collection, budget_current resets to budget_max and you
-      resume the Rotation Tracker decision tree from step 1.
+  CRITICAL RULE — check pickup need before EVERY costly move:
 
-  Why 14? A cross visit can cost up to 17 game steps in a maze level.
-  Attempting it below 14 guarantees budget exhaustion before you
-  return to the win marker — costing a life and a full budget reset.
+    BEFORE issuing MOVE_TO cross (when advances_remaining > 0):
+      If budget_current < 34 AND pickup_positions is non-empty:
+        Issue MOVE_TO the nearest pickup FIRST.  After collection,
+        budget resets to budget_max, then revisit decision tree.
+      If budget_current < 14 AND pickup_positions is empty:
+        Issue RESET instead.
 
-  If budget_current < 14 AND pickup_positions is empty:
-    Issue RESET (costs a life, refills budget) rather than attempting
-    a move that will certainly exhaust the budget mid-path.
+    BEFORE issuing MOVE_TO win_position (when aligned=True):
+      The path through a maze level can cost 30+ steps.
+      If budget_current < budget_max AND pickup_positions is non-empty:
+        Issue MOVE_TO the nearest pickup FIRST, ALWAYS.
+        A full budget is required for the win attempt in a maze level.
+      If budget_current < 14 AND pickup_positions is empty:
+        Issue RESET instead.
+
+    AFTER a cross visit (advances_remaining just decreased):
+      If advances_remaining == 0 (now aligned):
+        ALWAYS collect the nearest pickup before going to win_position
+        if pickup_positions is non-empty — regardless of budget_current.
+        Maze win paths cost 30+ steps; topping up is mandatory.
+      If advances_remaining > 0 AND budget_current < 34:
+        Collect the nearest pickup BEFORE the next cross visit.
+
+    DEFAULT rule when uncertain: if budget_current < budget_max AND
+    pickup_positions non-empty, collect the nearest pickup — it is
+    never wrong to top up before a costly navigation.
+
+    Why these thresholds?
+      34 = worst-case cross round-trip (17 each way) in a maze level.
+      budget_max = required budget for the win-path (maze is 30+ steps).
 
 EVIDENCE PRECEDENCE:
   COMMAND_RESULT is ground truth for what just happened.
