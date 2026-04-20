@@ -19,6 +19,7 @@ def bfs_navigate(
     target:         tuple[int, int],
     action_effects: dict[str, tuple[int, int]],
     max_steps:      int = 60,
+    walls:          set | None = None,
 ) -> Optional[list[str]]:
     """Return the shortest action sequence to move from `start` to `target`.
 
@@ -48,6 +49,8 @@ def bfs_navigate(
         if len(path) >= max_steps:
             continue
         for action, (dr, dc) in move_actions.items():
+            if walls and (r, c, action) in walls:
+                continue  # known wall — skip
             nr = max(0, min(GRID_H - 1, r + dr))
             nc = max(0, min(GRID_W - 1, c + dc))
             steps = len(path) + 1
@@ -67,6 +70,7 @@ def nearest_reachable(
     target:         tuple[int, int],
     action_effects: dict[str, tuple[int, int]],
     max_steps:      int = 60,
+    walls:          set | None = None,
 ) -> Optional[tuple[tuple[int, int], list[str]]]:
     """Return (closest_reachable_pos, path) to get as close as possible to target.
 
@@ -96,6 +100,8 @@ def nearest_reachable(
         if len(path) >= max_steps:
             continue
         for action, (dr, dc) in move_actions.items():
+            if walls and (r, c, action) in walls:
+                continue
             nr = max(0, min(GRID_H - 1, r + dr))
             nc = max(0, min(GRID_W - 1, c + dc))
             steps = len(path) + 1

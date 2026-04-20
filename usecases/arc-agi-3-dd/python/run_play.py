@@ -189,6 +189,63 @@ def load_working_knowledge(
 
 
 # ---------------------------------------------------------------------------
+# Element-space helpers
+# ---------------------------------------------------------------------------
+
+def _detect_element_overlaps(
+    cursor_pos: tuple[int, int] | None,
+    element_records: dict,
+) -> list[dict]:
+    """Return elements whose bbox contains cursor_pos."""
+    if not cursor_pos:
+        return []
+    r, c = cursor_pos
+    hits = []
+    for eid, rec in element_records.items():
+        bbox = rec.get("bbox")
+        if not bbox or len(bbox) != 4:
+            continue
+        r0, c0, r1, c1 = bbox
+        if r0 <= r <= r1 and c0 <= c <= c1:
+            hits.append({
+                "id": eid,
+                "name": rec.get("name", "?"),
+                "function": rec.get("function", "?"),
+                "bbox": bbox,
+            })
+    return hits
+
+
+def _find_nearby_elements(
+    target_pos: tuple[int, int],
+    element_records: dict,
+    radius: int = 8,
+) -> list[dict]:
+    """Return elements within Manhattan radius of target_pos, sorted by distance."""
+    tr, tc = target_pos
+    nearby = []
+    for eid, rec in element_records.items():
+        bbox = rec.get("bbox")
+        if not bbox or len(bbox) != 4:
+            continue
+        r0, c0, r1, c1 = bbox
+        cr = round((r0 + r1) / 2)
+        cc = round((c0 + c1) / 2)
+        dist = abs(cr - tr) + abs(cc - tc)
+        if dist <= radius:
+            nearby.append({
+                "id": eid,
+                "name": rec.get("name", "?"),
+                "function": rec.get("function", "?"),
+                "bbox": bbox,
+                "center": [cr, cc],
+                "dist_manhattan": dist,
+            })
+    nearby.sort(key=lambda x: x["dist_manhattan"])
+    return nearby
+
+
+# ---------------------------------------------------------------------------
 # Command executors
 # ---------------------------------------------------------------------------
 
@@ -249,18 +306,23 @@ def exec_move_to(
     prev_grid: np.ndarray, element_records: dict,
     action_effects: dict, cursor_pos,
     budget_remaining: int,
+    walls: set | None = None,
     stamp_action: str | None = None,
 ):
-    """BFS-navigate to target_pos, optionally fire stamp_action there."""
-    if not cursor_pos:
-        return None, prev_grid, [], cursor_pos, "cursor_pos unknown"
+    """BFS-navigate to target_pos, optionally fire stamp_action there.
 
-    path = bfs_navigate(cursor_pos, target_pos, action_effects)
+    Detects wall-blocked moves during execution: records the wall, aborts
+    the path early, and returns an error describing the actual vs intended
+    position so TUTOR can self-correct its spatial model.
+    """
+    if not cursor_pos:
+        return None, prev_grid, [], cursor_pos, "cursor_pos unknown", {}
+
+    path = bfs_navigate(cursor_pos, target_pos, action_effects, walls=walls)
     if path is None:
-        # Try nearest reachable cell
-        result = nearest_reachable(cursor_pos, target_pos, action_effects)
+        result = nearest_reachable(cursor_pos, target_pos, action_effects, walls=walls)
         if result is None:
-            return None, prev_grid, [], cursor_pos, "unreachable and no movement actions known"
+            return None, prev_grid, [], cursor_pos, "unreachable and no movement actions known", {}
         actual_target, path = result
 
     if stamp_action:
@@ -269,23 +331,65 @@ def exec_move_to(
     if len(path) > budget_remaining - 2:
         return None, prev_grid, [], cursor_pos, (
             f"path length {len(path)} exceeds remaining budget {budget_remaining}"
-        )
+        ), {}
 
     motion_log = []
     cur_grid = prev_grid
     obs = None
-    final_cr = {}
+    exec_error: str | None = None
+    walls_hit: list[dict] = []
+
     for action in path:
+        pos_before = cursor_pos
         obs, cur_grid, cr, cursor_pos, entry = exec_raw_action(
             env, action, cur_grid, element_records, action_effects, cursor_pos,
         )
-        final_cr = cr
         motion_log.append(entry)
+
+        # Wall detection: planned move expected non-zero displacement but got zero
+        if action != stamp_action:
+            planned_dr, planned_dc = action_effects.get(action, (0, 0))
+            actual_dr = entry.get("dr") or 0
+            actual_dc = entry.get("dc") or 0
+            if (planned_dr != 0 or planned_dc != 0) and actual_dr == 0 and actual_dc == 0:
+                wall_key = (pos_before[0], pos_before[1], action) if pos_before else None
+                if wall_key and walls is not None:
+                    walls.add(wall_key)
+                wall_info = {
+                    "action": action,
+                    "blocked_at": list(pos_before) if pos_before else None,
+                    "expected_dr": planned_dr,
+                    "expected_dc": planned_dc,
+                }
+                walls_hit.append(wall_info)
+                exec_error = (
+                    f"wall: {action} blocked at {pos_before} "
+                    f"(expected dr={planned_dr},dc={planned_dc}, got 0,0). "
+                    f"Path aborted. Agent at {cursor_pos}, target was {target_pos}."
+                )
+                break
+
         state = obs.state.name if hasattr(obs.state, "name") else str(obs.state)
         if state in ("WIN", "GAME_OVER"):
             break
 
-    return obs, cur_grid, motion_log, cursor_pos, None  # None = no error
+    # Report target-not-reached even when no wall explicitly blocked (e.g. wrong coords)
+    if exec_error is None and cursor_pos != target_pos and stamp_action is None:
+        exec_error = (
+            f"target not reached: requested {list(target_pos)}, "
+            f"agent ended at {list(cursor_pos) if cursor_pos else None}. "
+            f"Check nearby_elements in COMMAND_RESULT for actual element positions."
+        )
+
+    target_analysis = {
+        "requested_pos":   list(target_pos),
+        "actual_pos":      list(cursor_pos) if cursor_pos else None,
+        "reached":         cursor_pos == target_pos,
+        "walls_hit":       walls_hit,
+        "nearby_elements": _find_nearby_elements(target_pos, element_records),
+    }
+
+    return obs, cur_grid, motion_log, cursor_pos, exec_error, target_analysis
 
 
 # ---------------------------------------------------------------------------
@@ -379,7 +483,21 @@ def main() -> None:
 
     prev_grid       = _normalise_frame(obs.frame)
     action_effects: dict[str, tuple[int, int]] = {}
+    walls: set[tuple[int, int, str]] = set()   # (row, col, action) → blocked
     budget_remaining = 84  # will be updated from counter_changes
+
+    # Pre-populate action_effects from prior session's manifest when using --lessons
+    if lessons_path is not None:
+        prior_manifest = lessons_path.parent / "manifest.json"
+        if prior_manifest.exists():
+            try:
+                pm_data = json.loads(prior_manifest.read_text(encoding="utf-8"))
+                for a_name, a_effect in (pm_data.get("action_effects_learned") or {}).items():
+                    action_effects[a_name] = (int(a_effect[0]), int(a_effect[1]))
+                if action_effects:
+                    print(f"Pre-loaded action_effects from prior session: {action_effects}")
+            except Exception as e:  # noqa: BLE001
+                print(f"Could not load prior action_effects: {e}")
 
     log_path = session_dir / "play_log.jsonl"
     log_fh   = log_path.open("w", encoding="utf-8")
@@ -450,6 +568,7 @@ def main() -> None:
         # ---- Execute command ------------------------------------------------
         motion_log: list[dict] = []
         exec_error: str | None = None
+        target_analysis: dict = {}
 
         if command == "PROBE_DIRECTIONS":
             obs, cur_grid, motion_log, cursor_pos = exec_probe_directions(
@@ -467,9 +586,9 @@ def main() -> None:
                 b_before = _read_budget(cr_before)
                 if b_before is not None:
                     budget_remaining = b_before
-                obs, cur_grid, motion_log, cursor_pos, exec_error = exec_move_to(
+                obs, cur_grid, motion_log, cursor_pos, exec_error, target_analysis = exec_move_to(
                     env, target, cur_grid, element_records, action_effects,
-                    cursor_pos, budget_remaining, stamp_action=stamp,
+                    cursor_pos, budget_remaining, walls=walls, stamp_action=stamp,
                 )
 
         elif command == "RAW_ACTION":
@@ -508,6 +627,8 @@ def main() -> None:
         steps_taken  = len(motion_log)
         budget_spent = sum(1 for e in motion_log if e.get("action") != "RESET")
 
+        element_overlaps = _detect_element_overlaps(cursor_pos, element_records)
+
         command_result = {
             "command_executed":  command,
             "args":              args,
@@ -516,17 +637,22 @@ def main() -> None:
             "budget_remaining":  budget_remaining,
             "cursor_pos_after":  list(cursor_pos) if cursor_pos else None,
             "agent_pos_after":   agent_pos_after,
+            "element_overlaps":  element_overlaps,
+            "target_analysis":   target_analysis,
             "motion_log":        motion_log,
             "final_state":       obs.state.name if obs and hasattr(obs.state, "name") else state,
             "error":             exec_error,
         }
         if exec_error:
             print(f"         EXEC ERROR: {exec_error}")
+        if element_overlaps:
+            names = [e["name"] for e in element_overlaps]
+            print(f"         OVERLAPS: {names}")
 
         # ---- Log -------------------------------------------------------
         log_entry = {
             "turn": turn, "state": state, "levels_completed": lc,
-            "win_levels": int(obs.win_levels),
+            "win_levels": int(obs.win_levels) if obs is not None else 1,
             "game_id": a.game,
             "command": command, "args": args,
             "rationale": rationale, "predict": predict,
