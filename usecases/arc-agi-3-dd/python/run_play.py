@@ -521,7 +521,7 @@ def main() -> None:
     walls: set[tuple[int, int, str]] = set()   # (row, col, action) → blocked
     budget_remaining = 84  # will be updated from counter_changes
 
-    # Pre-populate action_effects from prior session's manifest when using --lessons
+    # Pre-populate action_effects and walls from prior session's manifest
     if lessons_path is not None:
         prior_manifest = lessons_path.parent / "manifest.json"
         if prior_manifest.exists():
@@ -529,10 +529,14 @@ def main() -> None:
                 pm_data = json.loads(prior_manifest.read_text(encoding="utf-8"))
                 for a_name, a_effect in (pm_data.get("action_effects_learned") or {}).items():
                     action_effects[a_name] = (int(a_effect[0]), int(a_effect[1]))
+                for w in (pm_data.get("walls_learned") or []):
+                    walls.add((int(w[0]), int(w[1]), str(w[2])))
                 if action_effects:
-                    print(f"Pre-loaded action_effects from prior session: {action_effects}")
+                    print(f"Pre-loaded action_effects: {action_effects}")
+                if walls:
+                    print(f"Pre-loaded walls ({len(walls)}): {sorted(walls)}")
             except Exception as e:  # noqa: BLE001
-                print(f"Could not load prior action_effects: {e}")
+                print(f"Could not load prior action_effects/walls: {e}")
 
     log_path = session_dir / "play_log.jsonl"
     log_fh   = log_path.open("w", encoding="utf-8")
@@ -769,6 +773,7 @@ def main() -> None:
         "turns_played": len(command_trace),
         "final_state": final_state, "outcome": outcome,
         "action_effects_learned": {k: list(v) for k, v in action_effects.items()},
+        "walls_learned": [list(w) for w in sorted(walls)],
         "wall_time_s": round(time.time() - t0, 1),
         "created_at": datetime.now(timezone.utc).isoformat(),
         "files": ["working_knowledge.md", "play_log.jsonl",
