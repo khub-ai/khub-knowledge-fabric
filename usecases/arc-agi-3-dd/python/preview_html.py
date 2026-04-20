@@ -405,13 +405,15 @@ def render_play_session(
     if pgk_path.exists():
         pgk_text = pgk_path.read_text(encoding="utf-8")
 
-    # Aggregate stats
-    turn_entries  = [e for e in entries if "action" in e]
+    # Aggregate stats — support both old (action) and new (command) schema
+    turn_entries  = [e for e in entries if "action" in e or "command" in e]
     total_cost    = sum(e.get("cost_usd", 0) for e in turn_entries)
     total_in_tok  = sum(e.get("input_tokens", 0) for e in turn_entries)
     total_out_tok = sum(e.get("output_tokens", 0) for e in turn_entries)
     final_state   = "…"
     game_id       = ""
+    levels_completed_now = 0
+    win_levels_now = 1
     session_start: datetime | None = None
     for e in entries:
         if "final_state" in e:
@@ -423,6 +425,10 @@ def render_play_session(
                 pass
         if e.get("game_id"):
             game_id = e["game_id"]
+        if "levels_completed" in e:
+            levels_completed_now = int(e["levels_completed"])
+        if "win_levels" in e:
+            win_levels_now = int(e["win_levels"])
     if not live and turn_entries:
         last = turn_entries[-1]
         final_state = last.get("state", final_state)
@@ -435,7 +441,23 @@ def render_play_session(
     except FileNotFoundError:
         pass
 
-    refresh_tag = '<meta http-equiv="refresh" content="5">' if live else ""
+    # Extract run ID from session_dir name (e.g. trial_20260420T123456Z_play → 20260420T123456Z)
+    run_id = session_dir.name
+    for prefix in ("trial_",):
+        if run_id.startswith(prefix):
+            run_id = run_id[len(prefix):]
+    for suffix in ("_play", "_round2", "_round1"):
+        if run_id.endswith(suffix):
+            run_id = run_id[:-len(suffix)]
+
+    # Human-readable level label: series + "Level N / M"
+    series = game_id.split("-")[0] if "-" in game_id else game_id
+    level_label = f"Level {levels_completed_now + 1}"
+    if win_levels_now > 1:
+        level_label += f" / {win_levels_now}"
+    page_title = f"{series} {level_label}"
+
+    refresh_tag = '<meta http-equiv="refresh" content="5; url=#latest">' if live else ""
     now_str = datetime.now(timezone.utc).strftime("%H:%M:%S UTC")
 
     # ---- header
@@ -444,33 +466,35 @@ def render_play_session(
         banner = (f'<div class="live-banner running">'
                   f'<span class="blink">&#9679;</span> LIVE &nbsp;|&nbsp; '
                   f'last update <b>{now_str}</b> &nbsp;|&nbsp; '
-                  f'auto-refresh every 5 s</div>')
+                  f'auto-refresh every 5 s &nbsp;|&nbsp; '
+                  f'run <b>{escape(run_id)}</b></div>')
     else:
         banner = (f'<div class="live-banner done">'
                   f'&#9632; DONE &nbsp;|&nbsp; '
                   f'finished at <b>{now_str}</b> &nbsp;|&nbsp; '
-                  f'state=<b style="color:{status_color}">{escape(final_state)}</b></div>')
+                  f'state=<b style="color:{status_color}">{escape(final_state)}</b> &nbsp;|&nbsp; '
+                  f'run <b>{escape(run_id)}</b></div>')
 
     parts = [f"""<!doctype html>
 <html><head><meta charset="utf-8">{refresh_tag}
-<title>{escape(game_id)} play</title>
+<title>{escape(page_title)} play</title>
 <style>{PLAY_STYLE}</style></head><body>
 {banner}
 <div class="play-header">
-  <span class="game-id">{escape(game_id)}</span>
+  <span class="game-id">{escape(page_title)}</span>
   <span class="stat">TUTOR calls <b>{len(turn_entries)}</b></span>
   <span class="stat">state <b style="color:{status_color}">{escape(final_state)}</b></span>
   <span class="stat cost-total">cost <b>{_fmt_cost(total_cost)}</b></span>
   <span class="stat">tokens in <b>{total_in_tok:,}</b> / out <b>{total_out_tok:,}</b></span>
-  <span class="stat">{escape(session_dir.name)}</span>
+  <span class="stat" title="{escape(session_dir.name)}">run <b>{escape(run_id)}</b></span>
 </div>"""]
 
     # ---- working knowledge
     parts.append('<details class="wk-block"><summary>WORKING_KNOWLEDGE</summary>')
     parts.append(f'<pre>{escape(wk_text)}</pre></details>')
 
-    # ---- turn cards
-    for e in turn_entries:
+    # ---- turn cards (newest = last; mark last card id="latest" for auto-scroll)
+    for e_idx, e in enumerate(turn_entries):
         turn      = e.get("turn", "?")
         # support both old (action) and new (command) schema
         action    = e.get("command") or e.get("action", "?")
@@ -536,7 +560,9 @@ def render_play_session(
         if steps:
             steps_html = f'<span class="turn-state"> game-steps={steps}</span>'
 
-        parts.append(f'<div class="{card_cls}">')
+        is_last = (e_idx == len(turn_entries) - 1)
+        card_id = ' id="latest"' if is_last else ""
+        parts.append(f'<div class="{card_cls}"{card_id}>')
         parts.append(
             f'<div class="turn-head">'
             f'<span class="turn-num">#{turn}</span>'
@@ -572,5 +598,8 @@ def render_play_session(
         parts.append(f'<pre>{escape(pgk_text)}</pre>')
         parts.append('</div>')
 
+    if live:
+        parts.append('<script>var el=document.getElementById("latest");'
+                     'if(el)el.scrollIntoView({behavior:"smooth",block:"start"});</script>')
     parts.append('</body></html>')
     (frames_dir / "index.html").write_text("\n".join(parts), encoding="utf-8")

@@ -102,24 +102,21 @@ def _update_action_effects(
 
 def _update_cursor_pos(
     cursor_pos: tuple[int, int] | None,
-    action: str,
-    action_effects: dict[str, tuple[int, int]],
+    actual_dr: int | None,
+    actual_dc: int | None,
     cr: dict,
 ) -> tuple[int, int] | None:
-    """Advance cursor_pos.
+    """Advance cursor_pos using the OBSERVED (dr, dc) from this step.
 
-    Arithmetic update (preferred): if we already know this action's (dr,dc),
-    just apply it.  Never reads from primary_motion — that can latch onto UI
-    elements (progress bar) and drift the cursor to row 62.
-    Fallback: if action_effects not yet known, use primary_motion post_bbox
-    only for the very first reliable reading (to bootstrap initial position).
+    Uses actual_dr/dc from the step's motion report — not the stored
+    action_effects — so blocked moves (dr=0,dc=0) don't drift the position.
+    Falls back to primary_motion post_bbox only for initial bootstrap.
     """
-    if action in action_effects and cursor_pos is not None:
-        dr, dc = action_effects[action]
-        r = max(0, min(63, cursor_pos[0] + dr))
-        c = max(0, min(63, cursor_pos[1] + dc))
+    if cursor_pos is not None and actual_dr is not None and actual_dc is not None:
+        r = max(0, min(63, cursor_pos[0] + actual_dr))
+        c = max(0, min(63, cursor_pos[1] + actual_dc))
         return (r, c)
-    # Bootstrap: use primary_motion only when we don't yet know the effect
+    # Bootstrap: use primary_motion only when we have no observed dr/dc
     pm = cr.get("primary_motion")
     if pm and not pm.get("tracker_unreliable") and pm.get("moved"):
         post = pm.get("post_bbox")
@@ -211,7 +208,14 @@ def exec_raw_action(
     cur_grid = _normalise_frame(obs.frame)
     cr = _build_change_report(prev_grid, cur_grid, element_records)
     _update_action_effects(action_effects, action, cr)
-    new_cursor = _update_cursor_pos(cursor_pos, action, action_effects, cr)
+    pm = cr.get("primary_motion") or {}
+    if not pm.get("tracker_unreliable"):
+        actual_dr: int | None = pm.get("dr", 0)
+        actual_dc: int | None = pm.get("dc", 0)
+    else:
+        actual_dr = None
+        actual_dc = None
+    new_cursor = _update_cursor_pos(cursor_pos, actual_dr, actual_dc, cr)
     entry = {
         "action": action,
         "dr": (cr.get("primary_motion") or {}).get("dr"),
@@ -522,6 +526,7 @@ def main() -> None:
         # ---- Log -------------------------------------------------------
         log_entry = {
             "turn": turn, "state": state, "levels_completed": lc,
+            "win_levels": int(obs.win_levels),
             "game_id": a.game,
             "command": command, "args": args,
             "rationale": rationale, "predict": predict,
