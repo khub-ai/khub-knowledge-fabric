@@ -1518,7 +1518,10 @@ def main() -> None:
                 session_id=session_id_str,
             ),
             # The KB grows; give TUTOR enough headroom for a full rewrite.
-            image_b64=None, max_tokens=8000,
+            # Bump client-side timeout since an 8k-token rewrite of an 11k+
+            # char KB can genuinely take 5+ minutes on Sonnet.  The default
+            # 300s killed the first validation attempt at this payload.
+            image_b64=None, max_tokens=8000, timeout_s=600,
         )
         note = rsp["reply"].strip()
     except Exception as e:  # noqa: BLE001

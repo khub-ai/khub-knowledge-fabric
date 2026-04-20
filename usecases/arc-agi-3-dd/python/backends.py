@@ -122,6 +122,7 @@ def call_anthropic(
     image_b64:    Optional[str]  = None,
     max_tokens:   int            = 4000,
     temperature:  float          = 0.0,
+    timeout_s:    int            = 300,
 ) -> dict:
     return _cached_call(
         model=model, system=system, user=user, image_b64=image_b64,
@@ -129,6 +130,7 @@ def call_anthropic(
         uncached_fn=lambda: _call_anthropic_uncached(
             model=model, system=system, user=user, image_b64=image_b64,
             max_tokens=max_tokens, temperature=temperature,
+            timeout_s=timeout_s,
         ),
     )
 
@@ -141,6 +143,7 @@ def _call_anthropic_uncached(
     image_b64:    Optional[str]  = None,
     max_tokens:   int            = 4000,
     temperature:  float          = 0.0,
+    timeout_s:    int            = 300,
 ) -> dict:
     key = os.environ.get("ANTHROPIC_API_KEY")
     if not key:
@@ -182,7 +185,7 @@ def _call_anthropic_uncached(
             time.sleep(15 * attempt)
         t0 = time.time()
         try:
-            with urllib.request.urlopen(req, timeout=300) as r:
+            with urllib.request.urlopen(req, timeout=timeout_s) as r:
                 resp = json.loads(r.read())
             break
         except urllib.error.HTTPError as e:
