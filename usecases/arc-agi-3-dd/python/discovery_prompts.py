@@ -94,6 +94,27 @@ CORE REASONING
       you haven't stepped on it, try it.  If CHANGES happen when you
       do, RETRY any previously-gated target next turn.
 
+      MULTI-VISIT TRIGGERS: some triggers require MULTIPLE visits to
+      fully unlock the goal.  If visiting a trigger once causes CHANGES
+      but the goal remains gated, try visiting the SAME trigger AGAIN
+      (step off to an adjacent cell, then step back).  Some levels
+      require 2 or 3 visits to the same trigger.
+
+      DISTINCTIVE TARGETS WORTH PERSISTING: if a visually distinctive
+      icon (a cross, a ring, a switch-like shape) is in TARGETS_ALREADY
+      _TRIED but you have NEVER actually reached it (only been blocked
+      en route), the target CELL itself is usually still passable --
+      the PATH is the problem.  Reach it by approaching from a
+      DIFFERENT neighboring cell than before.  You can navigate to an
+      adjacent passable cell FIRST, then target the distinctive cell
+      from there.
+
+      PICKUPS: some distinctive icons are pickups -- stepping on them
+      typically consumes the icon (it DISAPPEARS in the CHANGES list)
+      and grants a resource (e.g. refills a budget counter).  Watch
+      for counters/bars on the image whose size or color changes as
+      you move; those are likely game-state indicators.
+
   (6) If a distinctive target exists but every path to it is walled,
       target the NEAREST unexplored passable cell first -- you can
       try the distinctive target later from a better position.
@@ -134,6 +155,14 @@ spans multiple cells):
 
 TARGETS_ALREADY_TRIED (cell coordinates; see CORE REASONING rule 4):
 {tried_targets}
+
+PROBE_RESULTS (harness auto-probed the top distinctive components for
+you; each entry shows what happened when the agent tried to reach it):
+{probe_results}
+
+PRIOR_HYPOTHESES (accumulated across earlier sessions -- your OWN past
+guesses about component roles.  Use them, challenge them, refine them.):
+{prior_hypotheses}
 
 RECENT_HISTORY (last {hist_n} turns; CHANGES narrate mechanisms firing):
 {history}

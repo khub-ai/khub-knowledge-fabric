@@ -363,6 +363,126 @@ def _history_text(hist: list[dict], n: int = 3) -> str:
 # than a movement-threshold).  Passable grid is "every cell tentatively
 # passable".  If BFS can't find a path, we return the closest reachable.
 
+def _probe_phase(
+    env,
+    obs,
+    cs:             CellSystem,
+    agent_fp:       tuple[int, int, tuple],
+    agent_cell:     tuple[int, int],
+    comps:          list[dict],
+    cell_actions:   dict[str, tuple[int, int]],
+    walls_cells:    set[tuple[int, int, str]],
+    cell_bounds:    tuple[int, int, int, int],
+    max_probes:     int = 3,
+    max_steps_per_probe: int = 10,
+) -> tuple[list[dict], tuple[int, int], object]:
+    """Harness-autonomous probe of distinctive unknown objects.
+
+    Ranks non-agent components by distinctiveness (rare palette + small
+    size), then for each of the top N, routes the agent to its cell via
+    BFS and records the full before->after frame delta.  This gives
+    TUTOR a baseline for what happens when stepping on unknown icons,
+    WITHOUT requiring TUTOR to burn calls on that.
+
+    Returns:
+      (probe_results, final_agent_cell, final_frame)
+    where each probe_result is a dict with component metadata plus
+    observed effects (reached, diff_cells, disappeared/appeared/moved
+    summaries, obs fields delta).
+    """
+    # Rank non-agent components by distinctiveness.
+    palette_total: dict[int, int] = {}
+    for c in comps:
+        palette_total[c["palette"]] = palette_total.get(c["palette"], 0) + c["size"]
+    candidates = [
+        c for c in components_in_cells(comps, cs)
+        if not (c["palette"] == agent_fp[0] and c["size"] == agent_fp[1]
+                and tuple(c["extent"]) == tuple(agent_fp[2]))
+    ]
+    candidates.sort(key=lambda c: (palette_total[c["palette"]], c["size"]))
+    candidates = candidates[:max_probes]
+
+    results: list[dict] = []
+    cur_cell = agent_cell
+
+    for cand in candidates:
+        target = tuple(cand["cell"])
+        if target == cur_cell:
+            results.append({
+                "component_id":  cand["id"],
+                "palette":       cand["palette"],
+                "size":          cand["size"],
+                "target_cell":   list(target),
+                "reached":       True,
+                "note":          "already at this cell",
+            })
+            continue
+
+        frame_before = _normalise_frame(obs.frame)
+
+        path = _bfs_plan_cells(cur_cell, target, cell_actions, walls_cells,
+                                cell_bounds=cell_bounds, max_steps=20)
+        if not path:
+            results.append({
+                "component_id":  cand["id"],
+                "palette":       cand["palette"],
+                "size":          cand["size"],
+                "target_cell":   list(target),
+                "reached":       False,
+                "note":          "BFS no path",
+            })
+            continue
+
+        lc_before = int(obs.levels_completed)
+        steps_run = 0
+        for action_name in path[:max_steps_per_probe]:
+            act_int = int(action_name.replace("ACTION", ""))
+            obs = env.step(act_int)
+            steps_run += 1
+            cur_frame = _normalise_frame(obs.frame)
+            new_cell = _agent_cell_from_frame(cur_frame, agent_fp, cs)
+            if new_cell is None:
+                break
+            if new_cell == cur_cell:
+                # Blocked -- record wall for future BFS, stop this probe.
+                walls_cells.add((cur_cell[0], cur_cell[1], action_name))
+                break
+            cur_cell = new_cell
+            if obs.state.name != "NOT_FINISHED" or int(obs.levels_completed) > lc_before:
+                break
+            if new_cell == target:
+                break
+
+        frame_after = _normalise_frame(obs.frame)
+        delta = narrate_frame_delta(frame_before, frame_after, agent_fp)
+        diff_cells = int((frame_before != frame_after).sum())
+        lc_after = int(obs.levels_completed)
+        reached = (cur_cell == target)
+        results.append({
+            "component_id":   cand["id"],
+            "palette":        cand["palette"],
+            "size":           cand["size"],
+            "target_cell":    list(target),
+            "reached":        reached,
+            "steps_run":      steps_run,
+            "diff_cells":     diff_cells,
+            "lc_before":      lc_before,
+            "lc_after":       lc_after,
+            "disappeared_n":  len(delta.get("disappeared") or []),
+            "appeared_n":     len(delta.get("appeared")    or []),
+            "moved_n":        len(delta.get("moved")       or []),
+            "disappeared":    delta.get("disappeared") or [],
+            "appeared":       delta.get("appeared")    or [],
+            "moved":          delta.get("moved")       or [],
+        })
+
+        # Early-exit if game ended (WIN / GAME_OVER).
+        if obs.state.name != "NOT_FINISHED":
+            break
+
+    return results, cur_cell, obs
+
+
 def _bfs_plan_cells(
     start_cell:    tuple[int, int],
     target_cell:   tuple[int, int],
@@ -575,12 +695,38 @@ def run_session(
         (int(cr), int(cc), str(a))
         for cr, cc, a in kb.get("walls_by_level_cells", {}).get(level_key, [])
     }
-    blocked_cells: set[tuple[int, int]] = {
-        (int(cr), int(cc))
-        for cr, cc in kb.get("blocked_targets_by_level_cells", {}).get(level_key, [])
-    }
+    # Blocked cells are session-local (not persisted).  "Unreachable with
+    # current walls" often changes as walls invalidate across sessions.
+    # Persisting them just accumulates a long "do not try" list that the
+    # agent has to re-validate anyway.
+    blocked_cells: set[tuple[int, int]] = set()
+    # Load prior hypotheses accumulated by previous sessions (free-form text TUTOR wrote).
+    prior_hypotheses_list: list[str] = list(
+        kb.get("hypotheses_by_level", {}).get(level_key, [])
+    )
+    if prior_hypotheses_list:
+        print(f"[kb] L{level_key}: loaded {len(prior_hypotheses_list)} prior hypotheses")
+
+    # Wall observation bookkeeping (session-local, persisted at end):
+    #   wall_hit_counts: how many times each (cr,cc,action) failed this session.
+    #   new_walls_this_session: walls first observed this session (count = 1+).
+    #   successful_moves: (cr,cc,action) that DID move the agent this session.
+    # Rules:
+    #   - BFS treats walls_cells as impassable (hard).
+    #   - On hit: increment hit count.  Cap: after MAX_NEW_WALLS per session,
+    #     no more hits add walls (prevents poisoning from a single bad run).
+    #   - On success: remove (cr,cc,action) from walls_cells; mark in successful_moves.
+    # At session end:
+    #   - For walls hit 2+ times this session, confirm into KB.
+    #   - For walls hit once: keep in KB only if already there (inherited confirmation).
+    #   - For (cr,cc,action) in successful_moves: remove from KB (it's passable).
+    wall_hit_counts: dict[tuple[int, int, str], int] = {}
+    successful_moves: set[tuple[int, int, str]] = set()
+    MAX_NEW_WALLS_PER_SESSION = 18
+    new_walls_recorded = 0
     print(f"[kb] L{level_key}: {len(walls_cells)} cell-walls, "
-          f"{len(blocked_cells)} blocked-cells loaded")
+          f"{len(blocked_cells)} blocked-cells loaded "
+          f"(session cap on new walls: {MAX_NEW_WALLS_PER_SESSION})")
 
     # ---- LOAD STRICT-MODE SOLUTIONS ----
     solutions_data = _load_strict_solutions(game_id) if (replay_solved or record_solution) else None
@@ -597,11 +743,11 @@ def run_session(
     final_state = "NOT_FINISHED"
     initial_lc = int(obs.levels_completed)
 
-    # For solution recording: accumulate every action executed and the
-    # frame hash seen when the current level started.
     cur_level_steps: list[str] = []
     level_entry_hashes: dict[int, str] = {}
     last_seen_lc = initial_lc   # triggers per-level re-init on change
+    probe_results_by_level: dict[int, list[dict]] = {}
+    probed_levels: set[int] = set()
 
     for turn in range(1, max_turns + 1):
         turns_used = turn
@@ -647,6 +793,46 @@ def run_session(
                   f"origin=({cs.origin_r},{cs.origin_c}) "
                   f"walls={len(walls_cells)} blocked={len(blocked_cells)}")
             last_seen_lc = cur_lc
+
+        # ---- AUTO-PROBE UNKNOWN DISTINCTIVE COMPONENTS ----
+        # Once per level (first entry in this session), try to touch the top-N
+        # distinctive non-agent components to observe their effects.  Zero
+        # LLM cost; saves TUTOR from burning calls on basic exploration.
+        if cur_lc not in probed_levels:
+            probed_levels.add(cur_lc)
+            cell_bounds = (
+                cs.pix_to_cell(0, 0)[0], cs.pix_to_cell(0, 0)[1],
+                cs.pix_to_cell(frame.shape[0] - 1, frame.shape[1] - 1)[0],
+                cs.pix_to_cell(frame.shape[0] - 1, frame.shape[1] - 1)[1],
+            )
+            probe_comps = extract_components(frame, min_size=2)
+            probe_agent_cell = _agent_cell_from_frame(frame, agent_fp, cs)
+            if probe_agent_cell is not None:
+                print(f"[probe] L{cur_lc}: auto-probing top distinctive components...")
+                probe_results, probe_end_cell, probe_end_obs = _probe_phase(
+                    env, obs, cs, agent_fp, probe_agent_cell, probe_comps,
+                    cell_actions, walls_cells, cell_bounds,
+                    max_probes=3, max_steps_per_probe=10,
+                )
+                for r in probe_results:
+                    note = r.get("note", "")
+                    print(f"[probe]   cmp#{r['component_id']} (pal={r['palette']} sz={r['size']}) "
+                          f"-> target={r['target_cell']} reached={r.get('reached')} "
+                          f"diff={r.get('diff_cells','-')} "
+                          f"lc={r.get('lc_before','-')}->{r.get('lc_after','-')} {note}")
+                probe_results_by_level[cur_lc] = probe_results
+                if probe_end_obs is not None:
+                    obs = probe_end_obs
+                    frame = _normalise_frame(obs.frame)
+                    cur_lc = int(obs.levels_completed)
+                # Re-query cur_lc / agent cell etc. below in normal flow.
+                # If probes advanced the level, the next iteration will pick up.
+                if obs.state.name != "NOT_FINISHED":
+                    final_state = obs.state.name
+                    break
+                if cur_lc != last_seen_lc:
+                    # Probes caused a level transition -- loop will re-init.
+                    continue
 
         # ---- REPLAY CHECK ----
         if replay_solved and solutions_data:
@@ -717,6 +903,43 @@ def run_session(
             tried_text_parts.extend(f"    - cell {list(t)}" for t in inert)
         tried_text = "\n".join(tried_text_parts) if tried_text_parts else "  (none yet)"
 
+        prior_hyp_text = (
+            "\n".join(f"  - {h}" for h in prior_hypotheses_list[-8:])
+            if prior_hypotheses_list else "  (none yet -- this is the first session on this level)"
+        )
+
+        # Format probe results for this level (if any).
+        pr = probe_results_by_level.get(cur_lc, [])
+        if pr:
+            probe_lines = []
+            for r in pr:
+                if not r.get("reached", False):
+                    probe_lines.append(
+                        f"  cmp#{r['component_id']} pal={r['palette']} sz={r['size']} "
+                        f"at cell {r['target_cell']}: UNREACHABLE ({r.get('note','')})"
+                    )
+                    continue
+                parts = [
+                    f"  cmp#{r['component_id']} pal={r['palette']} sz={r['size']} "
+                    f"at cell {r['target_cell']}: REACHED",
+                    f"    lc {r.get('lc_before')}->{r.get('lc_after')}",
+                    f"    diff_cells={r.get('diff_cells')} "
+                    f"(disappeared={r.get('disappeared_n',0)} "
+                    f"appeared={r.get('appeared_n',0)} "
+                    f"moved={r.get('moved_n',0)})"
+                ]
+                # Annotate what disappeared if useful.
+                for d in (r.get("disappeared") or [])[:2]:
+                    parts.append(f"    DISAPPEARED: pal={d['palette']} sz={d['size']} "
+                                 f"centroid={d['centroid']}")
+                for d in (r.get("appeared") or [])[:2]:
+                    parts.append(f"    APPEARED: pal={d['palette']} sz={d['size']} "
+                                 f"centroid={d['centroid']}")
+                probe_lines.append("\n".join(parts))
+            probe_text = "\n".join(probe_lines)
+        else:
+            probe_text = "  (no probes run this level)"
+
         user_msg = USER_DISCOVERY_TEMPLATE.format(
             turn            = turn,
             state           = obs.state.name,
@@ -730,6 +953,8 @@ def run_session(
             agent_extent    = agent_comp["extent"] if agent_comp else "?",
             action_effects  = _action_effects_text(action_effects, cs),
             components      = _components_summary(comps, agent_fp, cs),
+            probe_results   = probe_text,
+            prior_hypotheses = prior_hyp_text,
             hist_n          = min(3, len(history)),
             history         = _history_text(history),
             tried_targets   = tried_text,
@@ -865,8 +1090,13 @@ def run_session(
         lc_before = int(obs.levels_completed)
         cur_cell = agent_cell
         exec_frame_before = frame.copy()
-        _MAX_REROUTES = 4
-        _MAX_TOTAL_STEPS = 35
+        _MAX_REROUTES = 3
+        # Per-command step cap.  Keep conservative so a single misguided
+        # MOVE_TO doesn't drain budget and trigger a level reset.  At
+        # cell_size=5 pixels/step and ~2 budget/action, 15 actions = 30
+        # budget consumed per turn max -- leaves headroom for turn budget
+        # of 42 in ls20.
+        _MAX_TOTAL_STEPS = 15
         total_steps_this_cmd = 0
         reroutes_done = 0
         current_plan = list(path)
@@ -881,7 +1111,17 @@ def run_session(
             if new_cell is None:
                 break
             if new_cell == cur_cell:
-                walls_cells.add((cur_cell[0], cur_cell[1], action_name))
+                # Move failed -- agent didn't budge.
+                wall_key = (cur_cell[0], cur_cell[1], action_name)
+                wall_hit_counts[wall_key] = wall_hit_counts.get(wall_key, 0) + 1
+                # Add to wall set (BFS avoidance) unless we're past the
+                # session cap on NEW walls (prevents poisoning).
+                if wall_key not in walls_cells and new_walls_recorded < MAX_NEW_WALLS_PER_SESSION:
+                    walls_cells.add(wall_key)
+                    new_walls_recorded += 1
+                elif wall_key not in walls_cells:
+                    # Capped: don't re-learn as wall.  BFS may keep trying it.
+                    pass
                 if reroutes_done < _MAX_REROUTES:
                     reroutes_done += 1
                     current_plan = _bfs_plan_cells(
@@ -890,6 +1130,12 @@ def run_session(
                     ) or []
                     continue
                 break
+            # Move succeeded: (cur_cell, action) is passable.  Invalidate any
+            # stale wall at that location (this is how we recover from
+            # false-positive walls recorded in earlier sessions).
+            success_key = (cur_cell[0], cur_cell[1], action_name)
+            successful_moves.add(success_key)
+            walls_cells.discard(success_key)
             cur_cell = new_cell
             if obs.state.name != "NOT_FINISHED" or int(obs.levels_completed) > lc_before:
                 break
@@ -919,6 +1165,14 @@ def run_session(
             "delta":            delta,
             "cost_usd":         cost,
         })
+
+        # Accumulate TUTOR's hypotheses for cross-session persistence.
+        hyp_text = cmd.get("hypotheses")
+        if isinstance(hyp_text, str) and hyp_text.strip():
+            # Tag with turn for traceability; dedupe against existing list.
+            hyp_entry = f"(turn {turn}, L{lc_before}): {hyp_text.strip()[:300]}"
+            if hyp_entry not in prior_hypotheses_list:
+                prior_hypotheses_list.append(hyp_entry)
 
         turn_record["metadata"].update({
             "advanced_level":     lc_after > lc_before,
@@ -1008,12 +1262,37 @@ def run_session(
     }
     kb.setdefault("walls_by_level_cells", {})
     kb.setdefault("blocked_targets_by_level_cells", {})
-    merged_walls = {(int(cr), int(cc), str(a)) for cr, cc, a in
-                    kb["walls_by_level_cells"].get(level_key, [])} | walls_cells
+    # Merge walls into KB with a 2-strike confirmation rule:
+    #   - Remove any walls we OBSERVED the agent move through successfully.
+    #   - Add walls that were hit 2+ times this session (confirmed).
+    #   - Walls already in KB that were hit 1x stay (already confirmed).
+    #   - Walls hit only 1x for the first time this session are NOT persisted
+    #     (too uncertain; the failure may have been circumstantial).
+    existing_walls = {
+        (int(cr), int(cc), str(a))
+        for cr, cc, a in kb["walls_by_level_cells"].get(level_key, [])
+    }
+    # Remove invalidated walls.
+    merged_walls = existing_walls - successful_moves
+    # Add confirmed walls from this session.
+    confirmed_this_session = {k for k, n in wall_hit_counts.items() if n >= 2}
+    # For walls hit 1x: only keep if they were in the KB already (implicit re-confirmation).
+    once_hit_this_session = {k for k, n in wall_hit_counts.items() if n == 1}
+    reconfirmed = once_hit_this_session & existing_walls
+    merged_walls |= confirmed_this_session
+    # (reconfirmed is already in merged_walls via existing_walls - successful_moves
+    #  minus nothing; the 1x hits add no new info but don't reduce either.)
     kb["walls_by_level_cells"][level_key] = sorted([list(w) for w in merged_walls])
-    kb["blocked_targets_by_level_cells"][level_key] = sorted(
-        [list(t) for t in session_blocked_cells]
-    )
+    # NOTE: blocked_cells are NOT persisted across sessions (they are
+    # "unreachable with current walls", which changes).  Walls persist.
+    kb["blocked_targets_by_level_cells"][level_key] = []   # always clear
+    # Persist TUTOR's hypotheses across sessions (cap at last 40 to bound growth).
+    kb.setdefault("hypotheses_by_level", {})[level_key] = prior_hypotheses_list[-40:]
+    n_invalidated = len(existing_walls & successful_moves)
+    n_new_confirmed = len(confirmed_this_session - existing_walls)
+    print(f"[kb] wall changes: +{n_new_confirmed} confirmed, "
+          f"-{n_invalidated} invalidated by successful moves, "
+          f"{len(once_hit_this_session)} single hits ignored")
     _save_kb(game_id, kb)
     print(f"[kb] saved: {len(merged_walls)} cell-walls, "
           f"{len(session_blocked_cells)} blocked-cells for L{level_key}")

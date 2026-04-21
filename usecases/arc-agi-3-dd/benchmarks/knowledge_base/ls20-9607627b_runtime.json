@@ -21,6 +21,16 @@
   "walls_by_level_cells": {
     "0": [
       [
+        -6,
+        0,
+        "ACTION4"
+      ],
+      [
+        -5,
+        0,
+        "ACTION4"
+      ],
+      [
         -4,
         -3,
         "ACTION1"
@@ -143,134 +153,19 @@
     ],
     "1": [
       [
-        -6,
-        -1,
-        "ACTION2"
-      ],
-      [
-        -6,
-        2,
-        "ACTION2"
-      ],
-      [
         -5,
         -2,
         "ACTION4"
       ],
       [
-        -5,
-        0,
-        "ACTION3"
-      ],
-      [
-        -5,
-        1,
-        "ACTION4"
-      ],
-      [
-        -5,
-        3,
-        "ACTION2"
-      ],
-      [
-        -5,
-        3,
-        "ACTION3"
-      ],
-      [
-        -4,
-        -2,
-        "ACTION2"
-      ],
-      [
-        -4,
-        -2,
-        "ACTION4"
-      ],
-      [
-        -4,
-        0,
-        "ACTION2"
-      ],
-      [
-        -4,
-        0,
-        "ACTION3"
-      ],
-      [
         -4,
         1,
         "ACTION4"
       ],
       [
-        -4,
-        5,
-        "ACTION4"
-      ],
-      [
         -3,
         -3,
         "ACTION4"
-      ],
-      [
-        -3,
-        1,
-        "ACTION3"
-      ],
-      [
-        -3,
-        2,
-        "ACTION1"
-      ],
-      [
-        -3,
-        2,
-        "ACTION4"
-      ],
-      [
-        -3,
-        5,
-        "ACTION2"
-      ],
-      [
-        -3,
-        5,
-        "ACTION4"
-      ],
-      [
-        -2,
-        -3,
-        "ACTION3"
-      ],
-      [
-        -2,
-        -3,
-        "ACTION4"
-      ],
-      [
-        -2,
-        1,
-        "ACTION3"
-      ],
-      [
-        -2,
-        2,
-        "ACTION2"
-      ],
-      [
-        -2,
-        2,
-        "ACTION4"
-      ],
-      [
-        -2,
-        4,
-        "ACTION4"
-      ],
-      [
-        -1,
-        -3,
-        "ACTION2"
       ],
       [
         -1,
@@ -285,27 +180,7 @@
       [
         -1,
         0,
-        "ACTION1"
-      ],
-      [
-        -1,
-        0,
         "ACTION3"
-      ],
-      [
-        -1,
-        1,
-        "ACTION4"
-      ],
-      [
-        -1,
-        5,
-        "ACTION1"
-      ],
-      [
-        -1,
-        5,
-        "ACTION4"
       ],
       [
         0,
@@ -316,103 +191,14 @@
         0,
         0,
         "ACTION3"
-      ],
-      [
-        0,
-        1,
-        "ACTION2"
-      ],
-      [
-        0,
-        1,
-        "ACTION4"
-      ],
-      [
-        0,
-        5,
-        "ACTION4"
-      ],
-      [
-        1,
-        5,
-        "ACTION4"
-      ],
-      [
-        2,
-        2,
-        "ACTION2"
-      ],
-      [
-        2,
-        2,
-        "ACTION3"
-      ],
-      [
-        2,
-        3,
-        "ACTION2"
-      ],
-      [
-        2,
-        4,
-        "ACTION2"
-      ],
-      [
-        2,
-        5,
-        "ACTION2"
-      ],
-      [
-        2,
-        5,
-        "ACTION4"
       ]
     ]
   },
   "blocked_targets_by_level_cells": {
-    "0": [
-      [
-        -7,
-        0
-      ]
-    ],
-    "1": [
-      [
-        0,
-        -3
-      ],
-      [
-        1,
-        2
-      ],
-      [
-        1,
-        4
-      ],
-      [
-        2,
-        2
-      ],
-      [
-        3,
-        1
-      ],
-      [
-        3,
-        2
-      ],
-      [
-        4,
-        5
-      ],
-      [
-        4,
-        6
-      ]
-    ]
+    "1": []
   },
   "note": "Strict mode, cell-coordinate KB. Pixel-coord walls/blocked were archived to .legacy.json.",
-  "last_updated": "2026-04-21T02:35:00Z",
+  "last_updated": "2026-04-21T03:05:05Z",
   "walls_by_level": {},
   "blocked_targets_by_level": {},
   "agent_fingerprint": [
@@ -430,5 +216,17 @@
       31
     ],
     "level_key": "1"
+  },
+  "hypotheses_by_level": {
+    "1": [
+      "(turn 2, L1): #12/#13=yellow square pickups or goals, #19=white cross trigger/switch, #14=orange figure possibly agent-related, yellow bar at bottom=move budget",
+      "(turn 3, L1): #11=yellow square pickup/goal at [-5,-3], #18=white cross trigger at [1,4], #9=orange agent-related component, yellow bar=move budget counter",
+      "(turn 4, L1): #11/#12=yellow square goals/pickups (unreachable until triggered), #18=white cross trigger, #13=orange figure possibly a trigger/switch, yellow bar=move budget",
+      "(turn 5, L1): #11/#12=yellow square goals/pickups, #18=white cross trigger/switch, #13=orange figure trigger, yellow bar=move budget counter",
+      "(turn 6, L1): #8=orange pickup/trigger below me, #18=white cross switch (unreachable), #10/#11=yellow square goals, yellow bar=move budget",
+      "(turn 7, L1): #12/#13=yellow square goals/pickups, #19=white cross trigger, #10=orange component below me possibly a trigger, yellow bar=move budget counter",
+      "(turn 8, L1): #11=yellow square goal/pickup, #17=white cross trigger/switch, #9=orange component possibly a moving entity, yellow bar=move budget counter",
+      "(turn 9, L1): #16=white cross trigger/switch (unreachable), #10=yellow square goal/pickup, #8=orange moving entity/trigger, #13=goal component"
+    ]
   }
 }
