@@ -1384,6 +1384,13 @@ def run_session(
         latest_td_dir = td_dir.parent / "latest_strict"
         _mirror_to_latest(td_dir, latest_td_dir)
         print(f"[latest-mirror] training_data -> {latest_td_dir}")
+        # Render a readable HTML trace view.
+        try:
+            from render_strict_trace import render
+            trace_path = render(latest_td_dir)
+            print(f"[trace] HTML trace -> file:///{trace_path.as_posix()}")
+        except Exception as e:
+            print(f"[trace] render failed: {e}")
 
     return result
 
