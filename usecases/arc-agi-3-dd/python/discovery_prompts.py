@@ -50,38 +50,48 @@ CORE REASONING (apply in order):
   (1) IDENTIFY THE AGENT from motion.  The "AGENT" block in your input
       names it.  Everything else is unknown until proven otherwise.
 
-  (2) TARGETS_ALREADY_TRIED is DIAGNOSTIC, not just a blacklist:
-      (a) If a target was REACHED but levels_completed did NOT advance,
-          it might just be scenery -- pick something else.
-      (b) If a target was NEVER REACHED (wall-blocked partway), then
-          EITHER the direct path is walled (try approaching from a
-          different angle) OR the target cell itself is GATED (the game
-          is enforcing a precondition).  Gated cells are often the
-          "goal" -- you need to unlock them first.
-      (c) A target that's been tried 2+ times and consistently fails is
-          ALMOST CERTAINLY GATED.  Do not retry until you've activated
-          something else.
+  (2) READ THE CHANGES BLOCK CAREFULLY.  Each history entry includes
+      CHANGES: what components appeared, disappeared, or moved (other
+      than the agent) between before and after that turn's command.
+      These are the MECHANISMS in action.  Examples:
+        - A component DISAPPEARING = you collected/consumed something.
+        - A component APPEARING = you triggered a spawn or unlocking.
+        - A non-agent component MOVING = the game reacted to your move.
+      These changes matter EVEN IF reached=False and lc did not advance.
+      The mechanism fired; the consequence may unlock things next turn.
 
-  (3) TRIGGER HYPOTHESIS.  Many grid games require stepping on a
-      "trigger" cell BEFORE the goal becomes passable.  Triggers tend
-      to be: small (<=10 cells), rare palette (pal_total low),
-      positioned away from the agent's direct path to the goal.
-      If you suspect a goal is gated, look through the COMPONENTS list
-      for the most distinctive candidates and try those FIRST.
+  (3) NEAR-MISS TRIGGER DETECTION.  If on a turn:
+        reached=False AND agent_end is ADJACENT to your target
+        AND frame_diff_cells was HIGHER than typical (> ~55)
+      then you likely STEPPED ON THE TARGET CELL or its sprite during
+      the path and triggered whatever it does, even though your
+      centroid stopped short.  Treat that target as ACTIVATED.
 
-  (4) REACHABILITY MATTERS MORE THAN BEAUTY.  If target X is distinctive
-      but every path to it is walled, target the NEAREST unexplored
-      passable region instead -- you can always try X later from a
-      better position.
+  (4) TARGETS_ALREADY_TRIED is DIAGNOSTIC, not just a blacklist:
+      (a) REACHED-but-no-advance: probably scenery, skip it.
+      (b) WALL-BLOCKED partway: either a path issue OR the target is
+          GATED.  Gated cells are often the GOAL -- unlock them first.
+      (c) A target that failed 2+ times with no delta changes is
+          almost certainly gated.  DO NOT retry until you've triggered
+          something that could unlock it.
 
-  (5) AFTER EACH MOVE: compare "what_should_change" to what actually
-      changed.  Surprising changes (components appearing, disappearing,
-      changing palette) are evidence of triggered mechanics -- update
-      your hypotheses in the next turn's rationale.
+  (5) TRIGGER-THEN-GOAL LOOP.  The classic grid-game pattern is:
+      step on a TRIGGER (small rare-palette component) -> some GATE
+      opens -> previously-blocked GOAL becomes reachable.  So:
+        - If a distinctive small component is on the map, treat it as a
+          candidate trigger and visit it first.
+        - IMMEDIATELY after visiting a candidate trigger (especially
+          when you observed CHANGES or a high frame_diff), RETRY the
+          previously-gated target on your next turn.
 
-  (6) NEVER repeat a target in TARGETS_ALREADY_TRIED on the same turn's
-      conditions.  If you must retry later, only do so after visiting
-      a candidate trigger.
+  (6) REACHABILITY MATTERS.  If target X is distinctive but every path
+      to it is walled, target the NEAREST unexplored passable region
+      instead -- you can always try X later from a better position.
+
+  (7) DO NOT repeat a target in TARGETS_ALREADY_TRIED unless the
+      CHANGES block shows something significant happened since the
+      last attempt (a trigger fired, an element disappeared).  In that
+      case, retrying is justified and expected.
 
 DISCOVERY BUDGET.  Each turn costs money and game budget.  Favor the
 HIGHEST-EXPECTED-INFO move: the one whose outcome, success or failure,

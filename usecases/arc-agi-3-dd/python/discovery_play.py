@@ -48,7 +48,7 @@ sys.path.insert(0, str(ARC_REPO))
 from arc_agi import Arcade, OperationMode                           # noqa: E402
 
 from dsl_executor import _normalise_frame                           # noqa: E402
-from pixel_elements import extract_components, summarize_frame       # noqa: E402
+from pixel_elements import extract_components, summarize_frame, narrate_frame_delta  # noqa: E402
 from discovery_bootstrap import bootstrap_action_effects             # noqa: E402
 from discovery_prompts import SYSTEM_DISCOVERY, USER_DISCOVERY_TEMPLATE  # noqa: E402
 import backends                                                      # noqa: E402
@@ -141,12 +141,35 @@ def _history_text(hist: list[dict], n: int = 3) -> str:
     lines = []
     for h in hist[-n:]:
         lines.append(
-            f"  turn {h['turn']}: MOVE_TO {h.get('target')} -> "
+            f"  turn {h['turn']}: MOVE_TO {h.get('target')} "
             f"reached={h.get('reached')} "
+            f"agent_end={h.get('cur_pos')} "
             f"lc={h.get('lc_before')}->{h.get('lc_after')} "
-            f"frame_change={h.get('frame_diff_cells')} "
-            f"rationale='{h.get('rationale', '')[:60]}'"
+            f"frame_diff_cells={h.get('frame_diff_cells')}"
         )
+        # Narrate any observed component changes.  Brief but concrete.
+        delta = h.get("delta") or {}
+        if delta.get("disappeared"):
+            dstr = ", ".join(
+                f"pal={d['palette']} sz={d['size']} @{d['centroid']}"
+                for d in delta["disappeared"][:3]
+            )
+            lines.append(f"    CHANGES disappeared: {dstr}")
+        if delta.get("appeared"):
+            astr = ", ".join(
+                f"pal={d['palette']} sz={d['size']} @{d['centroid']}"
+                for d in delta["appeared"][:3]
+            )
+            lines.append(f"    CHANGES appeared: {astr}")
+        if delta.get("moved"):
+            mstr = ", ".join(
+                f"pal={d['palette']} sz={d['size']} {d['from']}->{d['to']}"
+                for d in delta["moved"][:3]
+            )
+            lines.append(f"    CHANGES moved (non-agent): {mstr}")
+        rat = h.get("rationale") or ""
+        if rat:
+            lines.append(f"    rationale: '{rat[:80]}'")
     return "\n".join(lines)
 
 
@@ -490,15 +513,19 @@ def run_session(
         reached = (cur_pos == target_t)
         frame_after = _normalise_frame(obs.frame)
         diff_cells = int(np.sum(exec_frame_before != frame_after))
+        # Narrate component-level changes for the next turn's history view.
+        delta = narrate_frame_delta(exec_frame_before, frame_after, agent_fp)
         history.append({
             "turn":             turn,
             "target":           list(target_t),
             "reached":          reached,
+            "cur_pos":          list(cur_pos) if cur_pos else None,
             "rationale":        rationale,
             "revise":           revise,
             "lc_before":        lc_before,
             "lc_after":         lc_after,
             "frame_diff_cells": diff_cells,
+            "delta":            delta,
             "cost_usd":         cost,
         })
         print(f"[turn {turn}] executed {len(path)}-step path; "
