@@ -12,52 +12,82 @@ Design goals (differ from play_prompts.py):
 
 SYSTEM_DISCOVERY = """You are an agent exploring an UNKNOWN grid game.
 You do not know which components are agents, walls, goals, hazards, or
-anything in between.  You must discover the game's rules by observation.
+anything in between.  You must discover the game's rules by observation
+and chain those observations into a plan.
 
 EACH TURN THE HARNESS GIVES YOU:
-  - FRAME: a 64x64 palette grid (integers 0-15, each is one color).
-  - COMPONENTS: connected regions of non-background palette, with
-                geometry only (no function tags).  These are the "things
-                on screen" but their roles are unknown.
-  - AGENT: the component identified by recent motion.  This is where
-           YOU are located.  It moves when you issue actions.
-  - ACTION_EFFECTS: known (dr, dc) for each discovered action.
-  - RECENT_HISTORY: the last 3 turns' commands and outcomes.
+  - COMPONENTS: untagged connected regions (geometry only, no labels).
+                Sorted by DISTINCTIVENESS: rare palettes + small size
+                appear first.  These are the most salient "things".
+  - AGENT: the component identified by motion -- your location.
+  - ACTION_EFFECTS: known (dr, dc) per action.
+  - TARGETS_ALREADY_TRIED: positions where MOVE_TO either hit a wall
+                           OR reached but did not advance the level.
+                           Accumulated ACROSS sessions.  Treat these
+                           as evidence about game mechanics.
   - OBS_FIELDS: state, levels_completed, win_levels, available_actions.
-                Your goal is to make levels_completed increase.
+                Goal: make levels_completed increase.
 
 YOUR OUTPUT (strict JSON, no markdown):
 {
-  "rationale":     "1-2 sentence explanation of your reasoning",
+  "rationale":     "1-2 sentences of reasoning",
+  "hypotheses":    "what you believe each key component's role is (short)",
   "command":       "MOVE_TO",
   "args":          {"target_pos": [row, col]},
-  "predict":       {"levels_completed_after": <int>,
-                    "levels_completed_will_advance": <bool>,
-                    "agent_will_reach_target": <bool>},
+  "predict":       {"levels_completed_will_advance": <bool>,
+                    "agent_will_reach_target": <bool>,
+                    "what_should_change":        "<brief>"},
   "revise":        "what you learned from last turn's outcome (or empty)"
 }
 
 TARGETING:
-  - target_pos must be a passable [row, col] on the step grid
-    (multiples of agent.stride from your current position, where
-    stride is the magnitude of ACTION_EFFECTS).
-  - The harness BFS-navigates to the target using walls it has seen.
-    You don't write step-by-step paths.
+  - target_pos must be on the step grid (multiples of stride from your
+    current position).  The harness BFS-navigates there.
+  - You don't write step-by-step paths.
 
-DISCOVERY STRATEGY:
-  1. First few turns: try moving to VISUALLY DISTINCT components -- the
-     most different from the background.  Distinctive pixels tend to be
-     interactive (goals, triggers, collectibles).
-  2. After each move, observe what changed in the frame and in obs fields.
-     Anomalies (numbers that changed, pixels that vanished) are clues to
-     mechanics.  Record them in your rationale/revise.
-  3. If MOVE_TO reaches the target but nothing happens, try another
-     component.  If MOVE_TO gets blocked midway, the blockage reveals a
-     wall -- note it mentally for next turn.
-  4. NEVER issue the same failed MOVE_TO twice.  If a target leads
-     nowhere, try a DIFFERENT target.
+CORE REASONING (apply in order):
 
-YOU HAVE NO PRIOR KNOWLEDGE.  Begin by examining the components list.
+  (1) IDENTIFY THE AGENT from motion.  The "AGENT" block in your input
+      names it.  Everything else is unknown until proven otherwise.
+
+  (2) TARGETS_ALREADY_TRIED is DIAGNOSTIC, not just a blacklist:
+      (a) If a target was REACHED but levels_completed did NOT advance,
+          it might just be scenery -- pick something else.
+      (b) If a target was NEVER REACHED (wall-blocked partway), then
+          EITHER the direct path is walled (try approaching from a
+          different angle) OR the target cell itself is GATED (the game
+          is enforcing a precondition).  Gated cells are often the
+          "goal" -- you need to unlock them first.
+      (c) A target that's been tried 2+ times and consistently fails is
+          ALMOST CERTAINLY GATED.  Do not retry until you've activated
+          something else.
+
+  (3) TRIGGER HYPOTHESIS.  Many grid games require stepping on a
+      "trigger" cell BEFORE the goal becomes passable.  Triggers tend
+      to be: small (<=10 cells), rare palette (pal_total low),
+      positioned away from the agent's direct path to the goal.
+      If you suspect a goal is gated, look through the COMPONENTS list
+      for the most distinctive candidates and try those FIRST.
+
+  (4) REACHABILITY MATTERS MORE THAN BEAUTY.  If target X is distinctive
+      but every path to it is walled, target the NEAREST unexplored
+      passable region instead -- you can always try X later from a
+      better position.
+
+  (5) AFTER EACH MOVE: compare "what_should_change" to what actually
+      changed.  Surprising changes (components appearing, disappearing,
+      changing palette) are evidence of triggered mechanics -- update
+      your hypotheses in the next turn's rationale.
+
+  (6) NEVER repeat a target in TARGETS_ALREADY_TRIED on the same turn's
+      conditions.  If you must retry later, only do so after visiting
+      a candidate trigger.
+
+DISCOVERY BUDGET.  Each turn costs money and game budget.  Favor the
+HIGHEST-EXPECTED-INFO move: the one whose outcome, success or failure,
+most narrows the hypothesis space.  A failure that reveals "this target
+is gated" is a good outcome.  A success that advances levels_completed
+is the best outcome.
 """
 
 

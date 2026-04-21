@@ -236,6 +236,36 @@ def _agent_cursor_from_frame(
 # Main play loop
 # ---------------------------------------------------------------------------
 
+def _kb_runtime_path(game_id: str) -> Path:
+    return HERE.parent / "benchmarks" / "knowledge_base" / f"{game_id}_runtime.json"
+
+
+def _load_kb(game_id: str) -> dict:
+    """Load accumulated cross-session knowledge.
+
+    Strict-mode KB fields (all fields pixel/obs-derived, no env._game):
+      action_effects_learned:  {"ACTION1": [dr, dc], ...}
+      walls_by_level:          {"0": [[r, c, action], ...], ...}
+      agent_fingerprint:       [palette, size, [h, w]]   (inferred from motion)
+      blocked_targets_by_level:{"0": [[r, c], ...], ...} (MOVE_TO failed to advance lc)
+      last_updated:            ISO timestamp
+    """
+    p = _kb_runtime_path(game_id)
+    if not p.exists():
+        return {}
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def _save_kb(game_id: str, kb: dict) -> None:
+    p = _kb_runtime_path(game_id)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    kb["last_updated"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    p.write_text(json.dumps(kb, indent=2), encoding="utf-8")
+
+
 def run_session(
     game_id:        str,
     max_turns:      int = 8,
@@ -260,24 +290,55 @@ def run_session(
         log_path = None
         manifest_path = None
 
-    # ---- BOOTSTRAP (no LLM) ----
-    available = [int(a) for a in obs.available_actions if int(a) != 0]
-    print(f"[strict] probing actions {available}...")
-    boot = bootstrap_action_effects(env, _normalise_frame, available)
-    action_effects: dict[str, tuple[int, int]] = {
-        a: tuple(e) for a, e in boot["action_effects_learned"].items()
+    # ---- LOAD ACCUMULATED KB ----
+    kb = _load_kb(game_id)
+    kb.setdefault("action_effects_learned", {})
+    kb.setdefault("walls_by_level", {})
+    kb.setdefault("blocked_targets_by_level", {})
+    prior_effects = {
+        a: tuple(e) for a, e in kb.get("action_effects_learned", {}).items()
     }
-    print(f"[strict] action_effects learned: {action_effects}")
-    agent_fp = None
-    if boot["agent_candidates"]:
-        agent_fp = boot["agent_candidates"][0][0]   # top consensus fingerprint
-        print(f"[strict] agent fingerprint: palette={agent_fp[0]} size={agent_fp[1]} extent={agent_fp[2]}")
+    prior_fp_raw = kb.get("agent_fingerprint")
+    prior_agent_fp = (
+        (int(prior_fp_raw[0]), int(prior_fp_raw[1]), tuple(prior_fp_raw[2]))
+        if prior_fp_raw else None
+    )
+    print(f"[kb] loaded action_effects={prior_effects} agent_fp={prior_agent_fp}")
 
-    # Post-bootstrap state
-    obs_after_boot = env.reset()   # reset after probing so turn 1 starts at spawn
-    frame = _normalise_frame(obs_after_boot.frame)
-    obs = obs_after_boot
-    walls: set[tuple[int, int, str]] = set()
+    # ---- BOOTSTRAP (no LLM) ----
+    # Skip bootstrap entirely if we already know all 4 directional actions.
+    available = [int(a) for a in obs.available_actions if int(a) != 0]
+    need_bootstrap = any(f"ACTION{a}" not in prior_effects for a in available)
+
+    if need_bootstrap:
+        print(f"[strict] bootstrap probing actions {available}...")
+        boot = bootstrap_action_effects(env, _normalise_frame, available)
+        learned = {a: tuple(e) for a, e in boot["action_effects_learned"].items()}
+        action_effects = {**prior_effects, **learned}
+        agent_fp = prior_agent_fp
+        if not agent_fp and boot["agent_candidates"]:
+            agent_fp = boot["agent_candidates"][0][0]
+        print(f"[strict] action_effects now: {action_effects}")
+        if agent_fp:
+            print(f"[strict] agent fingerprint: palette={agent_fp[0]} size={agent_fp[1]} extent={agent_fp[2]}")
+    else:
+        print(f"[kb] skipping bootstrap -- all actions already known")
+        action_effects = dict(prior_effects)
+        agent_fp = prior_agent_fp
+
+    # Reset env so turn 1 starts at spawn (bootstrap may have moved us).
+    obs = env.reset()
+    frame = _normalise_frame(obs.frame)
+
+    # ---- WALLS & BLOCKED-TARGETS FROM KB ----
+    level_key = str(int(obs.levels_completed))
+    walls: set[tuple[int, int, str]] = {
+        (int(r), int(c), str(a)) for r, c, a in kb.get("walls_by_level", {}).get(level_key, [])
+    }
+    blocked_targets: set[tuple[int, int]] = {
+        (int(r), int(c)) for r, c in kb.get("blocked_targets_by_level", {}).get(level_key, [])
+    }
+    print(f"[kb] L{level_key}: {len(walls)} walls, {len(blocked_targets)} blocked targets loaded")
 
     # ---- TURN LOOP ----
     history: list[dict] = []
@@ -306,15 +367,16 @@ def run_session(
                           and c["size"] == agent_fp[1]
                           and tuple(c["extent"]) == tuple(agent_fp[2])), None)
 
-        # Build tried-targets list (failed or no-advance targets this session).
-        tried = []
+        # Combine this-session failures with cross-session persistent blocked-targets.
+        tried_set: set[tuple[int, int]] = set(blocked_targets)
         for h in history:
             if not h.get("reached") or h.get("lc_after", 0) <= h.get("lc_before", 0):
                 t = h.get("target")
-                if t and tuple(t) not in {tuple(x) for x in tried}:
-                    tried.append(list(t))
+                if t:
+                    tried_set.add((int(t[0]), int(t[1])))
+        tried = sorted(tried_set)
         tried_text = "  (none yet)" if not tried else \
-            "\n".join(f"  - {t}" for t in tried)
+            "\n".join(f"  - {list(t)}" for t in tried)
 
         user_msg = USER_DISCOVERY_TEMPLATE.format(
             turn            = turn,
@@ -465,6 +527,32 @@ def run_session(
             break
 
     # ---- WRAP-UP ----
+    # Update blocked_targets for this level (failed MOVE_TOs this session).
+    session_blocked = set(blocked_targets)
+    for h in history:
+        if not h.get("reached") or h.get("lc_after", 0) <= h.get("lc_before", 0):
+            t = h.get("target")
+            if t:
+                session_blocked.add((int(t[0]), int(t[1])))
+    # But DO NOT persist any target reached on a turn where lc advanced --
+    # clearly not "blocked" in the gating sense.  The loop above already
+    # filtered those out.
+
+    # ---- PERSIST KB (cross-session accumulation) ----
+    kb["action_effects_learned"] = {a: list(e) for a, e in action_effects.items()}
+    if agent_fp is not None:
+        kb["agent_fingerprint"] = [agent_fp[0], agent_fp[1], list(agent_fp[2])]
+    # Merge walls (this session's walls + prior KB walls for this level).
+    kb_walls = kb["walls_by_level"].get(level_key, [])
+    existing_walls = {(int(r), int(c), str(a)) for r, c, a in kb_walls}
+    merged_walls = existing_walls | walls
+    kb["walls_by_level"][level_key] = sorted([list(w) for w in merged_walls])
+    # Merge blocked targets.
+    kb["blocked_targets_by_level"][level_key] = sorted([list(t) for t in session_blocked])
+    _save_kb(game_id, kb)
+    print(f"[kb] saved: {len(merged_walls)} walls, {len(session_blocked)} "
+          f"blocked targets for L{level_key}")
+
     result = {
         "game_id":             game_id,
         "outcome":             "LEVEL_ADVANCED" if level_advanced else "NO_ADVANCE",
@@ -475,12 +563,16 @@ def run_session(
         "cost_usd_total":      round(cost_usd_total, 4),
         "action_effects":      {a: list(e) for a, e in action_effects.items()},
         "walls_learned":       [list(w) for w in walls],
+        "walls_total_in_kb":   len(merged_walls),
+        "blocked_targets":     sorted([list(t) for t in session_blocked]),
+        "bootstrap_skipped":   not need_bootstrap,
         "history":             history,
     }
     print("\n" + "=" * 60)
     print(f"RESULT: {result['outcome']}  turns={result['turns_used']} "
           f"lc={result['initial_lc']}->{result['final_lc']} "
           f"cost=${result['cost_usd_total']:.4f}")
+    print(f"KB: walls={result['walls_total_in_kb']} blocked_targets={len(result['blocked_targets'])}")
     print("=" * 60)
 
     if manifest_path:
